@@ -1,0 +1,15 @@
+// helium fib.he | clang -xc - && ./a.out
+
+@import_c("stdio.h");
+
+pub fn main() -> i32 {
+    let number = fib(11);
+    printf("fib: %d\n", number);
+}
+
+fn fib(n: u32) -> u32 {
+    if n <= 1 {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}

@@ -1,0 +1,84 @@
+// helium inline_c.he | clang -xc - && ./a.out
+
+@import_c("fcntl.h");
+@import_c("stdio.h");
+@import_c("errno.h");
+@import_c("string.h");
+@import_c("sys/mman.h");
+@import_c("sys/stat.h");
+@import_c("unistd.h");
+
+inline_c typedef c_string* c_string_array;
+pub fn main(argc: i32, argv: c_string_array) -> i32 {
+    if argc < 2 {
+        let program_name = inline_c argv[0];
+        printf("USAGE: %s file\n", program_name);
+        return 1;
+    }
+
+    let file_path = inline_c argv[1];
+    let file = open_file(file_path);
+    let size = inline_c sizeof(file);
+    if memcmp(&file, &file_invalid, size) == 0 {
+        perror("open_file");
+        return 1;
+    }
+    dump_file(file);
+    close_file(file);
+
+    return 0;
+}
+
+fn open_file(path: c_string) -> File {
+    let fd = open(path, O_RDONLY);
+    if fd < 0 {
+        return file_invalid;
+    }
+    inline_c struct stat st;
+    if fstat(fd, &mut st) < 0 {
+        let last_errno = errno;
+        close(fd);
+        inline_c errno = last_errno;
+        return file_invalid;
+    }
+    inline_c u32 size = st.st_size;
+    let data = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if data == MAP_FAILED {
+        let last_errno = errno;
+        close(fd);
+        inline_c errno = last_errno;
+        return file_invalid;
+    }
+
+    return inline_c (File) {
+        .data = data,
+        .size = size,
+        .fd = fd,
+    };
+}
+
+fn close_file(file: File) -> void {
+    let data = inline_c (void*)file.data;
+    let size = inline_c file.size;
+    let fd = inline_c file.fd;
+    munmap(data, size);
+    close(fd);
+}
+
+fn dump_file(file: File) -> void {
+    let data = inline_c file.data;
+    let size = inline_c file.size;
+    printf("%.*s\n", size, data);
+}
+
+inline_c {
+
+typedef struct {
+    c_string data;
+    u32 size;
+    i32 fd;
+} File;
+
+let file_invalid = (File) { 0, 0, 0 };
+
+}

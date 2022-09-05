@@ -1,0 +1,434 @@
+#include <He/Codegen.h>
+#include <He/Context.h>
+#include <He/Parser.h>
+#include <SourceFile.h>
+#include <iostream>
+#include <string_view>
+#include <sys/mman.h>
+#include <sys/uio.h>
+#include <thread>
+#include <type_traits>
+#include <vector>
+
+namespace He {
+
+struct File {
+    constexpr File(char* data, u32 capacity)
+        : data(data)
+        , capacity(capacity)
+    {
+    }
+
+    char* data { nullptr };
+    u32 size { 0 };
+    u32 capacity { 0 };
+
+    template <typename... Args> constexpr void write(Args... args)
+    {
+        const std::string_view strings[]
+            = { std::string_view(args)... };
+        for (auto const string : strings)
+            write(string);
+    }
+
+    template <typename... Args> constexpr void writeln(Args... args)
+    {
+        const std::string_view strings[]
+            = { std::string_view(args)... };
+        for (auto const string : strings)
+            write(string);
+        write('\n');
+    }
+
+    constexpr void write(std::string_view string)
+    {
+        if (size + string.size() >= capacity) {
+            __builtin_printf("overflow file buffer");
+            __builtin_abort();
+        }
+        string.copy(&data[size], string.size());
+        size += string.size();
+    }
+
+    constexpr void writeln(std::string_view string)
+    {
+        if (size + string.size() >= capacity) {
+            __builtin_printf("overflow file buffer");
+            __builtin_abort();
+        }
+        string.copy(&data[size], string.size());
+        size += string.size();
+        write('\n');
+    }
+
+    constexpr void write(char c)
+    {
+        if (size + 1 >= capacity) {
+            __builtin_printf("overflow file buffer");
+            __builtin_abort();
+        }
+        data[size++] = c;
+    }
+
+    constexpr void writeln(char c)
+    {
+        if (size + 2 >= capacity) {
+            __builtin_printf("overflow file buffer");
+            __builtin_abort();
+        }
+        data[size++] = c;
+        data[size++] = '\n';
+    }
+};
+
+static void dump_expression(File& out, std::string_view source,
+    Expression const&, bool in_rvalue_expression);
+static void dump_variable_declaration(File& out,
+    std::string_view source, VariableDeclaration const&);
+static void dump_literal(File& out, std::string_view source,
+    Literal const&);
+static void dump_lvalue(File& out, std::string_view source,
+    LValue const&);
+static void dump_rvalue(File& out, std::string_view source,
+    RValue const&);
+static void dump_if_statement(File& out, std::string_view source,
+    If const&);
+static void dump_while_loop(File& out, std::string_view source,
+    While const&);
+static void dump_block(File& out, std::string_view source,
+    Block const&);
+static void dump_public_function(File& out, std::string_view source,
+    PublicFunction const&);
+static void dump_private_function(File& out,
+    std::string_view source, PrivateFunction const&);
+static void dump_parameters(File& out, std::string_view source,
+    Parameters const&);
+static void dump_function_call(File& out, std::string_view source,
+    FunctionCall const&);
+static void dump_return(File& out, std::string_view source,
+    Return const&);
+static void dump_import_c(File& out, std::string_view source,
+    ImportC const&);
+static void dump_inline_c(File& out, std::string_view source,
+    InlineC const&);
+
+static char* create_buffer_for_each_thread(u32 size,
+    u32 threads = std::thread::hardware_concurrency())
+{
+    auto memory_size = size * threads;
+    auto* memory = mmap(0, memory_size, PROT_WRITE,
+        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (memory == MAP_FAILED)
+        return nullptr;
+    return (char*)memory;
+}
+
+static void destroy_buffer_for_each_thread(char* buf, u32 size,
+    u32 threads = std::thread::hardware_concurrency())
+{
+    auto memory_size = size * threads;
+    munmap(buf, memory_size);
+}
+
+static File* create_file_for_each_thread(u32 size,
+    u32 threads = std::thread::hardware_concurrency())
+{
+    auto* files = (File*)malloc(sizeof(File) * threads);
+    if (!files)
+        return files;
+    auto* buf = create_buffer_for_each_thread(size);
+    if (!buf) {
+        free(files);
+        return nullptr;
+    }
+    for (u64 i = 0; i < threads; i++) {
+        files[i] = File {
+            &buf[i * size],
+            size,
+        };
+    }
+    return files;
+}
+
+static void destroy_file_for_each_thread(File* file,
+    u32 threads = std::thread::hardware_concurrency())
+{
+    destroy_buffer_for_each_thread(file->data, file->capacity,
+        threads);
+    free(file);
+}
+
+void Codegen::dump(int out_fd, Context const& context) const
+{
+    auto* files = create_file_for_each_thread(2 * 1024 * 1024);
+    auto& out = files[0];
+    auto const* prelude = R"c(
+#include <stdint.h>
+
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef char const* c_string;
+
+#define let __auto_type const
+#define var __auto_type
+
+)c";
+    out.write(prelude);
+
+    for (auto filename : import_c_filenames) {
+        out.writeln("#include ",
+            filename.text(context.source.text));
+    }
+
+    for (auto inline_c_expression : inline_c_expressions)
+        out.write(inline_c_expression.text(context.source.text));
+
+    for (auto const& declaration :
+        public_function_forward_declarations) {
+        auto type
+            = declaration.return_type.text(context.source.text);
+        auto name = declaration.name.text(context.source.text);
+        out.write(type, " ", name);
+        dump_parameters(out, context.source.text,
+            declaration.parameters);
+        out.writeln(';');
+    }
+
+    for (auto const& declaration :
+        private_function_forward_declarations) {
+        auto type
+            = declaration.return_type.text(context.source.text);
+        auto name = declaration.name.text(context.source.text);
+        out.write("static ", type, " ", name);
+        dump_parameters(out, context.source.text,
+            declaration.parameters);
+        out.writeln(';');
+    }
+
+    for (auto const& expression : context.expressions)
+        dump_expression(out, context.source.text, expression,
+            false);
+
+    u16 vecs = std::thread::hardware_concurrency();
+    auto* iovec
+        = (struct iovec*)malloc(sizeof(struct iovec) * vecs);
+    for (u32 i = 0; i < vecs; i++) {
+        iovec[i] = { .iov_base = files[i].data,
+            .iov_len = files[i].size };
+    }
+    writev(out_fd, iovec, vecs);
+    free(iovec);
+    destroy_file_for_each_thread(files);
+}
+
+static void dump_parameters(File& out, std::string_view source,
+    Parameters const& parameters)
+{
+    out.write('(');
+    if (parameters.empty()) {
+        out.write("void");
+    } else {
+        auto last_parameter = parameters.size() - 1;
+        for (u32 i = 0; i < last_parameter; i++) {
+            auto parameter = parameters[i];
+            out.write(parameter.type.text(source), " ",
+                parameter.name.text(source), ", ");
+        }
+        auto parameter = parameters[last_parameter];
+        out.write(parameter.type.text(source), " ",
+            parameter.name.text(source));
+    }
+    out.write(')');
+}
+
+static void dump_expression(File& out, std::string_view source,
+    Expression const& expression, bool in_rvalue_expression)
+{
+    switch (expression.type()) {
+    case ExpressionType::Literal:
+        dump_literal(out, source, expression.as_literal());
+        break;
+
+    case ExpressionType::VariableDeclaration:
+        dump_variable_declaration(out, source,
+            expression.as_variable_declaration());
+        break;
+
+    case ExpressionType::LValue:
+        dump_lvalue(out, source, expression.as_lvalue());
+        break;
+
+    case ExpressionType::RValue:
+        dump_rvalue(out, source, expression.as_rvalue());
+        break;
+
+    case ExpressionType::If:
+        dump_if_statement(out, source, expression.as_if());
+        break;
+
+    case ExpressionType::While:
+        dump_while_loop(out, source, expression.as_while());
+        break;
+
+    case ExpressionType::Block:
+        dump_block(out, source, expression.as_block());
+        break;
+
+    case ExpressionType::PrivateFunction:
+        dump_private_function(out, source,
+            expression.as_private_function());
+        break;
+
+    case ExpressionType::PublicFunction:
+        dump_public_function(out, source,
+            expression.as_public_function());
+        break;
+
+    case ExpressionType::FunctionCall:
+        dump_function_call(out, source,
+            expression.as_function_call());
+        if (!in_rvalue_expression)
+            out.write(';');
+        break;
+
+    case ExpressionType::Return:
+        dump_return(out, source, expression.as_return());
+        break;
+
+    case ExpressionType::ImportC:
+        dump_import_c(out, source, expression.as_import_c());
+        break;
+
+    case ExpressionType::InlineC:
+        dump_inline_c(out, source, expression.as_inline_c());
+        break;
+
+    case ExpressionType::Invalid:
+        std::cerr << "ExpressionType::Invalid in codegen\n";
+        break;
+    }
+}
+
+static void dump_variable_declaration(File& out,
+    std::string_view source, VariableDeclaration const& variable)
+{
+    out.write(variable.type.text(source), " ",
+        variable.name.text(source), " = ");
+    dump_rvalue(out, source, variable.value);
+    out.writeln(';');
+}
+
+static void dump_literal(File& out, std::string_view source,
+    Literal const& literal)
+{
+    out.write(literal.token.text(source));
+}
+
+static void dump_lvalue(File& out, std::string_view source,
+    LValue const& lvalue)
+{
+    out.write(lvalue.token.text(source));
+}
+
+static void dump_rvalue(File& out, std::string_view source,
+    RValue const& rvalue)
+{
+    for (auto const& expression : rvalue.expressions)
+        dump_expression(out, source, expression, true);
+}
+
+static void dump_if_statement(File& out, std::string_view source,
+    If const& if_statement)
+{
+    out.write("if (");
+    dump_rvalue(out, source, if_statement.condition);
+    out.write(") ");
+    dump_block(out, source, if_statement.block);
+}
+
+static void dump_while_loop(File& out, std::string_view source,
+    While const& while_loop)
+{
+    out.write("while (");
+    dump_rvalue(out, source, while_loop.condition);
+    out.write(") ");
+    dump_block(out, source, while_loop.block);
+}
+
+static void dump_block(File& out, std::string_view source,
+    Block const& block)
+{
+    out.writeln('{');
+    for (auto const& expression : block.expressions)
+        dump_expression(out, source, expression, false);
+    out.writeln('}');
+}
+
+static void dump_private_function(File& out,
+    std::string_view source, PrivateFunction const& function)
+{
+    out.write("static ", function.return_type.text(source), " ",
+        function.name.text(source));
+    dump_parameters(out, source, function.parameters);
+    dump_block(out, source, function.block);
+}
+
+static void dump_public_function(File& out, std::string_view source,
+    PublicFunction const& function)
+{
+    out.write(function.return_type.text(source), " ",
+        function.name.text(source));
+    dump_parameters(out, source, function.parameters);
+    dump_block(out, source, function.block);
+}
+
+static void dump_function_call(File& out, std::string_view source,
+    FunctionCall const& function)
+{
+    out.write(function.name.text(source), "(");
+    if (function.arguments.empty()) {
+        out.writeln(')');
+        return;
+    }
+    for (u32 i = 0; i < function.arguments.size() - 1; i++) {
+        auto const& argument = function.arguments[i].as_rvalue();
+        dump_rvalue(out, source, argument);
+        out.write(", ");
+    }
+    auto last_index = function.arguments.size() - 1;
+    auto const& last_argument = function.arguments[last_index];
+    dump_rvalue(out, source, last_argument.as_rvalue());
+    out.writeln(')');
+}
+
+static void dump_return(File& out, std::string_view source,
+    Return const& return_)
+{
+    out.write("return ");
+    dump_rvalue(out, source, return_.rvalue);
+    out.writeln(';');
+}
+
+static void dump_import_c(File& out, std::string_view source,
+    ImportC const& import_c)
+{
+    auto filename = import_c.filename.text(source);
+    if (!filename.empty())
+        out.writeln("#include ", import_c.filename.text(source));
+}
+
+static void dump_inline_c(File& out, std::string_view source,
+    InlineC const& inline_c)
+{
+    out.write(inline_c.literal.text(source));
+}
+
+}

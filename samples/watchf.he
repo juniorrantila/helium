@@ -1,0 +1,83 @@
+@import_c("signal.h");
+@import_c("stdio.h");
+@import_c("stdlib.h");
+@import_c("sys/inotify.h");
+@import_c("sys/stat.h");
+@import_c("unistd.h");
+
+inline_c typedef char** c_string_array;
+pub fn main(argc: i32, argv: c_string_array) -> i32 {
+    if argc < 3 {
+        help(1);
+    }
+
+    let watch_file = inline_c argv[1];
+    var command_argv = inline_c &argv[2];
+    let notify_fd = inotify_init();
+    if notify_fd < 0 {
+        perror("inotify_init");
+        return 1;
+    }
+    let is_folder = try_is_folder(watch_file);
+    if is_folder < 0 {
+        perror("try_is_folder");
+        return 1;
+    }
+    if is_folder {
+        fprintf(stderr, "Error: Cannot watch folder\n");
+        return 1;
+    }
+    inotify_add_watch(notify_fd, watch_file, IN_CLOSE_WRITE);
+    inline_c struct inotify_event event;
+    var pid = run_command(command_argv);
+    if pid < 0 {
+        perror("run_command");
+        return 1;
+    }
+    while read(notify_fd, &event, sizeof(event)) {
+        if pid > 0 {
+            kill(pid, SIGKILL);
+        }
+        inline_c pid = run_command(command_argv);
+        if pid < 0 {
+            perror("run_command");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+fn try_is_folder(path: c_string) -> i32 {
+    inline_c struct stat st;
+    if stat(path, &mut st) < 0 {
+        return -1;
+    }
+    return inline_c S_ISDIR(st.st_mode);
+}
+
+fn run_command(argv: c_string_array) -> i32 {
+    let pid = fork();
+    if pid == 0 {
+        let program_name = inline_c argv[0];
+        if execvp(program_name, argv) < 0 {
+            perror("execvp");
+            exit(1);
+        }
+    }
+    return pid;
+}
+
+fn help(exit_code: i32) -> void {
+    inline_c var out = exit_code ? stderr : stdout;
+    fprintf(out, "USAGE: %s file command...\n", g_program_name);
+    exit(exit_code);
+}
+
+inline_c static char const* g_program_name = 0;
+inline_c __attribute__((constructor))
+static void set_program_name(int argc, char const* argv[])
+{
+    if (argc)
+        g_program_name = argv[0];
+};
