@@ -105,14 +105,12 @@ int main(int argc, c_string argv[])
 
     char temporary_file[] = "XXXXXX.c";
     int output_file = STDOUT_FILENO;
-    if (output_path != "-") {
+    if (isatty(STDOUT_FILENO) == 1) {
         if (mkstemps(temporary_file, 2) < 0) {
             perror("mkstemps");
             return 1;
         }
-        auto permisissions = S_IRUSR | S_IWUSR | S_IROTH | S_IRGRP;
-        output_file = open(temporary_file, O_WRONLY | O_CREAT,
-            permisissions);
+        output_file = open(temporary_file, O_WRONLY);
         if (output_file < 0) {
             perror("open");
             return 1;
