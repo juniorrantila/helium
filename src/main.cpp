@@ -121,10 +121,17 @@ int main(int argc, c_string argv[])
     codegen.dump(output_file, context);
 
     if (output_file != STDOUT_FILENO) {
-        close(output_file);
+        if (fsync(output_file) < 0) {
+            perror("fsync");
+            return 1;
+        }
+        if (close(output_file) < 0) {
+            perror("close");
+            return 1;
+        }
 
-        // NOTE: Assume name is null terminated since it is from
-        //       from argv originally.
+        // NOTE: Assume output_path is null terminated since it is
+        //       from from argv originally.
         if (compile_source(output_path.data(), temporary_file) < 0)
             return 1;
         if (!keep_temporary_source)
