@@ -5,7 +5,7 @@
 
 namespace He {
 
-enum class TokenType {
+enum class TokenType : u8 {
     OpenBracket,
     CloseBracket,
 
@@ -65,11 +65,11 @@ enum class TokenType {
     Invalid
 };
 
-struct Token {
+struct [[gnu::packed]] Token {
     constexpr Token(TokenType type, u32 start, u32 end)
-        : type(type)
-        , start_index(start)
-        , end_index(end)
+        : start_index(start)
+        , size(end - start)
+        , type(type)
     {
     }
 
@@ -78,12 +78,18 @@ struct Token {
     void dump(std::string_view source) const;
     std::string_view text(std::string_view source) const
     {
-        return source.substr(start_index, end_index - start_index);
+        return source.substr(start_index, size);
     }
 
-    TokenType type { TokenType::Invalid };
+    constexpr void set_end_index(u32 index)
+    {
+        size = index - start_index;
+    }
+    constexpr u32 end_index() const { return start_index + size; }
+
     u32 start_index { 0 };
-    u32 end_index { 0 };
+    u16 size { 0 };
+    TokenType type { TokenType::Invalid };
 };
 using Tokens = std::vector<Token>;
 

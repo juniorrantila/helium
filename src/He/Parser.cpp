@@ -361,10 +361,10 @@ static ParseSingleItemResult parse_public_function(
 {
     auto function = TRY(parse_function(tokens, start));
     auto public_function = PublicFunction {
+        .block = std::move(function.block),
+        .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
-        .parameters = function.parameters,
-        .block = std::move(function.block),
     };
     return Expression {
         std::move(public_function),
@@ -378,10 +378,10 @@ static ParseSingleItemResult parse_private_function(
 {
     auto function = TRY(parse_function(tokens, start));
     auto private_function = PrivateFunction {
+        .block = std::move(function.block),
+        .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
-        .parameters = function.parameters,
-        .block = std::move(function.block),
     };
     return Expression {
         std::move(private_function),
@@ -405,7 +405,10 @@ static ParseSingleItemResult parse_function_call(
         };
     }
 
-    auto call = FunctionCall { function_name, Expressions() };
+    auto call = FunctionCall {
+        .arguments = Expressions(),
+        .name = function_name,
+    };
     auto right_paren_index = left_paren_index + 1;
     if (tokens[right_paren_index].type == TokenType::CloseParen) {
         // NOTE: Swallow right parenthesis
@@ -466,7 +469,7 @@ static ParseSingleItemResult parse_inline_c(Tokens const& tokens,
         auto token = tokens[start + 1];
         auto last_token = tokens[end];
         token.start_index++;
-        token.end_index = last_token.end_index - 1;
+        token.set_end_index(last_token.end_index() - 1);
         return Expression(InlineC { token }, start, end + 1);
     }
 
@@ -488,7 +491,7 @@ static ParseSingleItemResult parse_inline_c(Tokens const& tokens,
     }
     auto token = tokens[start + 1];
     auto last_token = tokens[end];
-    token.end_index = last_token.end_index;
+    token.set_end_index(last_token.end_index());
     return Expression(InlineC { token }, start, end + 1);
 }
 
@@ -752,7 +755,7 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::RefMut) {
             auto token = tokens[end];
-            token.end_index = token.start_index + 1;
+            token.set_end_index(token.start_index + 1);
             auto literal = Literal { token };
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
@@ -761,7 +764,7 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Ampersand) {
             auto token = tokens[end];
-            token.end_index = token.start_index + 1;
+            token.set_end_index(token.start_index + 1);
             auto literal = Literal { token };
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
@@ -891,9 +894,9 @@ static ParseSingleItemResult parse_variable(Tokens const& tokens,
     auto end = semicolon_index + 1;
 
     auto variable = VariableDeclaration {
-        name,
-        type,
-        std::move(rvalue),
+        .value = std::move(rvalue),
+        .name = name,
+        .type = type,
     };
     return Expression(std::move(variable), start, end);
 }
@@ -903,7 +906,7 @@ Core::ErrorOr<void> ParseError::show(SourceFile source) const
     auto start = *Util::line_and_column_for(source.text,
         offending_token.start_index);
     auto end = *Util::line_and_column_for(source.text,
-        offending_token.end_index);
+        offending_token.end_index());
     auto line = Util::fetch_line(source.text, start.line);
 
     std::cerr << "Parse error @ " << parser_function << ": "

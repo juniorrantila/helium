@@ -75,7 +75,7 @@ LexResult lex(std::string_view source)
 
         auto token = TRY(lex_single_item(source, start));
         tokens.push_back(token);
-        start = token.end_index;
+        start = token.end_index();
     }
 
     return tokens;

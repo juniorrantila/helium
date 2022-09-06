@@ -39,90 +39,90 @@ struct Literal {
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct Block {
+struct [[gnu::packed]] Block {
     std::vector<Expression> expressions;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct Variable {
+struct [[gnu::packed]] Variable {
     Token name {};
     Token type {};
 };
 using Parameters = std::vector<Variable>;
 
-struct PrivateFunction {
+struct [[gnu::packed]] PrivateFunction {
+    Block block;
+    Parameters parameters {};
     Token name {};
     Token return_type {};
-    Parameters parameters {};
-    Block block;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct PublicFunction {
+struct [[gnu::packed]] PublicFunction {
+    Block block;
+    Parameters parameters {};
     Token name {};
     Token return_type {};
-    Parameters parameters {};
-    Block block;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct LValue {
+struct [[gnu::packed]] LValue {
     Token token {};
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct RValue {
+struct [[gnu::packed]] RValue {
     std::vector<Expression> expressions;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct VariableDeclaration {
+struct [[gnu::packed]] VariableDeclaration {
+    RValue value;
     Token name {};
     Token type {};
-    RValue value;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct If {
+struct [[gnu::packed]] If {
     RValue condition;
     Block block;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct While {
+struct [[gnu::packed]] While {
     RValue condition;
     Block block;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct Return {
+struct [[gnu::packed]] Return {
     RValue rvalue;
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct FunctionCall {
-    Token name {};
+struct [[gnu::packed]] FunctionCall {
     Expressions arguments;
+    Token name {};
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct ImportC {
+struct [[gnu::packed]] ImportC {
     Token filename {};
 
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct InlineC {
+struct [[gnu::packed]] InlineC {
     Token literal {};
 
     void dump(std::string_view source, u32 indent) const;
@@ -323,7 +323,7 @@ struct Expression {
         auto import_c = std::get<ImportC>(std::move(m_storage));
         auto import_c_copy = import_c;
         import_c_copy.filename.start_index = 0;
-        import_c_copy.filename.end_index = 0;
+        import_c_copy.filename.size = 0;
         m_storage = import_c_copy;
         return import_c;
     }
@@ -338,7 +338,7 @@ struct Expression {
         auto inline_c = std::get<InlineC>(std::move(m_storage));
         auto inline_c_copy = inline_c;
         inline_c_copy.literal.start_index = 0;
-        inline_c_copy.literal.end_index = 0;
+        inline_c_copy.literal.size = 0;
         m_storage = inline_c_copy;
         return inline_c;
     }

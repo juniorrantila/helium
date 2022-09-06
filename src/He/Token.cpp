@@ -8,11 +8,11 @@ static std::string_view token_type_string(TokenType type);
 
 void Token::dump(std::string_view source) const
 {
-    auto text = source.substr(start_index, end_index - start_index);
+    auto text = source.substr(start_index, size);
     auto start = *Util::line_and_column_for(source, start_index);
     start.line += 1;
     start.column += 1;
-    auto end = *Util::line_and_column_for(source, end_index);
+    auto end = *Util::line_and_column_for(source, end_index());
     end.line += 1;
     end.column += 1;
     std::cerr << "Token" << '[';
