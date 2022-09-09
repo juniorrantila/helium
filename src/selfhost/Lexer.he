@@ -1,0 +1,27 @@
+@import_c("Lexer.h");
+@import_c("Token.h");
+
+inline_c typedef Lexer* LexerP;
+pub fn lexer_init(lexer: LexerP, source: SourceFile) -> i32 
+{
+    var tokens: Tokens = @uninitialized();
+    if tokens_init(&mut tokens) < 0 {
+        return -1;
+    }
+    inline_c *lexer = (Lexer) {
+        .source = source.text,
+        .source_size = source.text_size,
+        .tokens = tokens,
+    };
+    return 0;
+}
+
+pub fn lexer_deinit(lexer: LexerP) -> void {
+    var tokens = inline_c lexer->tokens;
+    tokens_deinit(&mut tokens);
+}
+
+pub fn lexer_run(lexer: LexerP) -> i32 {
+    inline_c (void)lexer;
+    return -1;
+}

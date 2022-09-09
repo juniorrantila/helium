@@ -1,3 +1,4 @@
+#include "He/Expression.h"
 #include <He/Codegen.h>
 #include <He/Context.h>
 #include <He/Parser.h>
@@ -85,6 +86,8 @@ static void dump_expression(File& out, std::string_view source,
     Expression const&, bool in_rvalue_expression);
 static void dump_variable_declaration(File& out,
     std::string_view source, VariableDeclaration const&);
+static void dump_struct_declaration(File& out,
+    std::string_view source, StructDeclaration const&);
 static void dump_literal(File& out, std::string_view source,
     Literal const&);
 static void dump_lvalue(File& out, std::string_view source,
@@ -191,6 +194,11 @@ typedef char const* c_string;
     for (auto inline_c_expression : inline_c_expressions)
         out.write(inline_c_expression.text(context.source.text));
 
+    for (auto declaration : struct_forward_declarations) {
+        auto name = declaration.name.text(context.source.text);
+        out.writeln("typedef struct ", name, " ", name, ";");
+    }
+
     for (auto const& declaration :
         public_function_forward_declarations) {
         auto type
@@ -262,6 +270,11 @@ static void dump_expression(File& out, std::string_view source,
             expression.as_variable_declaration());
         break;
 
+    case ExpressionType::StructDeclaration:
+        dump_struct_declaration(out, source,
+            expression.as_struct_declaration());
+        break;
+
     case ExpressionType::LValue:
         dump_lvalue(out, source, expression.as_lvalue());
         break;
@@ -324,6 +337,18 @@ static void dump_variable_declaration(File& out,
         variable.name.text(source), " = ");
     dump_rvalue(out, source, variable.value);
     out.writeln(';');
+}
+
+static void dump_struct_declaration(File& out,
+    std::string_view source, StructDeclaration const& struct_)
+{
+    out.writeln("struct ", struct_.name.text(source), "{");
+    for (auto member : struct_.members) {
+        auto type = member.type.text(source);
+        auto name = member.name.text(source);
+        out.writeln(type, " ", name, ";");
+    }
+    out.writeln("};");
 }
 
 static void dump_literal(File& out, std::string_view source,

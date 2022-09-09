@@ -1,3 +1,4 @@
+#include "He/Expression.h"
 #include <Core/ErrorOr.h>
 #include <Core/Try.h>
 #include <He/Context.h>
@@ -8,41 +9,14 @@
 
 namespace He {
 
-std::string_view expression_type_string(ExpressionType type)
-{
-    switch (type) {
-#define CASE_RETURN(variant) \
-    case ExpressionType::variant: return #variant
-        CASE_RETURN(Literal);
-        CASE_RETURN(VariableDeclaration);
-
-        CASE_RETURN(LValue);
-        CASE_RETURN(RValue);
-
-        CASE_RETURN(If);
-        CASE_RETURN(While);
-
-        CASE_RETURN(Block);
-        CASE_RETURN(PublicFunction);
-        CASE_RETURN(PrivateFunction);
-        CASE_RETURN(FunctionCall);
-
-        CASE_RETURN(Return);
-
-        CASE_RETURN(ImportC);
-        CASE_RETURN(InlineC);
-
-        CASE_RETURN(Invalid);
-#undef CASE_RETURN
-    }
-}
-
 using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
 static ParseSingleItemResult parse_root_item(Tokens const&,
     u32 start);
 
-static ParseSingleItemResult parse_variable(Tokens const&,
+static ParseSingleItemResult parse_variable_or_struct(Tokens const&,
     u32 start);
+
+static ParseSingleItemResult parse_struct(Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_rvalue(Tokens const&, u32 start);
 
@@ -213,6 +187,9 @@ static ParseSingleItemResult parse_root_item(Tokens const& tokens,
 
     if (token.type == TokenType::Pub)
         return parse_pub_specifier(tokens, start);
+
+    if (token.type == TokenType::Let)
+        return parse_struct(tokens, start + 1);
 
     return ParseError {
         "unexpected token",
@@ -519,14 +496,16 @@ static ParseSingleItemResult parse_block(Tokens const& tokens,
         }
 
         if (tokens[end].type == TokenType::Let) {
-            auto variable = TRY(parse_variable(tokens, end));
+            auto variable
+                = TRY(parse_variable_or_struct(tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Var) {
-            auto variable = TRY(parse_variable(tokens, end));
+            auto variable
+                = TRY(parse_variable_or_struct(tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
@@ -829,16 +808,137 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
     };
 }
 
-static ParseSingleItemResult parse_variable(Tokens const& tokens,
+static ParseSingleItemResult parse_struct(Tokens const& tokens,
     u32 start)
+{
+    auto name = tokens[start];
+
+    auto assign_index = start + 1;
+    auto assign = tokens[assign_index];
+    if (assign.type != TokenType::Assign) {
+        return ParseError {
+            "expected '='",
+            assign.type == TokenType::Colon
+                ? "struct declarations can't have colon in this "
+                  "position"
+                : nullptr,
+            assign,
+        };
+    }
+
+    auto struct_token_index = assign_index + 1;
+    auto struct_token = tokens[struct_token_index];
+    if (struct_token.type != TokenType::Struct) {
+        return ParseError {
+            "expected 'struct'",
+            nullptr,
+            struct_token,
+        };
+    }
+
+    auto block_start_index = struct_token_index + 1;
+    auto block_start = tokens[block_start_index];
+    if (block_start.type != TokenType::OpenCurly) {
+        return ParseError {
+            "expected '{'",
+            nullptr,
+            block_start,
+        };
+    }
+
+    auto members = Members();
+    auto block_end_index = block_start_index + 1;
+    while (block_end_index < tokens.size()) {
+        auto block_end = tokens[block_end_index];
+        if (block_end.type == TokenType::CloseCurly)
+            break;
+
+        auto member_name_index = block_end_index;
+        auto member_name = tokens[member_name_index];
+        if (member_name.type != TokenType::Identifier) {
+            return ParseError {
+                "expected name of member",
+                nullptr,
+                member_name,
+            };
+        }
+
+        auto colon_index = member_name_index + 1;
+        auto colon = tokens[colon_index];
+        if (colon.type != TokenType::Colon) {
+            return ParseError {
+                "expected ':'",
+                nullptr,
+                colon,
+            };
+        }
+
+        auto type_index = colon_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+
+        auto comma_index = type_index + 1;
+        auto comma = tokens[comma_index];
+        if (comma.type != TokenType::Comma) {
+            return ParseError {
+                "expected ','",
+                "did you forget a comma?",
+                comma,
+            };
+        }
+
+        auto member = Member {
+            .name = member_name,
+            .type = type_token,
+        };
+        members.push_back(member);
+        block_end_index = comma_index + 1;
+    }
+
+    auto block_end = tokens[block_end_index];
+    if (block_end.type != TokenType::CloseCurly) {
+        return ParseError {
+            "expected '}'",
+            nullptr,
+            block_end,
+        };
+    }
+
+    auto semicolon_index = block_end_index + 1;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        return ParseError {
+            "expected ';'",
+            "did you forget a semicolon?",
+            semicolon,
+        };
+    }
+
+    auto struct_declaration = StructDeclaration {
+        .name = name,
+        .members = members,
+    };
+    // NOTE: Swallow semicolon.
+    auto end = semicolon_index + 1;
+    return Expression(std::move(struct_declaration), start, end);
+}
+
+static ParseSingleItemResult parse_variable_or_struct(
+    Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
     auto name_index = start + 1;
     auto name = tokens[name_index];
     if (name.type != TokenType::Identifier) {
         return ParseError {
-            "unexpected token",
             "expected variable name",
+            "did you forget to name your variable or struct?",
             name,
         };
     }
@@ -875,6 +975,11 @@ static ParseSingleItemResult parse_variable(Tokens const& tokens,
             colon_or_assign,
         };
     }
+
+    auto struct_token_index = colon_or_assign_index + 1;
+    auto struct_token = tokens[struct_token_index];
+    if (struct_token.type == TokenType::Struct)
+        return TRY(parse_struct(tokens, name_index));
 
     auto value = TRY(parse_rvalue(tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;

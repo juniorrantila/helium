@@ -6,7 +6,10 @@
 #include <He/Parser.h>
 #include <He/Typecheck.h>
 #include <SourceFile.h>
+#include <cstdio>
+#include <cstdlib>
 #include <fcntl.h>
+#include <spawn.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -41,10 +44,10 @@ int main(int argc, c_string argv[])
             dump_expressions = true;
         });
 
-    auto keep_temporary_source = false;
-    argument_parser.add_flag("--keep-temporary-source", "-ks",
-        "don't delete temporary c source files", [&] {
-            keep_temporary_source = true;
+    auto export_source = false;
+    argument_parser.add_flag("-S", "--export-generated-source",
+        "export generated source instead of executable", [&] {
+            export_source = true;
         });
 
     std::string_view source_file_path = {};
@@ -105,7 +108,7 @@ int main(int argc, c_string argv[])
 
     char temporary_file[] = "XXXXXX.c";
     int output_file = STDOUT_FILENO;
-    if (isatty(STDOUT_FILENO) == 1) {
+    if (isatty(STDOUT_FILENO) == 1 || export_source) {
         if (mkstemps(temporary_file, 2) < 0) {
             perror("mkstemps");
             return 1;
@@ -128,40 +131,44 @@ int main(int argc, c_string argv[])
             return 1;
         }
 
-        // NOTE: Assume output_path is null terminated since it is
-        //       from from argv originally.
-        if (compile_source(output_path.data(), temporary_file) < 0)
-            return 1;
-        if (!keep_temporary_source)
+        if (!export_source) {
+            if (output_path[output_path.size()] != '\0')
+                __builtin_abort();
+            auto const* output_file = output_path.data();
+            auto const* input_file = temporary_file;
+            if (compile_source(output_file, input_file) < 0)
+                return 1;
             (void)remove(temporary_file);
+            return 0;
+        }
+        if (rename(temporary_file, output_path.data()) < 0) {
+            perror("rename");
+            return 1;
+        }
     }
 }
 
 [[nodiscard]] static int compile_source(c_string destination_path,
     c_string source_path)
 {
-    int pid = fork();
-    if (pid < 0) {
-        perror("fork");
+    char* argv[] = {
+        (char*)(getenv("CC") ?: "clang"),
+        (char*)"-o",
+        (char*)destination_path,
+        (char*)source_path,
+        nullptr,
+    };
+    int pid = -1;
+    if (posix_spawnp(&pid, argv[0], 0, 0, argv, environ) != 0) {
+        perror("posix_spawnp");
         return -1;
     }
-
-    if (pid == 0) {
-        c_string argv[] = {
-            getenv("CC") ?: "clang",
-            "-o",
-            destination_path,
-            source_path,
-            nullptr,
-        };
-        if (execvp(argv[0], (char**)argv) < 0) {
-            perror("execl");
-            return -1;
-        }
-        return 0;
-    }
+    if (pid < 0)
+        return -1;
 
     int exit_code = 0;
-    wait(&exit_code);
-    return WEXITSTATUS(exit_code);
+    waitpid(pid, &exit_code, 0);
+    if (WIFEXITED(exit_code))
+        return WEXITSTATUS(exit_code);
+    return -1;
 }

@@ -1,0 +1,22 @@
+@import_c("Token.h");
+@import_c("stdlib.h");
+
+inline_c typedef Tokens* TokensP;
+pub fn tokens_init(tokens: TokensP) -> i32 {
+    let starting_capacity = 1024;
+    var data = malloc(starting_capacity);
+    if data == 0 {
+        return -1;
+    }
+    inline_c *tokens = (Tokens) {
+        .data = data,
+        .size = 0,
+        .capacity = starting_capacity
+    };
+    return 0;
+}
+
+pub fn tokens_deinit(tokens: TokensP) -> void {
+    var data = inline_c tokens->data;
+    free(data);
+}

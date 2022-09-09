@@ -1,3 +1,4 @@
+#include "He/Expression.h"
 #include <Core/ErrorOr.h>
 #include <He/Codegen.h>
 #include <He/Context.h>
@@ -20,6 +21,12 @@ TypecheckResult typecheck(Context& context)
         if (expression.type() == ExpressionType::ImportC) {
             auto import_c = expression.release_as_import_c();
             output.import_c_filenames.push_back(import_c.filename);
+        }
+
+        if (expression.type() == ExpressionType::StructDeclaration) {
+            auto declaration = expression.as_struct_declaration();
+            auto name = declaration.name;
+            output.struct_forward_declarations.push_back({name});
         }
 
         if (expression.type() == ExpressionType::InlineC) {

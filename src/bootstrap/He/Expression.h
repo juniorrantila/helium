@@ -1,4 +1,5 @@
 #pragma once
+#include <string_view>
 #include <vector>
 #include <He/Token.h>
 #include <variant>
@@ -8,6 +9,7 @@ namespace He {
 enum class ExpressionType {
     Literal,
     VariableDeclaration,
+    StructDeclaration,
 
     LValue,
     RValue,
@@ -28,6 +30,8 @@ enum class ExpressionType {
 
     Invalid,
 };
+
+std::string_view expression_type_string(ExpressionType type);
 
 struct Expression;
 using Expressions = std::vector<Expression>;
@@ -50,6 +54,16 @@ struct [[gnu::packed]] Variable {
     Token type {};
 };
 using Parameters = std::vector<Variable>;
+using Variables = std::vector<Variable>;
+using Members = std::vector<Variable>;
+using Member = Variable;
+
+struct [[gnu::packed]] StructDeclaration {
+    Token name {};
+    Members members {};
+
+    void dump(std::string_view source, u32 indent) const;
+};
 
 struct [[gnu::packed]] PrivateFunction {
     Block block;
@@ -138,6 +152,14 @@ struct Expression {
     }
 
     constexpr Expression(VariableDeclaration&& value,
+        u32 start_index, u32 end_index)
+        : m_storage(std::move(value))
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
+    constexpr Expression(StructDeclaration&& value,
         u32 start_index, u32 end_index)
         : m_storage(std::move(value))
         , start_token_index(start_index)
@@ -258,6 +280,12 @@ struct Expression {
         return std::get<VariableDeclaration>(std::move(m_storage));
     }
 
+    constexpr StructDeclaration const&
+    as_struct_declaration() const
+    {
+        return std::get<StructDeclaration>(m_storage);
+    }
+
     constexpr LValue const& as_lvalue() const
     {
         return std::get<LValue>(m_storage);
@@ -350,6 +378,7 @@ private:
     std::variant<
         Literal,
         VariableDeclaration,
+        StructDeclaration,
         LValue,
         RValue,
         If,

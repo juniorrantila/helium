@@ -1,0 +1,65 @@
+@import_c("Lexer.h");
+@import_c("string.h");
+@import_c("Token.h");
+@import_c("SourceFile.h");
+@import_c("fcntl.h");
+@import_c("stdio.h");
+@import_c("stdlib.h");
+@import_c("sys/mman.h");
+@import_c("sys/stat.h");
+@import_c("unistd.h");
+
+inline_c typedef c_string* c_string_array;
+pub fn main(argc: i32, argv: c_string_array) -> i32 {
+    if argc < 2 {
+        let program_name = inline_c argv[0];
+        usage(program_name, 1);
+    }
+    let source_path = inline_c argv[1];
+    let source_file_fd = open(source_path, O_RDONLY);
+    if source_file_fd < 0 {
+        perror("open");
+        return 1;
+    }
+    var st = inline_c (struct stat){};
+    if fstat(source_file_fd, &mut st) < 0 {
+        perror("fstat");
+        return 1;
+    }
+    let source_file = inline_c (SourceFile) {
+        .name = source_path,
+        .name_size = strlen(source_path),
+        .text = mmap(0, st.st_size, MAP_PRIVATE,
+                     PROT_READ, source_file_fd, 0),
+        .text_size = st.st_size,
+    };
+    inline_c if (source_file.text == MAP_FAILED) {
+        perror("mmap");
+        return 1;
+    };
+
+    var lexer: Lexer = @uninitialized();
+    if lexer_init(&mut lexer, source_file) < 0 {
+        fprintf(stderr, "could not init lexer\n");
+        return 1;
+    }
+    if lexer_run(&mut lexer) < 0 {
+        fprintf(stderr, "could not run lexer\n");
+        return 1;
+    }
+
+    lexer_deinit(&mut lexer);
+    inline_c {{
+        void* data = (void*)source_file.text;
+        u32 size = source_file.text_size;
+        munmap(data, size);
+    }}
+    return 0;
+}
+
+fn usage(program_name: c_string, exit_code: i32) -> void {
+    var out = inline_c exit_code ? stderr : stdout;
+    fprintf(out, "USAGE: %s file\n", program_name);
+    exit(exit_code);
+}
+

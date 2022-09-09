@@ -10,6 +10,10 @@ void Expression::dump(std::string_view source, u32 indent) const
         as_variable_declaration().dump(source, indent);
         break;
 
+    case ExpressionType::StructDeclaration:
+        as_struct_declaration().dump(source, indent);
+        break;
+
     case ExpressionType::LValue:
         as_lvalue().dump(source, indent);
         break;
@@ -64,6 +68,37 @@ void Expression::dump(std::string_view source, u32 indent) const
     }
 }
 
+std::string_view expression_type_string(ExpressionType type)
+{
+    switch (type) {
+#define CASE_RETURN(variant) \
+    case ExpressionType::variant: return #variant
+        CASE_RETURN(Literal);
+        CASE_RETURN(VariableDeclaration);
+        CASE_RETURN(StructDeclaration);
+
+        CASE_RETURN(LValue);
+        CASE_RETURN(RValue);
+
+        CASE_RETURN(If);
+        CASE_RETURN(While);
+
+        CASE_RETURN(Block);
+        CASE_RETURN(PublicFunction);
+        CASE_RETURN(PrivateFunction);
+        CASE_RETURN(FunctionCall);
+
+        CASE_RETURN(Return);
+
+        CASE_RETURN(ImportC);
+        CASE_RETURN(InlineC);
+
+        CASE_RETURN(Invalid);
+#undef CASE_RETURN
+    }
+}
+
+
 void VariableDeclaration::dump(std::string_view source,
     u32 indent) const
 {
@@ -71,6 +106,19 @@ void VariableDeclaration::dump(std::string_view source,
               << " '" << type.text(source) << "' ";
     value.dump(source, indent);
     std::cerr << ')';
+}
+
+void StructDeclaration::dump(std::string_view source, u32) const
+{
+    std::cerr << "Struct(" << '\'' << name.text(source) << '\''
+              << "[";
+    for (auto member : members) {
+        auto type = member.type;
+        auto name = member.name;
+        std::cerr << name.text(source) << ' ' << type.text(source)
+                  << ' ';
+    }
+    std::cerr << "])";
 }
 
 void Literal::dump(std::string_view source, u32) const
