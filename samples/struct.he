@@ -1,0 +1,17 @@
+@import_c("stdio.h");
+
+let Foo = struct {
+    a: u32,
+    b: u32,
+};
+
+pub fn main() -> i32 {
+    inline_c let foo = (Foo) {
+        .a = 10,
+        .b = 20,
+    };
+    inline_c let a = foo.a;
+    inline_c let b = foo.b;
+
+    printf("Foo: %d %d\n", a, b);
+}
