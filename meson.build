@@ -52,6 +52,7 @@ stage_1_exe = executable('stage-1', [
     '-Wno-fixed-enum-extension',
     '-Wno-gnu-empty-initializer',
     '-Wno-dollar-in-identifier-extension',
+    '-Wno-duplicate-decl-specifier',
   ],
   include_directories: 'src/selfhost',
   dependencies: types_dep)

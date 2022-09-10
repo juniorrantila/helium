@@ -6,8 +6,20 @@ namespace He {
 void Expression::dump(std::string_view source, u32 indent) const
 {
     switch (type()) {
-    case ExpressionType::VariableDeclaration:
-        as_variable_declaration().dump(source, indent);
+    case ExpressionType::PrivateVariableDeclaration:
+        as_private_variable_declaration().dump(source, indent);
+        break;
+
+    case ExpressionType::PublicVariableDeclaration:
+        as_public_variable_declaration().dump(source, indent);
+        break;
+
+    case ExpressionType::PrivateConstantDeclaration:
+        as_private_constant_declaration().dump(source, indent);
+        break;
+
+    case ExpressionType::PublicConstantDeclaration:
+        as_public_constant_declaration().dump(source, indent);
         break;
 
     case ExpressionType::StructDeclaration:
@@ -83,7 +95,10 @@ std::string_view expression_type_string(ExpressionType type)
 #define CASE_RETURN(variant) \
     case ExpressionType::variant: return #variant
         CASE_RETURN(Literal);
-        CASE_RETURN(VariableDeclaration);
+        CASE_RETURN(PrivateVariableDeclaration);
+        CASE_RETURN(PublicVariableDeclaration);
+        CASE_RETURN(PrivateConstantDeclaration);
+        CASE_RETURN(PublicConstantDeclaration);
         CASE_RETURN(StructDeclaration);
 
         CASE_RETURN(LValue);
@@ -110,10 +125,37 @@ std::string_view expression_type_string(ExpressionType type)
 }
 
 
-void VariableDeclaration::dump(std::string_view source,
+void PrivateVariableDeclaration::dump(std::string_view source,
     u32 indent) const
 {
-    std::cerr << "Variable(" << '\'' << name.text(source) << '\''
+    std::cerr << "PrivateVariable(" << '\'' << name.text(source) << '\''
+              << " '" << type.text(source) << "' ";
+    value.dump(source, indent);
+    std::cerr << ')';
+}
+
+void PublicVariableDeclaration::dump(std::string_view source,
+    u32 indent) const
+{
+    std::cerr << "PublicVariable(" << '\'' << name.text(source) << '\''
+              << " '" << type.text(source) << "' ";
+    value.dump(source, indent);
+    std::cerr << ')';
+}
+
+void PrivateConstantDeclaration::dump(std::string_view source,
+    u32 indent) const
+{
+    std::cerr << "PrivateConstant(" << '\'' << name.text(source) << '\''
+              << " '" << type.text(source) << "' ";
+    value.dump(source, indent);
+    std::cerr << ')';
+}
+
+void PublicConstantDeclaration::dump(std::string_view source,
+    u32 indent) const
+{
+    std::cerr << "PublicConstant(" << '\'' << name.text(source) << '\''
               << " '" << type.text(source) << "' ";
     value.dump(source, indent);
     std::cerr << ')';
@@ -121,14 +163,15 @@ void VariableDeclaration::dump(std::string_view source,
 
 void StructDeclaration::dump(std::string_view source, u32) const
 {
-    std::cerr << "Struct(" << '\'' << name.text(source) << '\''
-              << "[";
+    std::cerr << "Struct(" << '\'' << name.text(source) << "' "
+              << "[ ";
     for (auto member : members) {
         auto type = member.type;
         auto name = member.name;
-        std::cerr << name.text(source) << ' ' << type.text(source)
-                  << ' ';
+        std::cerr << '\'' << name.text(source) << "' '" << type.text(source)
+                  << "', ";
     }
+    std::cerr << "\b\b ";
     std::cerr << "])";
 }
 
@@ -203,9 +246,9 @@ void PrivateFunction::dump(std::string_view source,
 
 void PublicFunction::dump(std::string_view source, u32 indent) const
 {
-    std::cerr << "PublicFunction('";
-    std::cerr << name.text(source) << "' "
-              << return_type.text(source) << ' ';
+    std::cerr << "PublicFunction(";
+    std::cerr << '\'' << name.text(source) << "' "
+              << '\'' << return_type.text(source) << "' ";
     std::cerr << "[ ";
     for (auto parameter : parameters) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";
@@ -219,9 +262,9 @@ void PublicFunction::dump(std::string_view source, u32 indent) const
 void PrivateCFunction::dump(std::string_view source,
     u32 indent) const
 {
-    std::cerr << "PrivateCFunction('";
-    std::cerr << name.text(source) << "' "
-              << return_type.text(source) << ' ';
+    std::cerr << "PrivateCFunction(";
+    std::cerr << '\'' << name.text(source) << "' "
+              << '\'' << return_type.text(source) << "' ";
     std::cerr << "[ ";
     for (auto parameter : parameters) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";
@@ -234,9 +277,9 @@ void PrivateCFunction::dump(std::string_view source,
 
 void PublicCFunction::dump(std::string_view source, u32 indent) const
 {
-    std::cerr << "PublicCFunction('";
-    std::cerr << name.text(source) << "' "
-              << return_type.text(source) << ' ';
+    std::cerr << "PublicCFunction(";
+    std::cerr << '\'' << name.text(source) << "' "
+              << '\'' << return_type.text(source) << "' ";
     std::cerr << "[ ";
     for (auto parameter : parameters) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";

@@ -153,6 +153,7 @@ int main(int argc, c_string argv[])
 {
     char* argv[] = {
         (char*)(getenv("CC") ?: "clang"),
+        (char*)"-Wno-duplicate-decl-specifier",
         (char*)"-o",
         (char*)destination_path,
         (char*)source_path,

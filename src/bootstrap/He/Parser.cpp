@@ -13,8 +13,20 @@ using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
 static ParseSingleItemResult parse_root_item(ParsedExpressions&,
     Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_variable_or_struct(
+static ParseSingleItemResult parse_top_level_constant_or_struct(
     ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_public_constant(ParsedExpressions&,
+    Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_public_variable(ParsedExpressions&,
+    Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_private_constant(ParsedExpressions&,
+    Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_private_variable(ParsedExpressions&,
+    Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_struct(ParsedExpressions&,
     Tokens const&, u32 start);
@@ -184,8 +196,14 @@ static ParseSingleItemResult parse_pub_specifier(
         return parse_public_c_function(expressions, tokens,
             fn_index);
     }
+    if (fn.type == TokenType::Let) {
+        return parse_public_constant(expressions, tokens, fn_index);
+    }
+    if (fn.type == TokenType::Var) {
+        return parse_public_variable(expressions, tokens, fn_index);
+    }
     return ParseError {
-        "expected 'fn' or 'c_fn'",
+        "expected one of ['fn', 'c_fn', 'let', 'var']",
         nullptr,
         fn,
     };
@@ -211,8 +229,14 @@ static ParseSingleItemResult parse_root_item(
     if (token.type == TokenType::Pub)
         return parse_pub_specifier(expressions, tokens, start);
 
-    if (token.type == TokenType::Let)
-        return parse_struct(expressions, tokens, start + 1);
+    if (token.type == TokenType::Let) {
+        return parse_top_level_constant_or_struct(expressions,
+            tokens, start);
+    }
+
+    if (token.type == TokenType::Var) {
+        return parse_private_variable(expressions, tokens, start);
+    }
 
     return ParseError {
         "unexpected token",
@@ -558,16 +582,16 @@ static ParseSingleItemResult parse_block(
         }
 
         if (tokens[end].type == TokenType::Let) {
-            auto variable = TRY(
-                parse_variable_or_struct(expressions, tokens, end));
+            auto variable
+                = TRY(parse_public_constant(expressions, tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Var) {
-            auto variable = TRY(
-                parse_variable_or_struct(expressions, tokens, end));
+            auto variable
+                = TRY(parse_public_variable(expressions, tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
@@ -687,7 +711,6 @@ static ParseSingleItemResult parse_rvalue(
             end = close_paren_index;
             rvalue.expressions.emplace_back(Block {}, end, end + 1);
             end = close_paren_index + 1;
-            Block block {};
             continue;
         }
 
@@ -1033,7 +1056,299 @@ static ParseSingleItemResult parse_struct(ParsedExpressions&,
     return Expression(std::move(struct_declaration), start, end);
 }
 
-static ParseSingleItemResult parse_variable_or_struct(
+static ParseSingleItemResult parse_private_variable(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto type = tokens[start];
+    auto name_index = start + 1;
+    auto name = tokens[name_index];
+    if (name.type != TokenType::Identifier) {
+        return ParseError {
+            "expected variable name",
+            "did you forget to name your variable?",
+            name,
+        };
+    }
+
+    auto colon_or_assign_index = name_index + 1;
+    auto rvalue_start_index = colon_or_assign_index + 1;
+    auto colon_or_assign = tokens[colon_or_assign_index];
+    if (colon_or_assign.type == TokenType::Colon) {
+        auto type_index = colon_or_assign_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+        type = type_token;
+
+        auto assign_index = type_index + 1;
+        auto assign = tokens[assign_index];
+        if (assign.type != TokenType::Assign) {
+            return ParseError {
+                "expected '='",
+                nullptr,
+                assign,
+            };
+        }
+        rvalue_start_index = assign_index + 1;
+    } else if (colon_or_assign.type != TokenType::Assign) {
+        return ParseError {
+            "expected ':', or '='",
+            nullptr,
+            colon_or_assign,
+        };
+    }
+
+    auto value = TRY(
+        parse_rvalue(expressions, tokens, rvalue_start_index));
+    auto rvalue_end_index = value.end_token_index;
+    auto rvalue = value.release_as_rvalue();
+
+    auto semicolon_index = rvalue_end_index;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        auto rvalue = tokens[rvalue_end_index];
+        return ParseError {
+            "expected ';' after rvalue",
+            "did you forget a semicolon?",
+            rvalue,
+        };
+    }
+    // NOTE: Swallow semicolon;
+    auto end = semicolon_index + 1;
+
+    auto variable = PrivateVariableDeclaration {
+        .value = std::move(rvalue),
+        .name = name,
+        .type = type,
+    };
+    return Expression(std::move(variable), start, end);
+}
+
+static ParseSingleItemResult parse_public_variable(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto type = tokens[start];
+    auto name_index = start + 1;
+    auto name = tokens[name_index];
+    if (name.type != TokenType::Identifier) {
+        return ParseError {
+            "expected variable name",
+            "did you forget to name your variable?",
+            name,
+        };
+    }
+
+    auto colon_or_assign_index = name_index + 1;
+    auto rvalue_start_index = colon_or_assign_index + 1;
+    auto colon_or_assign = tokens[colon_or_assign_index];
+    if (colon_or_assign.type == TokenType::Colon) {
+        auto type_index = colon_or_assign_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+        type = type_token;
+
+        auto assign_index = type_index + 1;
+        auto assign = tokens[assign_index];
+        if (assign.type != TokenType::Assign) {
+            return ParseError {
+                "expected '='",
+                nullptr,
+                assign,
+            };
+        }
+        rvalue_start_index = assign_index + 1;
+    } else if (colon_or_assign.type != TokenType::Assign) {
+        return ParseError {
+            "expected ':', or '='",
+            nullptr,
+            colon_or_assign,
+        };
+    }
+
+    auto value = TRY(
+        parse_rvalue(expressions, tokens, rvalue_start_index));
+    auto rvalue_end_index = value.end_token_index;
+    auto rvalue = value.release_as_rvalue();
+
+    auto semicolon_index = rvalue_end_index;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        auto rvalue = tokens[rvalue_end_index];
+        return ParseError {
+            "expected ';' after rvalue",
+            "did you forget a semicolon?",
+            rvalue,
+        };
+    }
+    // NOTE: Swallow semicolon;
+    auto end = semicolon_index + 1;
+
+    auto variable = PublicVariableDeclaration {
+        .value = std::move(rvalue),
+        .name = name,
+        .type = type,
+    };
+    return Expression(std::move(variable), start, end);
+}
+
+static ParseSingleItemResult parse_private_constant(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto type = tokens[start];
+    auto name_index = start + 1;
+    auto name = tokens[name_index];
+    if (name.type != TokenType::Identifier) {
+        return ParseError {
+            "expected variable name",
+            "did you forget to name your variable?",
+            name,
+        };
+    }
+
+    auto colon_or_assign_index = name_index + 1;
+    auto rvalue_start_index = colon_or_assign_index + 1;
+    auto colon_or_assign = tokens[colon_or_assign_index];
+    if (colon_or_assign.type == TokenType::Colon) {
+        auto type_index = colon_or_assign_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+        type = type_token;
+
+        auto assign_index = type_index + 1;
+        auto assign = tokens[assign_index];
+        if (assign.type != TokenType::Assign) {
+            return ParseError {
+                "expected '='",
+                nullptr,
+                assign,
+            };
+        }
+        rvalue_start_index = assign_index + 1;
+    } else if (colon_or_assign.type != TokenType::Assign) {
+        return ParseError {
+            "expected ':', or '='",
+            nullptr,
+            colon_or_assign,
+        };
+    }
+
+    auto value = TRY(
+        parse_rvalue(expressions, tokens, rvalue_start_index));
+    auto rvalue_end_index = value.end_token_index;
+    auto rvalue = value.release_as_rvalue();
+
+    auto semicolon_index = rvalue_end_index;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        auto rvalue = tokens[rvalue_end_index];
+        return ParseError {
+            "expected ';' after rvalue",
+            "did you forget a semicolon?",
+            rvalue,
+        };
+    }
+    // NOTE: Swallow semicolon;
+    auto end = semicolon_index + 1;
+
+    auto constant = PrivateConstantDeclaration {
+        .value = std::move(rvalue),
+        .name = name,
+        .type = type,
+    };
+    return Expression(std::move(constant), start, end);
+}
+
+static ParseSingleItemResult parse_public_constant(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto type = tokens[start];
+    auto name_index = start + 1;
+    auto name = tokens[name_index];
+    if (name.type != TokenType::Identifier) {
+        return ParseError {
+            "expected variable name",
+            "did you forget to name your variable?",
+            name,
+        };
+    }
+
+    auto colon_or_assign_index = name_index + 1;
+    auto rvalue_start_index = colon_or_assign_index + 1;
+    auto colon_or_assign = tokens[colon_or_assign_index];
+    if (colon_or_assign.type == TokenType::Colon) {
+        auto type_index = colon_or_assign_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+        type = type_token;
+
+        auto assign_index = type_index + 1;
+        auto assign = tokens[assign_index];
+        if (assign.type != TokenType::Assign) {
+            return ParseError {
+                "expected '='",
+                nullptr,
+                assign,
+            };
+        }
+        rvalue_start_index = assign_index + 1;
+    } else if (colon_or_assign.type != TokenType::Assign) {
+        return ParseError {
+            "expected ':', or '='",
+            nullptr,
+            colon_or_assign,
+        };
+    }
+
+    auto value = TRY(
+        parse_rvalue(expressions, tokens, rvalue_start_index));
+    auto rvalue_end_index = value.end_token_index;
+    auto rvalue = value.release_as_rvalue();
+
+    auto semicolon_index = rvalue_end_index;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        auto rvalue = tokens[rvalue_end_index];
+        return ParseError {
+            "expected ';' after rvalue",
+            "did you forget a semicolon?",
+            rvalue,
+        };
+    }
+    // NOTE: Swallow semicolon;
+    auto end = semicolon_index + 1;
+
+    auto constant = PublicConstantDeclaration {
+        .value = std::move(rvalue),
+        .name = name,
+        .type = type,
+    };
+    return Expression(std::move(constant), start, end);
+}
+
+static ParseSingleItemResult parse_top_level_constant_or_struct(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -1103,12 +1418,12 @@ static ParseSingleItemResult parse_variable_or_struct(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto variable = VariableDeclaration {
+    auto constant = PrivateConstantDeclaration {
         .value = std::move(rvalue),
         .name = name,
         .type = type,
     };
-    return Expression(std::move(variable), start, end);
+    return Expression(std::move(constant), start, end);
 }
 
 Core::ErrorOr<void> ParseError::show(SourceFile source) const

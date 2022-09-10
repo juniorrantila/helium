@@ -8,7 +8,12 @@ namespace He {
 
 enum class ExpressionType {
     Literal,
-    VariableDeclaration,
+
+    PublicVariableDeclaration,
+    PrivateVariableDeclaration,
+    PublicConstantDeclaration,
+    PrivateConstantDeclaration,
+
     StructDeclaration,
 
     LValue,
@@ -115,7 +120,31 @@ struct [[gnu::packed]] RValue {
     void dump(std::string_view source, u32 indent) const;
 };
 
-struct [[gnu::packed]] VariableDeclaration {
+struct [[gnu::packed]] PrivateVariableDeclaration {
+    RValue value;
+    Token name {};
+    Token type {};
+
+    void dump(std::string_view source, u32 indent) const;
+};
+
+struct [[gnu::packed]] PublicVariableDeclaration {
+    RValue value;
+    Token name {};
+    Token type {};
+
+    void dump(std::string_view source, u32 indent) const;
+};
+
+struct [[gnu::packed]] PrivateConstantDeclaration {
+    RValue value;
+    Token name {};
+    Token type {};
+
+    void dump(std::string_view source, u32 indent) const;
+};
+
+struct [[gnu::packed]] PublicConstantDeclaration {
     RValue value;
     Token name {};
     Token type {};
@@ -171,7 +200,31 @@ struct Expression {
     {
     }
 
-    constexpr Expression(VariableDeclaration&& value,
+    constexpr Expression(PrivateVariableDeclaration&& value,
+        u32 start_index, u32 end_index)
+        : m_storage(std::move(value))
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
+    constexpr Expression(PublicVariableDeclaration&& value,
+        u32 start_index, u32 end_index)
+        : m_storage(std::move(value))
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
+    constexpr Expression(PrivateConstantDeclaration&& value,
+        u32 start_index, u32 end_index)
+        : m_storage(std::move(value))
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
+    constexpr Expression(PublicConstantDeclaration&& value,
         u32 start_index, u32 end_index)
         : m_storage(std::move(value))
         , start_token_index(start_index)
@@ -300,15 +353,48 @@ struct Expression {
         return std::get<Id<Literal>>(m_storage);
     }
 
-    constexpr VariableDeclaration const&
-    as_variable_declaration() const
+    constexpr PrivateVariableDeclaration const&
+    as_private_variable_declaration() const
     {
-        return std::get<VariableDeclaration>(m_storage);
+        return std::get<PrivateVariableDeclaration>(m_storage);
     }
 
-    constexpr VariableDeclaration release_as_variable_declaration()
+    constexpr PrivateVariableDeclaration release_as_private_variable_declaration()
     {
-        return std::get<VariableDeclaration>(std::move(m_storage));
+        return std::get<PrivateVariableDeclaration>(std::move(m_storage));
+    }
+
+    constexpr PublicVariableDeclaration const&
+    as_public_variable_declaration() const
+    {
+        return std::get<PublicVariableDeclaration>(m_storage);
+    }
+
+    constexpr PublicVariableDeclaration release_as_public_variable_declaration()
+    {
+        return std::get<PublicVariableDeclaration>(std::move(m_storage));
+    }
+
+    constexpr PublicConstantDeclaration const&
+    as_public_constant_declaration() const
+    {
+        return std::get<PublicConstantDeclaration>(m_storage);
+    }
+
+    constexpr PublicConstantDeclaration release_as_public_constant_declaration()
+    {
+        return std::get<PublicConstantDeclaration>(std::move(m_storage));
+    }
+
+    constexpr PrivateConstantDeclaration const&
+    as_private_constant_declaration() const
+    {
+        return std::get<PrivateConstantDeclaration>(m_storage);
+    }
+
+    constexpr PrivateConstantDeclaration release_as_private_constant_declaration()
+    {
+        return std::get<PrivateConstantDeclaration>(std::move(m_storage));
     }
 
     constexpr StructDeclaration const&
@@ -418,7 +504,10 @@ private:
     // clang-format off
     std::variant<
         Id<Literal>,
-        VariableDeclaration,
+        PublicVariableDeclaration,
+        PrivateVariableDeclaration,
+        PublicConstantDeclaration,
+        PrivateConstantDeclaration,
         StructDeclaration,
         LValue,
         RValue,

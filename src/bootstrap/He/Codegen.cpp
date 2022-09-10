@@ -92,8 +92,17 @@ static void dump_block(File& out, Context const&, Block const&);
 static void dump_expression(File& out, Context const&,
     Expression const&, bool in_rvalue_expression);
 
-static void dump_variable_declaration(File& out, Context const&,
-    VariableDeclaration const&);
+static void dump_public_variable_declaration(File& out,
+    Context const&, PublicVariableDeclaration const&);
+
+static void dump_private_variable_declaration(File& out,
+    Context const&, PrivateVariableDeclaration const&);
+
+static void dump_public_constant_declaration(File& out,
+    Context const&, PublicConstantDeclaration const&);
+
+static void dump_private_constant_declaration(File& out,
+    Context const&, PrivateConstantDeclaration const&);
 
 static void dump_struct_declaration(File& out, Context const&,
     StructDeclaration const&);
@@ -272,9 +281,24 @@ static void dump_expression(File& out, Context const& context,
         dump_literal(out, context, expression.as_literal());
         break;
 
-    case ExpressionType::VariableDeclaration:
-        dump_variable_declaration(out, context,
-            expression.as_variable_declaration());
+    case ExpressionType::PrivateVariableDeclaration:
+        dump_private_variable_declaration(out, context,
+            expression.as_private_variable_declaration());
+        break;
+
+    case ExpressionType::PublicVariableDeclaration:
+        dump_public_variable_declaration(out, context,
+            expression.as_public_variable_declaration());
+        break;
+
+    case ExpressionType::PrivateConstantDeclaration:
+        dump_private_constant_declaration(out, context,
+            expression.as_private_constant_declaration());
+        break;
+
+    case ExpressionType::PublicConstantDeclaration:
+        dump_public_constant_declaration(out, context,
+            expression.as_public_constant_declaration());
         break;
 
     case ExpressionType::StructDeclaration:
@@ -347,8 +371,8 @@ static void dump_expression(File& out, Context const& context,
     }
 }
 
-static void dump_variable_declaration(File& out,
-    Context const& context, VariableDeclaration const& variable)
+static void dump_public_variable_declaration(File& out,
+    Context const& context, PublicVariableDeclaration const& variable)
 {
     auto source = context.source.text;
     out.write(variable.type.text(source), " ",
@@ -356,6 +380,37 @@ static void dump_variable_declaration(File& out,
     dump_rvalue(out, context, variable.value);
     out.writeln(';');
 }
+
+static void dump_private_variable_declaration(File& out,
+    Context const& context, PrivateVariableDeclaration const& variable)
+{
+    auto source = context.source.text;
+    out.write("static ", variable.type.text(source), " ",
+        variable.name.text(source), " = ");
+    dump_rvalue(out, context, variable.value);
+    out.writeln(';');
+}
+
+static void dump_public_constant_declaration(File& out,
+    Context const& context, PublicConstantDeclaration const& variable)
+{
+    auto source = context.source.text;
+    out.write(variable.type.text(source), " const ",
+        variable.name.text(source), " = ");
+    dump_rvalue(out, context, variable.value);
+    out.writeln(';');
+}
+
+static void dump_private_constant_declaration(File& out,
+    Context const& context, PrivateConstantDeclaration const& variable)
+{
+    auto source = context.source.text;
+    out.write("static ", variable.type.text(source), " const ",
+        variable.name.text(source), " = ");
+    dump_rvalue(out, context, variable.value);
+    out.writeln(';');
+}
+
 
 static void dump_struct_declaration(File& out,
     Context const& context, StructDeclaration const& struct_)
@@ -419,8 +474,8 @@ static void dump_block(File& out, Context const& context,
     out.writeln('}');
 }
 
-static void dump_private_function(File& out,
-    Context const& context, PrivateFunction const& function)
+static void dump_private_function(File& out, Context const& context,
+    PrivateFunction const& function)
 {
     auto source = context.source.text;
     out.write("static ", function.return_type.text(source), " ",
@@ -449,8 +504,8 @@ static void dump_private_c_function(File& out,
     dump_block(out, context, function.block);
 }
 
-static void dump_public_c_function(File& out, Context const& context,
-    PublicCFunction const& function)
+static void dump_public_c_function(File& out,
+    Context const& context, PublicCFunction const& function)
 {
     auto source = context.source.text;
     out.write(function.return_type.text(source), " ",
