@@ -1,0 +1,9 @@
+@import_c("stdio.h");
+
+let foo = 10;
+var bar = foo;
+
+pub c_fn main() -> i32 {
+    inline_c bar++;
+    printf("foo: %d\nbar: %d\n", foo, bar);
+}
