@@ -17,3 +17,20 @@ typedef float  f32;
 typedef double f64;
 
 typedef char const* c_string;
+
+#if __cplusplus
+template <typename T>
+struct Id {
+    constexpr Id() = default;
+
+    constexpr explicit Id(u32 raw_id)
+        : m_raw(raw_id)
+    {
+    }
+    
+    constexpr u32 raw() const { return m_raw; }
+
+private:
+    u32 m_raw { 0 };
+};
+#endif
