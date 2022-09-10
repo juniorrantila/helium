@@ -5,7 +5,7 @@ let Foo = struct {
     b: u32,
 };
 
-pub fn main() -> i32 {
+pub c_fn main() -> i32 {
     inline_c let foo = (Foo) {
         .a = 10,
         .b = 20,

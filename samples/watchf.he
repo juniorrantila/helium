@@ -6,7 +6,7 @@
 @import_c("unistd.h");
 
 inline_c typedef char** c_string_array;
-pub fn main(argc: i32, argv: c_string_array) -> i32 {
+pub c_fn main(argc: i32, argv: c_string_array) -> i32 {
     if argc < 3 {
         help(1);
     }

@@ -9,7 +9,7 @@
 @import_c("unistd.h");
 
 inline_c typedef c_string* c_string_array;
-pub fn main(argc: i32, argv: c_string_array) -> i32 {
+pub c_fn main(argc: i32, argv: c_string_array) -> i32 {
     if argc < 2 {
         let program_name = inline_c argv[0];
         printf("USAGE: %s file\n", program_name);
