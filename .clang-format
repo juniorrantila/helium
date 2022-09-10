@@ -16,3 +16,4 @@ AllowShortCaseLabelsOnASingleLine: true
 ColumnLimit: 68
 AllowAllArgumentsOnNextLine: false
 AllowShortLambdasOnASingleLine: false
+AlwaysBreakTemplateDeclarations: true
