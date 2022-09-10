@@ -11,6 +11,7 @@ if not meson.is_subproject()
   add_global_arguments('-Wno-gnu-case-range', language: 'cpp')
   add_global_arguments('-Wno-gnu-statement-expression', language: 'cpp')
   add_global_arguments('-Wno-gnu-conditional-omitted-operand', language: 'cpp')
+  add_global_arguments('-Wno-dollar-in-identifier-extension', language: 'c')
 endif
 
 core_proj = subproject('Core')
@@ -49,7 +50,8 @@ stage_1_exe = executable('stage-1', [
     '-std=c2x',
     '-Wno-gnu-auto-type',
     '-Wno-fixed-enum-extension',
-    '-Wno-gnu-empty-initializer'
+    '-Wno-gnu-empty-initializer',
+    '-Wno-dollar-in-identifier-extension',
   ],
   include_directories: 'src/selfhost',
   dependencies: types_dep)
