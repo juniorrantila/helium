@@ -56,3 +56,5 @@ stage_1_exe = executable('stage-1', [
   ],
   include_directories: 'src/selfhost',
   dependencies: types_dep)
+
+subdir('samples')
