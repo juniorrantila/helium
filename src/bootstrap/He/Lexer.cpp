@@ -188,6 +188,10 @@ static LexItemResult lex_single_item(std::string_view source,
     if (is_letter(character)) {
         auto token = lex_string(source, start);
         auto value = token.text(source);
+        if (value == "c_fn") {
+            token.type = TokenType::CFn;
+            return token;
+        }
         if (value == "fn") {
             token.type = TokenType::Fn;
             return token;

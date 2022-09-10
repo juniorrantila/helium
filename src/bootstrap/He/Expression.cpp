@@ -45,6 +45,14 @@ void Expression::dump(std::string_view source, u32 indent) const
         as_private_function().dump(source, indent);
         break;
 
+    case ExpressionType::PublicCFunction:
+        as_public_c_function().dump(source, indent);
+        break;
+
+    case ExpressionType::PrivateCFunction:
+        as_private_c_function().dump(source, indent);
+        break;
+
     case ExpressionType::FunctionCall:
         as_function_call().dump(source, indent);
         break;
@@ -87,6 +95,8 @@ std::string_view expression_type_string(ExpressionType type)
         CASE_RETURN(Block);
         CASE_RETURN(PublicFunction);
         CASE_RETURN(PrivateFunction);
+        CASE_RETURN(PublicCFunction);
+        CASE_RETURN(PrivateCFunction);
         CASE_RETURN(FunctionCall);
 
         CASE_RETURN(Return);
@@ -194,6 +204,37 @@ void PrivateFunction::dump(std::string_view source,
 void PublicFunction::dump(std::string_view source, u32 indent) const
 {
     std::cerr << "PublicFunction('";
+    std::cerr << name.text(source) << "' "
+              << return_type.text(source) << ' ';
+    std::cerr << "[ ";
+    for (auto parameter : parameters) {
+        std::cerr << '\'' << parameter.name.text(source) << "': ";
+        std::cerr << '\'' << parameter.type.text(source) << "' ";
+    }
+    std::cerr << "] ";
+    block.dump(source, indent);
+    std::cerr << ')';
+}
+
+void PrivateCFunction::dump(std::string_view source,
+    u32 indent) const
+{
+    std::cerr << "PrivateCFunction('";
+    std::cerr << name.text(source) << "' "
+              << return_type.text(source) << ' ';
+    std::cerr << "[ ";
+    for (auto parameter : parameters) {
+        std::cerr << '\'' << parameter.name.text(source) << "': ";
+        std::cerr << '\'' << parameter.type.text(source) << "' ";
+    }
+    std::cerr << "] ";
+    block.dump(source, indent);
+    std::cerr << ')';
+}
+
+void PublicCFunction::dump(std::string_view source, u32 indent) const
+{
+    std::cerr << "PublicCFunction('";
     std::cerr << name.text(source) << "' "
               << return_type.text(source) << ' ';
     std::cerr << "[ ";

@@ -44,6 +44,7 @@ enum class TokenType : u8 {
 
     // Keywords
 
+    CFn,
     Fn,
     If,
     InlineC,

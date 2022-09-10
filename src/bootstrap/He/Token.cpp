@@ -87,6 +87,7 @@ static std::string_view token_type_string(TokenType type)
         CASE_RETURN(Quoted);
         CASE_RETURN(Identifier);
 
+        CASE_RETURN(CFn);
         CASE_RETURN(Fn);
         CASE_RETURN(If);
         CASE_RETURN(InlineC);

@@ -88,24 +88,39 @@ static void dump_rvalue(File& out, Context const&, RValue const&);
 static void dump_if_statement(File& out, Context const&, If const&);
 static void dump_return(File& out, Context const&, Return const&);
 static void dump_block(File& out, Context const&, Block const&);
+
 static void dump_expression(File& out, Context const&,
     Expression const&, bool in_rvalue_expression);
+
 static void dump_variable_declaration(File& out, Context const&,
     VariableDeclaration const&);
+
 static void dump_struct_declaration(File& out, Context const&,
     StructDeclaration const&);
+
 static void dump_while_loop(File& out, Context const&,
     While const&);
 static void dump_public_function(File& out, Context const&,
     PublicFunction const&);
+
 static void dump_private_function(File& out, Context const&,
     PrivateFunction const&);
+
+static void dump_public_c_function(File& out, Context const&,
+    PublicCFunction const&);
+
+static void dump_private_c_function(File& out, Context const&,
+    PrivateCFunction const&);
+
 static void dump_parameters(File& out, Context const&,
     Parameters const&);
+
 static void dump_function_call(File& out, Context const&,
     FunctionCall const&);
+
 static void dump_import_c(File& out, Context const&,
     ImportC const&);
+
 static void dump_inline_c(File& out, Context const&,
     InlineC const&);
 
@@ -297,6 +312,16 @@ static void dump_expression(File& out, Context const& context,
             expression.as_public_function());
         break;
 
+    case ExpressionType::PrivateCFunction:
+        dump_private_c_function(out, context,
+            expression.as_private_c_function());
+        break;
+
+    case ExpressionType::PublicCFunction:
+        dump_public_c_function(out, context,
+            expression.as_public_c_function());
+        break;
+
     case ExpressionType::FunctionCall:
         dump_function_call(out, context,
             expression.as_function_call());
@@ -406,6 +431,26 @@ static void dump_private_function(File& out,
 
 static void dump_public_function(File& out, Context const& context,
     PublicFunction const& function)
+{
+    auto source = context.source.text;
+    out.write(function.return_type.text(source), " ",
+        function.name.text(source));
+    dump_parameters(out, context, function.parameters);
+    dump_block(out, context, function.block);
+}
+
+static void dump_private_c_function(File& out,
+    Context const& context, PrivateCFunction const& function)
+{
+    auto source = context.source.text;
+    out.write("static ", function.return_type.text(source), " ",
+        function.name.text(source));
+    dump_parameters(out, context, function.parameters);
+    dump_block(out, context, function.block);
+}
+
+static void dump_public_c_function(File& out, Context const& context,
+    PublicCFunction const& function)
 {
     auto source = context.source.text;
     out.write(function.return_type.text(source), " ",

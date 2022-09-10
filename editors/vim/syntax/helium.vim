@@ -18,6 +18,7 @@ let s:helium_syntax_keywords = {
     \ ,                 "false"
     \ ,                ]
     \ , 'heliumKeyword' :["fn"
+    \ ,                 "c_fn"
     \ ,                ]
     \ , 'heliumVarDecl' :["var"
     \ ,                 "let"

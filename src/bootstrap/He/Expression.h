@@ -19,6 +19,8 @@ enum class ExpressionType {
 
     Block,
 
+    PrivateCFunction,
+    PublicCFunction,
     PrivateFunction,
     PublicFunction,
     FunctionCall,
@@ -75,6 +77,24 @@ struct [[gnu::packed]] PrivateFunction {
 };
 
 struct [[gnu::packed]] PublicFunction {
+    Block block;
+    Parameters parameters {};
+    Token name {};
+    Token return_type {};
+
+    void dump(std::string_view source, u32 indent) const;
+};
+
+struct [[gnu::packed]] PrivateCFunction {
+    Block block;
+    Parameters parameters {};
+    Token name {};
+    Token return_type {};
+
+    void dump(std::string_view source, u32 indent) const;
+};
+
+struct [[gnu::packed]] PublicCFunction {
     Block block;
     Parameters parameters {};
     Token name {};
@@ -222,6 +242,22 @@ struct Expression {
     {
     }
 
+    constexpr Expression(PrivateCFunction&& value, u32 start_index,
+        u32 end_index)
+        : m_storage(std::move(value))
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
+    constexpr Expression(PublicCFunction&& value, u32 start_index,
+        u32 end_index)
+        : m_storage(std::move(value))
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
     constexpr Expression(FunctionCall value, u32 start_index,
         u32 end_index)
         : m_storage(value)
@@ -316,6 +352,16 @@ struct Expression {
         return std::get<PublicFunction>(m_storage);
     }
 
+    constexpr PrivateCFunction const& as_private_c_function() const
+    {
+        return std::get<PrivateCFunction>(m_storage);
+    }
+
+    constexpr PublicCFunction const& as_public_c_function() const
+    {
+        return std::get<PublicCFunction>(m_storage);
+    }
+
     constexpr FunctionCall const& as_function_call() const
     {
         return std::get<FunctionCall>(m_storage);
@@ -379,6 +425,8 @@ private:
         If,
         While,
         Block,
+        PrivateCFunction,
+        PublicCFunction,
         PrivateFunction,
         PublicFunction,
         FunctionCall,

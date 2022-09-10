@@ -28,7 +28,13 @@ static ParseSingleItemResult parse_return(ParsedExpressions&,
 static ParseSingleItemResult parse_public_function(
     ParsedExpressions&, Tokens const&, u32 start);
 
+static ParseSingleItemResult parse_public_c_function(
+    ParsedExpressions&, Tokens const&, u32 start);
+
 static ParseSingleItemResult parse_private_function(
+    ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_private_c_function(
     ParsedExpressions&, Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_import_c(ParsedExpressions&,
@@ -172,14 +178,17 @@ static ParseSingleItemResult parse_pub_specifier(
 {
     auto fn_index = start + 1;
     auto fn = tokens[fn_index];
-    if (fn.type != TokenType::Fn) {
-        return ParseError {
-            "expected fn",
-            nullptr,
-            fn,
-        };
+    if (fn.type == TokenType::Fn)
+        return parse_public_function(expressions, tokens, fn_index);
+    if (fn.type == TokenType::CFn) {
+        return parse_public_c_function(expressions, tokens,
+            fn_index);
     }
-    return parse_public_function(expressions, tokens, fn_index);
+    return ParseError {
+        "expected 'fn' or 'c_fn'",
+        nullptr,
+        fn,
+    };
 }
 
 static ParseSingleItemResult parse_root_item(
@@ -195,6 +204,9 @@ static ParseSingleItemResult parse_root_item(
 
     if (token.type == TokenType::Fn)
         return parse_private_function(expressions, tokens, start);
+
+    if (token.type == TokenType::CFn)
+        return parse_private_c_function(expressions, tokens, start);
 
     if (token.type == TokenType::Pub)
         return parse_pub_specifier(expressions, tokens, start);
@@ -362,11 +374,45 @@ static ParseSingleItemResult parse_public_function(
     };
 }
 
+static ParseSingleItemResult parse_public_c_function(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto function = TRY(parse_function(expressions, tokens, start));
+    auto public_function = PublicCFunction {
+        .block = std::move(function.block),
+        .parameters = function.parameters,
+        .name = function.name,
+        .return_type = function.return_type,
+    };
+    return Expression {
+        std::move(public_function),
+        function.start_token_index,
+        function.end_token_index,
+    };
+}
+
 static ParseSingleItemResult parse_private_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function = TRY(parse_function(expressions, tokens, start));
     auto private_function = PrivateFunction {
+        .block = std::move(function.block),
+        .parameters = function.parameters,
+        .name = function.name,
+        .return_type = function.return_type,
+    };
+    return Expression {
+        std::move(private_function),
+        function.start_token_index,
+        function.end_token_index,
+    };
+}
+
+static ParseSingleItemResult parse_private_c_function(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto function = TRY(parse_function(expressions, tokens, start));
+    auto private_function = PrivateCFunction {
         .block = std::move(function.block),
         .parameters = function.parameters,
         .name = function.name,
