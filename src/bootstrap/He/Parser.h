@@ -25,7 +25,28 @@ struct ParseError {
     Core::ErrorOr<void> show(SourceFile source) const;
 };
 
-using ParseResult = Core::ErrorOr<Expressions, ParseError>;
+struct ParsedExpressions {
+#define SOA_MEMBER(T, name)                                      \
+    constexpr T& operator[](Id<T> id) { return name[id.raw()]; } \
+    constexpr T const& operator[](Id<T> id) const                \
+    {                                                            \
+        return name[id.raw()];                                   \
+    }                                                            \
+    constexpr Id<T> append(T&& value)                            \
+    {                                                            \
+        auto id = Id<T>(name.size());                            \
+        name.push_back(value);                                   \
+        return id;                                               \
+    }                                                            \
+    std::vector<T> name
+
+    SOA_MEMBER(Literal, literals);
+
+#undef SOA_MEMBER
+    std::vector<Expression> expressions;
+};
+
+using ParseResult = Core::ErrorOr<ParsedExpressions, ParseError>;
 ParseResult parse(Tokens const& tokens);
 
 }

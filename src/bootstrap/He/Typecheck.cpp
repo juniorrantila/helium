@@ -17,7 +17,7 @@ TypecheckResult typecheck(Context& context)
 {
     auto output = Codegen();
     auto& expressions = context.expressions;
-    for (auto& expression : expressions) {
+    for (auto& expression : expressions.expressions) {
         if (expression.type() == ExpressionType::ImportC) {
             auto import_c = expression.release_as_import_c();
             output.import_c_filenames.push_back(import_c.filename);

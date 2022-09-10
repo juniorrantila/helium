@@ -29,7 +29,8 @@ void Expression::dump(std::string_view source, u32 indent) const
         break;
 
     case ExpressionType::Literal:
-        as_literal().dump(source, indent);
+        // as_literal().dump(source, indent);
+        std::cerr << "Literal(fixme)";
         break;
 
     case ExpressionType::Block:

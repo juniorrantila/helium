@@ -10,62 +10,70 @@
 namespace He {
 
 using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
-static ParseSingleItemResult parse_root_item(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_root_item(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_variable_or_struct(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_variable_or_struct(
+    ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_struct(Tokens const&, u32 start);
+static ParseSingleItemResult parse_struct(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_rvalue(Tokens const&, u32 start);
+static ParseSingleItemResult parse_rvalue(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_return(Tokens const&, u32 start);
+static ParseSingleItemResult parse_return(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_public_function(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_public_function(
+    ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_private_function(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_private_function(
+    ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_import_c(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_import_c(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_inline_c(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_block(Tokens const&, u32 start);
+static ParseSingleItemResult parse_block(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_function_call(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_function_call(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_prvalue(Tokens const&,
-    u32 start);
+static ParseSingleItemResult parse_prvalue(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_if(Tokens const&, u32 start);
+static ParseSingleItemResult parse_if(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_while(Tokens const&, u32 start);
+static ParseSingleItemResult parse_while(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_pub_specifier(
+static ParseSingleItemResult parse_pub_specifier(ParsedExpressions&,
     Tokens const& tokens, u32 start);
 
 ParseResult parse(Tokens const& tokens)
 {
-    Expressions items;
+    auto expressions = ParsedExpressions();
     for (u32 start = 0; start < tokens.size();) {
         if (tokens[start].type == TokenType::NewLine)
             continue; // Ignore leading and trailing new lines.
-        auto item = TRY(parse_root_item(tokens, start));
+        auto item
+            = TRY(parse_root_item(expressions, tokens, start));
         start = item.end_token_index;
-        items.push_back(std::move(item));
+        expressions.expressions.push_back(std::move(item));
     }
-    return items;
+    return expressions;
 }
 
-static ParseSingleItemResult parse_if(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_if(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto condition = TRY(parse_rvalue(tokens, start + 1));
+    auto condition
+        = TRY(parse_rvalue(expressions, tokens, start + 1));
     auto block_start_index = condition.end_token_index;
     auto block_start = tokens[block_start_index];
     if (block_start.type != TokenType::OpenCurly) {
@@ -75,7 +83,8 @@ static ParseSingleItemResult parse_if(Tokens const& tokens,
             block_start,
         };
     }
-    auto block = TRY(parse_block(tokens, block_start_index));
+    auto block
+        = TRY(parse_block(expressions, tokens, block_start_index));
 
     auto end = block.end_token_index;
     auto if_statement = If {
@@ -85,10 +94,11 @@ static ParseSingleItemResult parse_if(Tokens const& tokens,
     return Expression(std::move(if_statement), start, end);
 }
 
-static ParseSingleItemResult parse_while(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_while(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto condition = TRY(parse_rvalue(tokens, start + 1));
+    auto condition
+        = TRY(parse_rvalue(expressions, tokens, start + 1));
     auto block_start_index = condition.end_token_index;
     auto block_start = tokens[block_start_index];
     if (block_start.type != TokenType::OpenCurly) {
@@ -98,7 +108,8 @@ static ParseSingleItemResult parse_while(Tokens const& tokens,
             block_start,
         };
     }
-    auto block = TRY(parse_block(tokens, block_start_index));
+    auto block
+        = TRY(parse_block(expressions, tokens, block_start_index));
 
     auto end = block.end_token_index;
     auto while_ = While { condition.release_as_rvalue(),
@@ -106,8 +117,8 @@ static ParseSingleItemResult parse_while(Tokens const& tokens,
     return Expression(std::move(while_), start, end);
 }
 
-static ParseSingleItemResult parse_import_c(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_import_c(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
 {
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
@@ -157,7 +168,7 @@ static ParseSingleItemResult parse_import_c(Tokens const& tokens,
 }
 
 static ParseSingleItemResult parse_pub_specifier(
-    Tokens const& tokens, u32 start)
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto fn_index = start + 1;
     auto fn = tokens[fn_index];
@@ -168,28 +179,28 @@ static ParseSingleItemResult parse_pub_specifier(
             fn,
         };
     }
-    return parse_public_function(tokens, fn_index);
+    return parse_public_function(expressions, tokens, fn_index);
 }
 
-static ParseSingleItemResult parse_root_item(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_root_item(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto token = tokens[start];
 
     if (token.type == TokenType::ImportC)
-        return parse_import_c(tokens, start);
+        return parse_import_c(expressions, tokens, start);
 
     if (token.type == TokenType::InlineC)
-        return parse_inline_c(tokens, start);
+        return parse_inline_c(expressions, tokens, start);
 
     if (token.type == TokenType::Fn)
-        return parse_private_function(tokens, start);
+        return parse_private_function(expressions, tokens, start);
 
     if (token.type == TokenType::Pub)
-        return parse_pub_specifier(tokens, start);
+        return parse_pub_specifier(expressions, tokens, start);
 
     if (token.type == TokenType::Let)
-        return parse_struct(tokens, start + 1);
+        return parse_struct(expressions, tokens, start + 1);
 
     return ParseError {
         "unexpected token",
@@ -208,7 +219,7 @@ struct Function {
 };
 
 static Core::ErrorOr<Function, ParseError> parse_function(
-    Tokens const& tokens, u32 start)
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start + 1;
     auto name = tokens[name_index];
@@ -320,7 +331,8 @@ static Core::ErrorOr<Function, ParseError> parse_function(
         };
     }
 
-    auto block = TRY(parse_block(tokens, block_start_index));
+    auto block
+        = TRY(parse_block(expressions, tokens, block_start_index));
     auto block_end_index = block.end_token_index;
 
     return Function {
@@ -334,9 +346,9 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 }
 
 static ParseSingleItemResult parse_public_function(
-    Tokens const& tokens, u32 start)
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto function = TRY(parse_function(tokens, start));
+    auto function = TRY(parse_function(expressions, tokens, start));
     auto public_function = PublicFunction {
         .block = std::move(function.block),
         .parameters = function.parameters,
@@ -351,9 +363,9 @@ static ParseSingleItemResult parse_public_function(
 }
 
 static ParseSingleItemResult parse_private_function(
-    Tokens const& tokens, u32 start)
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto function = TRY(parse_function(tokens, start));
+    auto function = TRY(parse_function(expressions, tokens, start));
     auto private_function = PrivateFunction {
         .block = std::move(function.block),
         .parameters = function.parameters,
@@ -368,7 +380,7 @@ static ParseSingleItemResult parse_private_function(
 }
 
 static ParseSingleItemResult parse_function_call(
-    Tokens const& tokens, u32 start)
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function_name = tokens[start];
 
@@ -397,7 +409,8 @@ static ParseSingleItemResult parse_function_call(
         if (tokens[right_paren_index].type == TokenType::CloseParen)
             break;
         auto argument_index = right_paren_index + 1;
-        auto argument = TRY(parse_prvalue(tokens, argument_index));
+        auto argument = TRY(
+            parse_prvalue(expressions, tokens, argument_index));
         right_paren_index = argument.end_token_index;
         call.arguments.push_back(std::move(argument));
     }
@@ -415,10 +428,11 @@ static ParseSingleItemResult parse_function_call(
     return Expression(call, start, right_paren_index + 1);
 }
 
-static ParseSingleItemResult parse_return(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_return(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto generic_rvalue = TRY(parse_rvalue(tokens, start + 1));
+    auto generic_rvalue
+        = TRY(parse_rvalue(expressions, tokens, start + 1));
     auto end = generic_rvalue.end_token_index;
     auto rvalue = generic_rvalue.release_as_rvalue();
 
@@ -427,8 +441,8 @@ static ParseSingleItemResult parse_return(Tokens const& tokens,
     return Expression(std::move(return_expression), start, end);
 }
 
-static ParseSingleItemResult parse_inline_c(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
 {
     i32 level = 0;
     auto block_start_index = start + 1;
@@ -472,8 +486,8 @@ static ParseSingleItemResult parse_inline_c(Tokens const& tokens,
     return Expression(InlineC { token }, start, end + 1);
 }
 
-static ParseSingleItemResult parse_block(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_block(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto block = Block();
     auto end = start + 1;
@@ -482,37 +496,40 @@ static ParseSingleItemResult parse_block(Tokens const& tokens,
             break;
 
         if (tokens[end].type == TokenType::InlineC) {
-            auto inline_c = TRY(parse_inline_c(tokens, end));
+            auto inline_c
+                = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index;
             block.expressions.push_back(std::move(inline_c));
             continue;
         }
 
         if (tokens[end].type == TokenType::OpenCurly) {
-            auto sub_block = TRY(parse_block(tokens, end));
+            auto sub_block
+                = TRY(parse_block(expressions, tokens, end));
             end = sub_block.end_token_index + 1;
             block.expressions.push_back(std::move(sub_block));
             continue;
         }
 
         if (tokens[end].type == TokenType::Let) {
-            auto variable
-                = TRY(parse_variable_or_struct(tokens, end));
+            auto variable = TRY(
+                parse_variable_or_struct(expressions, tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Var) {
-            auto variable
-                = TRY(parse_variable_or_struct(tokens, end));
+            auto variable = TRY(
+                parse_variable_or_struct(expressions, tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Return) {
-            auto return_expression = TRY(parse_return(tokens, end));
+            auto return_expression
+                = TRY(parse_return(expressions, tokens, end));
             end = return_expression.end_token_index;
 
             if (tokens[end].type != TokenType::Semicolon) {
@@ -531,14 +548,16 @@ static ParseSingleItemResult parse_block(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Identifier) {
             if (tokens[end + 1].type == TokenType::Assign) {
-                auto rvalue = TRY(parse_rvalue(tokens, end + 2));
+                auto rvalue = TRY(
+                    parse_rvalue(expressions, tokens, end + 2));
                 // Note: Swallow semicolon.
                 end = rvalue.end_token_index + 1;
                 block.expressions.push_back(std::move(rvalue));
                 continue;
             }
 
-            auto call = TRY(parse_function_call(tokens, end));
+            auto call = TRY(
+                parse_function_call(expressions, tokens, end));
             end = call.end_token_index;
             block.expressions.push_back(std::move(call));
 
@@ -554,14 +573,15 @@ static ParseSingleItemResult parse_block(Tokens const& tokens,
         }
 
         if (tokens[end].type == TokenType::If) {
-            auto if_ = TRY(parse_if(tokens, end));
+            auto if_ = TRY(parse_if(expressions, tokens, end));
             end = if_.end_token_index;
             block.expressions.push_back(std::move(if_));
             continue;
         }
 
         if (tokens[end].type == TokenType::While) {
-            auto while_ = TRY(parse_while(tokens, end));
+            auto while_
+                = TRY(parse_while(expressions, tokens, end));
             end = while_.end_token_index;
             block.expressions.push_back(std::move(while_));
             continue;
@@ -577,8 +597,8 @@ static ParseSingleItemResult parse_block(Tokens const& tokens,
     return Expression(std::move(block), start, end);
 }
 
-static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_rvalue(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto rvalue = RValue();
 
@@ -590,7 +610,8 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
             break;
 
         if (tokens[end].type == TokenType::InlineC) {
-            auto inline_c = TRY(parse_inline_c(tokens, end));
+            auto inline_c
+                = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index;
             rvalue.expressions.push_back(inline_c);
             // NOTE: Unconsume ';'
@@ -625,7 +646,9 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
         }
 
         if (tokens[end].type == TokenType::Number) {
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -633,7 +656,9 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Plus) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -641,7 +666,9 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Minus) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -649,7 +676,9 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::LessThanOrEqual) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -657,7 +686,9 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::GreaterThan) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -665,14 +696,18 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Equals) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
         }
 
         if (tokens[end].type == TokenType::Quoted) {
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -680,7 +715,8 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Identifier) {
             if (tokens[end + 1].type == TokenType::OpenParen) {
-                auto call = TRY(parse_function_call(tokens, end));
+                auto call = TRY(
+                    parse_function_call(expressions, tokens, end));
                 end = call.end_token_index;
                 rvalue.expressions.push_back(std::move(call));
             } else {
@@ -692,7 +728,6 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
             continue;
         }
 
-        auto parse_error = ParseError { "foo", "bar", tokens[end] };
         return ParseError {
             "expected ';' or '{'",
             "did you forget a semicolon?",
@@ -700,11 +735,21 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
         };
     }
 
-    if (tokens[end].type == TokenType::Semicolon)
-        return Expression { std::move(rvalue), start, end };
+    if (tokens[end].type == TokenType::Semicolon) {
+        return Expression {
+            std::move(rvalue),
+            start,
+            end,
+        };
+    }
 
-    if (tokens[end].type == TokenType::OpenCurly)
-        return Expression { std::move(rvalue), start, end };
+    if (tokens[end].type == TokenType::OpenCurly) {
+        return Expression {
+            std::move(rvalue),
+            start,
+            end,
+        };
+    }
 
     return ParseError {
         "expected ';' or '{'",
@@ -713,8 +758,8 @@ static ParseSingleItemResult parse_rvalue(Tokens const& tokens,
     };
 }
 
-static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_prvalue(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto rvalue = RValue();
 
@@ -726,7 +771,9 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
             break;
 
         if (tokens[end].type == TokenType::Number) {
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -735,7 +782,9 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
         if (tokens[end].type == TokenType::RefMut) {
             auto token = tokens[end];
             token.set_end_index(token.start_index + 1);
-            auto literal = Literal { token };
+            auto literal = expressions.append(Literal {
+                token,
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -744,7 +793,9 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
         if (tokens[end].type == TokenType::Ampersand) {
             auto token = tokens[end];
             token.set_end_index(token.start_index + 1);
-            auto literal = Literal { token };
+            auto literal = expressions.append(Literal {
+                token,
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -752,7 +803,9 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Plus) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -760,14 +813,18 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Minus) {
             // FIXME: Make this a unary operation.
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
         }
 
         if (tokens[end].type == TokenType::Quoted) {
-            auto literal = Literal { tokens[end] };
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
             rvalue.expressions.push_back({ literal, end, end + 1 });
             end = end + 1;
             continue;
@@ -775,8 +832,8 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
 
         if (tokens[end].type == TokenType::Identifier) {
             if (tokens[end + 1].type == TokenType::OpenParen) {
-                auto function_call
-                    = TRY(parse_function_call(tokens, end));
+                auto function_call = TRY(
+                    parse_function_call(expressions, tokens, end));
                 end = function_call.end_token_index;
                 rvalue.expressions.push_back(
                     std::move(function_call));
@@ -808,20 +865,21 @@ static ParseSingleItemResult parse_prvalue(Tokens const& tokens,
     };
 }
 
-static ParseSingleItemResult parse_struct(Tokens const& tokens,
-    u32 start)
+static ParseSingleItemResult parse_struct(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
 
     auto assign_index = start + 1;
     auto assign = tokens[assign_index];
     if (assign.type != TokenType::Assign) {
+        auto const* hint = "struct declarations can't have colon "
+                           "in this position";
+        if (assign.type != TokenType::Colon)
+            hint = nullptr;
         return ParseError {
             "expected '='",
-            assign.type == TokenType::Colon
-                ? "struct declarations can't have colon in this "
-                  "position"
-                : nullptr,
+            hint,
             assign,
         };
     }
@@ -930,7 +988,7 @@ static ParseSingleItemResult parse_struct(Tokens const& tokens,
 }
 
 static ParseSingleItemResult parse_variable_or_struct(
-    Tokens const& tokens, u32 start)
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
     auto name_index = start + 1;
@@ -979,9 +1037,10 @@ static ParseSingleItemResult parse_variable_or_struct(
     auto struct_token_index = colon_or_assign_index + 1;
     auto struct_token = tokens[struct_token_index];
     if (struct_token.type == TokenType::Struct)
-        return TRY(parse_struct(tokens, name_index));
+        return TRY(parse_struct(expressions, tokens, name_index));
 
-    auto value = TRY(parse_rvalue(tokens, rvalue_start_index));
+    auto value = TRY(
+        parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
     auto rvalue = value.release_as_rvalue();
 

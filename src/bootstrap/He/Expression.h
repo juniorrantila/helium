@@ -143,7 +143,7 @@ struct [[gnu::packed]] InlineC {
 };
 
 struct Expression {
-    constexpr Expression(Literal value, u32 start_index,
+    constexpr Expression(Id<Literal> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -259,14 +259,9 @@ struct Expression {
         return (ExpressionType)m_storage.index();
     }
 
-    constexpr Literal const& as_literal() const
+    constexpr Id<Literal> as_literal() const
     {
-        return std::get<Literal>(m_storage);
-    }
-
-    constexpr Literal release_as_literal()
-    {
-        return std::get<Literal>(std::move(m_storage));
+        return std::get<Id<Literal>>(m_storage);
     }
 
     constexpr VariableDeclaration const&
@@ -376,7 +371,7 @@ struct Expression {
 private:
     // clang-format off
     std::variant<
-        Literal,
+        Id<Literal>,
         VariableDeclaration,
         StructDeclaration,
         LValue,

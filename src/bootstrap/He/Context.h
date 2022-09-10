@@ -6,7 +6,7 @@ namespace He {
 
 struct Context {
     SourceFile source;
-    Expressions& expressions;
+    ParsedExpressions& expressions;
 };
 
 }

@@ -90,7 +90,7 @@ int main(int argc, c_string argv[])
     auto expressions = parse_result.release_value();
 
     if (dump_expressions) {
-        for (auto const& expression : expressions) {
+        for (auto const& expression : expressions.expressions) {
             expression.dump(source_file.text);
             std::cerr << "\n\n";
         }
