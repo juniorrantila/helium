@@ -13,6 +13,7 @@ Checks: >
   -bugprone-macro-parentheses,
   -bugprone-reserved-identifier,-cert-dcl37-c,-cert-dcl51-cpp,
   -cert-dcl21-cpp,
+  -misc-no-recursion,
   -misc-non-private-member-variables-in-classes,
   -performance-noexcept-move-constructor,
   -performance-no-int-to-ptr,
