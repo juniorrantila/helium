@@ -404,7 +404,7 @@ static void dump_while_loop(FileBuffer& out, Context const& context,
     out.write("while (");
     dump_rvalue(out, context, while_loop.condition);
     out.write(") ");
-    dump_block(out, context, while_loop.block);
+    dump_block(out, context, context.expressions[while_loop.block]);
 }
 
 static void dump_block(FileBuffer& out, Context const& context,

@@ -163,7 +163,7 @@ struct [[gnu::packed]] If {
 
 struct [[gnu::packed]] While {
     RValue condition;
-    Block block;
+    Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };

@@ -129,11 +129,12 @@ static ParseSingleItemResult parse_while(
     }
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
+    auto block_id = expressions.append(block.release_as_block());
 
     auto end = block.end_token_index;
     auto while_ = While {
         condition.release_as_rvalue(),
-        block.release_as_block(),
+        block_id,
     };
     return Expression(std::move(while_), start, end);
 }
