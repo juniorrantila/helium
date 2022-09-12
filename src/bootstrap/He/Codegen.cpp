@@ -422,7 +422,7 @@ static void dump_private_function(FileBuffer& out,
     out.write("static ", function.return_type.text(source), " ",
         function.name.text(source));
     dump_parameters(out, context, function.parameters);
-    dump_block(out, context, function.block);
+    dump_block(out, context, context.expressions[function.block]);
 }
 
 static void dump_public_function(FileBuffer& out,
@@ -432,7 +432,7 @@ static void dump_public_function(FileBuffer& out,
     out.write(function.return_type.text(source), " ",
         function.name.text(source));
     dump_parameters(out, context, function.parameters);
-    dump_block(out, context, function.block);
+    dump_block(out, context, context.expressions[function.block]);
 }
 
 static void dump_private_c_function(FileBuffer& out,
@@ -442,7 +442,7 @@ static void dump_private_c_function(FileBuffer& out,
     out.write("static ", function.return_type.text(source), " ",
         function.name.text(source));
     dump_parameters(out, context, function.parameters);
-    dump_block(out, context, function.block);
+    dump_block(out, context, context.expressions[function.block]);
 }
 
 static void dump_public_c_function(FileBuffer& out,
@@ -452,7 +452,7 @@ static void dump_public_c_function(FileBuffer& out,
     out.write(function.return_type.text(source), " ",
         function.name.text(source));
     dump_parameters(out, context, function.parameters);
-    dump_block(out, context, function.block);
+    dump_block(out, context, context.expressions[function.block]);
 }
 
 static void dump_function_call(FileBuffer& out,

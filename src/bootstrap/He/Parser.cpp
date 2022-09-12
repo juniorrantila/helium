@@ -251,7 +251,7 @@ struct Function {
     Token name {};
     Token return_type {};
     Parameters parameters {};
-    Block block;
+    Id<Block> block;
     u32 start_token_index { 0 };
     u32 end_token_index { 0 };
 };
@@ -372,12 +372,13 @@ static Core::ErrorOr<Function, ParseError> parse_function(
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
     auto block_end_index = block.end_token_index;
+    auto block_id = expressions.append(block.release_as_block());
 
     return Function {
         name,
         return_type,
         std::move(parameters),
-        block.release_as_block(),
+        block_id,
         start,
         block_end_index,
     };
@@ -391,7 +392,7 @@ static ParseSingleItemResult parse_public_function(
         .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
-        .block = std::move(function.block),
+        .block = function.block,
     };
     return Expression {
         std::move(public_function),
@@ -408,7 +409,7 @@ static ParseSingleItemResult parse_public_c_function(
         .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
-        .block = std::move(function.block),
+        .block = function.block,
     };
     return Expression {
         std::move(public_function),

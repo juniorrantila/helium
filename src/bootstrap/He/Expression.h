@@ -78,7 +78,7 @@ struct [[gnu::packed]] PrivateFunction {
     Parameters parameters {};
     Token name {};
     Token return_type {};
-    Block block;
+    Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
@@ -87,7 +87,7 @@ struct [[gnu::packed]] PublicFunction {
     Parameters parameters {};
     Token name {};
     Token return_type {};
-    Block block;
+    Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
@@ -96,7 +96,7 @@ struct [[gnu::packed]] PrivateCFunction {
     Parameters parameters {};
     Token name {};
     Token return_type {};
-    Block block;
+    Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
@@ -105,7 +105,7 @@ struct [[gnu::packed]] PublicCFunction {
     Parameters parameters {};
     Token name {};
     Token return_type {};
-    Block block;
+    Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
@@ -556,6 +556,7 @@ struct ParsedExpressions {
     std::vector<T> name
 
     SOA_MEMBER(Literal, literals);
+    SOA_MEMBER(Block, blocks);
 
 #undef SOA_MEMBER
     std::vector<Expression> expressions;

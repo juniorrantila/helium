@@ -256,7 +256,7 @@ void PrivateFunction::dump(ParsedExpressions const& expressions,
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
     std::cerr << "] ";
-    block.dump(expressions, source, indent);
+    expressions[block].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
@@ -272,7 +272,7 @@ void PublicFunction::dump(ParsedExpressions const& expressions,
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
     std::cerr << "] ";
-    block.dump(expressions, source, indent);
+    expressions[block].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
@@ -288,7 +288,7 @@ void PrivateCFunction::dump(ParsedExpressions const& expressions,
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
     std::cerr << "] ";
-    block.dump(expressions, source, indent);
+    expressions[block].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
@@ -304,7 +304,7 @@ void PublicCFunction::dump(ParsedExpressions const& expressions,
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
     std::cerr << "] ";
-    block.dump(expressions, source, indent);
+    expressions[block].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
