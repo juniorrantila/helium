@@ -123,33 +123,33 @@ struct [[gnu::packed]] RValue {
 };
 
 struct [[gnu::packed]] PrivateVariableDeclaration {
-    RValue value;
     Token name {};
     Token type {};
+    Id<RValue> value;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PublicVariableDeclaration {
-    RValue value;
     Token name {};
     Token type {};
+    Id<RValue> value;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PrivateConstantDeclaration {
-    RValue value;
     Token name {};
     Token type {};
+    Id<RValue> value;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PublicConstantDeclaration {
-    RValue value;
     Token name {};
     Token type {};
+    Id<RValue> value;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
@@ -202,33 +202,33 @@ struct Expression {
     {
     }
 
-    constexpr Expression(PrivateVariableDeclaration&& value,
+    constexpr Expression(PrivateVariableDeclaration value,
         u32 start_index, u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(PublicVariableDeclaration&& value,
+    constexpr Expression(PublicVariableDeclaration value,
         u32 start_index, u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(PrivateConstantDeclaration&& value,
+    constexpr Expression(PrivateConstantDeclaration value,
         u32 start_index, u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(PublicConstantDeclaration&& value,
+    constexpr Expression(PublicConstantDeclaration value,
         u32 start_index, u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
@@ -557,6 +557,7 @@ struct ParsedExpressions {
 
     SOA_MEMBER(Literal, literals);
     SOA_MEMBER(Block, blocks);
+    SOA_MEMBER(RValue, rvalues);
 
 #undef SOA_MEMBER
     std::vector<Expression> expressions;

@@ -1125,12 +1125,13 @@ static ParseSingleItemResult parse_private_variable(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
+    auto rvalue_id = expressions.append(std::move(rvalue));
     auto variable = PrivateVariableDeclaration {
-        .value = std::move(rvalue),
         .name = name,
         .type = type,
+        .value = rvalue_id,
     };
-    return Expression(std::move(variable), start, end);
+    return Expression(variable, start, end);
 }
 
 static ParseSingleItemResult parse_public_variable(
@@ -1198,12 +1199,13 @@ static ParseSingleItemResult parse_public_variable(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
+    auto rvalue_id = expressions.append(std::move(rvalue));
     auto variable = PublicVariableDeclaration {
-        .value = std::move(rvalue),
         .name = name,
         .type = type,
+        .value = rvalue_id,
     };
-    return Expression(std::move(variable), start, end);
+    return Expression(variable, start, end);
 }
 
 static ParseSingleItemResult parse_private_constant(
@@ -1271,12 +1273,13 @@ static ParseSingleItemResult parse_private_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
+    auto rvalue_id = expressions.append(std::move(rvalue));
     auto constant = PrivateConstantDeclaration {
-        .value = std::move(rvalue),
         .name = name,
         .type = type,
+        .value = rvalue_id,
     };
-    return Expression(std::move(constant), start, end);
+    return Expression(constant, start, end);
 }
 
 static ParseSingleItemResult parse_public_constant(
@@ -1344,12 +1347,13 @@ static ParseSingleItemResult parse_public_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
+    auto rvalue_id = expressions.append(std::move(rvalue));
     auto constant = PublicConstantDeclaration {
-        .value = std::move(rvalue),
         .name = name,
         .type = type,
+        .value = rvalue_id,
     };
-    return Expression(std::move(constant), start, end);
+    return Expression(constant, start, end);
 }
 
 static ParseSingleItemResult parse_top_level_constant_or_struct(
@@ -1422,12 +1426,13 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
+    auto rvalue_id = expressions.append(std::move(rvalue));
     auto constant = PrivateConstantDeclaration {
-        .value = std::move(rvalue),
         .name = name,
         .type = type,
+        .value = rvalue_id,
     };
-    return Expression(std::move(constant), start, end);
+    return Expression(constant, start, end);
 }
 
 Core::ErrorOr<void> ParseError::show(SourceFile source) const

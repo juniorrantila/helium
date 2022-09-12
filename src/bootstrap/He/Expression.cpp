@@ -137,7 +137,7 @@ void PrivateVariableDeclaration::dump(
 {
     std::cerr << "PrivateVariable(" << '\'' << name.text(source)
               << '\'' << " '" << type.text(source) << "' ";
-    value.dump(expressions, source, indent);
+    expressions[value].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
@@ -147,7 +147,7 @@ void PublicVariableDeclaration::dump(
 {
     std::cerr << "PublicVariable(" << '\'' << name.text(source)
               << '\'' << " '" << type.text(source) << "' ";
-    value.dump(expressions, source, indent);
+    expressions[value].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
@@ -157,7 +157,7 @@ void PrivateConstantDeclaration::dump(
 {
     std::cerr << "PrivateConstant(" << '\'' << name.text(source)
               << '\'' << " '" << type.text(source) << "' ";
-    value.dump(expressions, source, indent);
+    expressions[value].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
@@ -167,7 +167,7 @@ void PublicConstantDeclaration::dump(
 {
     std::cerr << "PublicConstant(" << '\'' << name.text(source)
               << '\'' << " '" << type.text(source) << "' ";
-    value.dump(expressions, source, indent);
+    expressions[value].dump(expressions, source, indent);
     std::cerr << ')';
 }
 

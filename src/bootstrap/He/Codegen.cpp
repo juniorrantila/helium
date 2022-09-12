@@ -316,7 +316,7 @@ static void dump_public_variable_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write(variable.type.text(source), ' ',
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, variable.value);
+    dump_rvalue(out, context, context.expressions[variable.value]);
     out.writeln(';');
 }
 
@@ -327,7 +327,7 @@ static void dump_private_variable_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write("static ", variable.type.text(source), ' ',
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, variable.value);
+    dump_rvalue(out, context, context.expressions[variable.value]);
     out.writeln(';');
 }
 
@@ -338,7 +338,7 @@ static void dump_public_constant_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write(variable.type.text(source), " const ",
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, variable.value);
+    dump_rvalue(out, context, context.expressions[variable.value]);
     out.writeln(';');
 }
 
@@ -349,7 +349,7 @@ static void dump_private_constant_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write("static ", variable.type.text(source), " const ",
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, variable.value);
+    dump_rvalue(out, context, context.expressions[variable.value]);
     out.writeln(';');
 }
 
