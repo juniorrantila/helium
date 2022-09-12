@@ -129,6 +129,7 @@ void Codegen::dump(int out_fd, Context const& context) const
     auto& out = files[0];
     auto const* prelude = R"c(
 #include <stdint.h>
+#include <stddef.h>
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -140,7 +141,31 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+typedef float f32;
+typedef double f64;
+
+typedef char c_char;
+typedef short c_short;
+typedef int c_int;
+typedef long c_long;
+typedef long long c_longlong;
+
+typedef unsigned char c_uchar;
+typedef unsigned short c_ushort;
+typedef unsigned int c_uint;
+typedef unsigned long c_ulong;
+typedef unsigned long long c_ulonglong;
+
+typedef float c_float;
+typedef double c_double;
+
+typedef size_t usize;
+typedef void c_void;
+
 typedef char const* c_string;
+
+#define true 1
+#define false 0
 
 #define let __auto_type const
 #define var __auto_type

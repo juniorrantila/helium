@@ -2,7 +2,7 @@
 
 @import_c("stdio.h");
 
-pub c_fn main() -> i32 {
+pub c_fn main() -> c_int {
     let number = fib(11);
     printf("fib: %d\n", number);
 }
