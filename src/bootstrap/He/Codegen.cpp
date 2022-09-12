@@ -50,6 +50,9 @@ static void dump_private_constant_declaration(FileBuffer& out,
 static void dump_struct_declaration(FileBuffer& out, Context const&,
     StructDeclaration const&);
 
+static void dump_struct_initializer(FileBuffer& out, Context const&,
+    StructInitializer const&);
+
 static void dump_while_loop(FileBuffer& out, Context const&,
     While const&);
 
@@ -294,6 +297,12 @@ static void dump_expression(FileBuffer& out, Context const& context,
                 .expressions[expression.as_struct_declaration()]);
         break;
 
+    case ExpressionType::StructInitializer:
+        dump_struct_initializer(out, context,
+            context
+                .expressions[expression.as_struct_initializer()]);
+        break;
+
     case ExpressionType::LValue:
         dump_lvalue(out, context, expression.as_lvalue());
         break;
@@ -369,7 +378,9 @@ static void dump_public_variable_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write(variable.type.text(source), ' ',
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, context.expressions[variable.value]);
+    auto const& expressions = context.expressions;
+    auto const& value = expressions[variable.value];
+    dump_expression(out, context, value, false);
     out.writeln(';');
 }
 
@@ -380,7 +391,9 @@ static void dump_private_variable_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write("static ", variable.type.text(source), ' ',
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, context.expressions[variable.value]);
+    auto const& expressions = context.expressions;
+    auto const& value = expressions[variable.value];
+    dump_expression(out, context, value, false);
     out.writeln(';');
 }
 
@@ -391,7 +404,9 @@ static void dump_public_constant_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write(variable.type.text(source), " const ",
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, context.expressions[variable.value]);
+    auto const& expressions = context.expressions;
+    auto const& value = expressions[variable.value];
+    dump_expression(out, context, value, true);
     out.writeln(';');
 }
 
@@ -402,7 +417,9 @@ static void dump_private_constant_declaration(FileBuffer& out,
     auto source = context.source.text;
     out.write("static ", variable.type.text(source), " const ",
         variable.name.text(source), " = ");
-    dump_rvalue(out, context, context.expressions[variable.value]);
+    auto const& expressions = context.expressions;
+    auto const& value = expressions[variable.value];
+    dump_expression(out, context, value, false);
     out.writeln(';');
 }
 
@@ -415,6 +432,21 @@ static void dump_struct_declaration(FileBuffer& out,
         auto type = member.type.text(source);
         auto name = member.name.text(source);
         out.writeln(type, ' ', name, ';');
+    }
+    out.writeln("};");
+}
+
+static void dump_struct_initializer(FileBuffer& out,
+    Context const& context, StructInitializer const& initializer)
+{
+    auto source = context.source.text;
+    out.write('(', initializer.type.text(source), ") {");
+    for (auto member : initializer.initializers) {
+        auto name = member.name.text(source);
+        out.writeln('.', name, '=');
+        auto const& irvalue = context.expressions[member.value];
+        dump_rvalue(out, context, irvalue);
+        out.writeln(',');
     }
     out.writeln("};");
 }
@@ -537,7 +569,9 @@ static void dump_return(FileBuffer& out, Context const& context,
     Return const& return_)
 {
     out.write("return ");
-    dump_rvalue(out, context, context.expressions[return_.rvalue]);
+    auto const& expressions = context.expressions;
+    auto const& value = expressions[return_.value];
+    dump_expression(out, context, value, false);
     out.writeln(';');
 }
 

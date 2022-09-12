@@ -13,6 +13,9 @@ using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
 static ParseSingleItemResult parse_root_item(ParsedExpressions&,
     Tokens const&, u32 start);
 
+static ParseSingleItemResult parse_struct_initializer(
+    ParsedExpressions&, Tokens const&, u32 start);
+
 static ParseSingleItemResult parse_top_level_constant_or_struct(
     ParsedExpressions&, Tokens const&, u32 start);
 
@@ -32,6 +35,9 @@ static ParseSingleItemResult parse_struct(ParsedExpressions&,
     Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_rvalue(ParsedExpressions&,
+    Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_irvalue(ParsedExpressions&,
     Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_return(ParsedExpressions&,
@@ -85,6 +91,99 @@ ParseResult parse(Tokens const& tokens)
         expressions.expressions.push_back(std::move(item));
     }
     return expressions;
+}
+
+ParseSingleItemResult parse_struct_initializer(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto type = tokens[start];
+
+    auto open_curly_index = start + 1;
+    auto open_curly = tokens[open_curly_index];
+    if (open_curly.type != TokenType::OpenCurly) {
+        return ParseError {
+            "expected '{'",
+            nullptr,
+            open_curly,
+        };
+    }
+
+    auto initializers = Initializers();
+    u32 end = open_curly_index + 1;
+    while (end < tokens.size()) {
+        if (tokens[end].type == TokenType::CloseCurly)
+            break;
+
+        auto dot_index = end;
+        auto dot = tokens[dot_index];
+        if (dot.type != TokenType::Dot) {
+            return ParseError {
+                "expected '.'",
+                "did you forget a dot before member name?",
+                dot,
+            };
+        }
+
+        auto name_index = dot_index + 1;
+        auto name = tokens[name_index];
+        if (name.type != TokenType::Identifier) {
+            return ParseError {
+                "expected member name",
+                nullptr,
+                name,
+            };
+        }
+
+        auto assign_index = name_index + 1;
+        auto assign = tokens[assign_index];
+        if (assign.type != TokenType::Assign) {
+            return ParseError {
+                "expected '='",
+                nullptr,
+                assign,
+            };
+        }
+
+        auto value_index = assign_index + 1;
+        auto value
+            = TRY(parse_irvalue(expressions, tokens, value_index));
+
+        auto comma_index = value.end_token_index;
+        auto comma = tokens[comma_index];
+        if (comma.type != TokenType::Comma) {
+            return ParseError {
+                "expected ','",
+                nullptr,
+                comma,
+            };
+        }
+        end = comma_index + 1; // NOTE: Consume comma.
+
+        initializers.push_back(Initializer {
+            .name = name,
+            .value = value.as_rvalue(),
+        });
+    }
+
+    if (tokens[end].type != TokenType::CloseCurly) {
+        return ParseError {
+            "expected '}'",
+            nullptr,
+            tokens[end],
+        };
+    }
+
+    auto initializer_id = expressions.append(StructInitializer {
+        .initializers = initializers,
+        .type = type,
+    });
+
+    // NOTE: Consume close curly.
+    return Expression {
+        initializer_id,
+        start,
+        end + 1,
+    };
 }
 
 static ParseSingleItemResult parse_if(
@@ -513,14 +612,32 @@ static ParseSingleItemResult parse_function_call(
 static ParseSingleItemResult parse_return(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto generic_rvalue
-        = TRY(parse_rvalue(expressions, tokens, start + 1));
-    auto end = generic_rvalue.end_token_index;
-    auto rvalue = generic_rvalue.release_as_rvalue();
+    auto name_index = start + 1;
+    auto name = tokens[name_index];
+    if (name.type == TokenType::Identifier) {
+        auto open_curly_index = name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.type == TokenType::OpenCurly) {
+            auto value = TRY(parse_struct_initializer(expressions,
+                tokens, name_index));
+            auto value_id = expressions.append(std::move(value));
+            return Expression {
+                Return {
+                    value_id,
+                },
+                name_index,
+                value.end_token_index,
+            };
+        }
+    }
+
+    auto value = TRY(parse_rvalue(expressions, tokens, start + 1));
+    auto value_id = expressions.append(std::move(value));
+    auto end = value.end_token_index;
 
     return Expression {
         Return {
-            rvalue,
+            value_id,
         },
         start,
         end,
@@ -682,6 +799,184 @@ static ParseSingleItemResult parse_block(
     auto block_id = expressions.append(std::move(block));
     // NOTE: Swallow close curly
     return Expression(block_id, start, end + 1);
+}
+
+static ParseSingleItemResult parse_irvalue(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto rvalue = RValue();
+
+    auto end = start;
+    for (; end < tokens.size();) {
+        if (tokens[end].type == TokenType::Comma)
+            break;
+        if (tokens[end].type == TokenType::OpenCurly)
+            break;
+
+        if (tokens[end].type == TokenType::Identifier) {
+            if (tokens[end + 1].type == TokenType::OpenCurly) {
+                auto initializer = TRY(parse_struct_initializer(
+                    expressions, tokens, end));
+                end = initializer.end_token_index + 1;
+                rvalue.expressions.push_back(initializer);
+                continue;
+            }
+        }
+
+        if (tokens[end].type == TokenType::InlineC) {
+            auto inline_c
+                = TRY(parse_inline_c(expressions, tokens, end));
+            end = inline_c.end_token_index;
+            rvalue.expressions.push_back(inline_c);
+            auto rvalue_id = expressions.append(std::move(rvalue));
+            // NOTE: Unconsume ';'
+            return Expression {
+                rvalue_id,
+                start,
+                end - 1,
+            };
+        }
+
+        if (tokens[end].type == TokenType::Uninitialized) {
+            auto open_paren_index = end + 1;
+            auto open_paren = tokens[open_paren_index];
+            if (open_paren.type != TokenType::OpenParen) {
+                return ParseError {
+                    "expected '('",
+                    nullptr,
+                    open_paren,
+                };
+            }
+
+            auto close_paren_index = open_paren_index + 1;
+            auto close_paren = tokens[close_paren_index];
+            if (close_paren.type != TokenType::CloseParen) {
+                return ParseError {
+                    "expected ')'",
+                    nullptr,
+                    close_paren,
+                };
+            }
+            end = close_paren_index;
+            auto block_id = expressions.append(Block{});
+            rvalue.expressions.emplace_back(block_id, end, end + 1);
+            end = close_paren_index + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Number) {
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Plus) {
+            // FIXME: Make this a unary operation.
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Minus) {
+            // FIXME: Make this a unary operation.
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::LessThanOrEqual) {
+            // FIXME: Make this a unary operation.
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::GreaterThan) {
+            // FIXME: Make this a unary operation.
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Equals) {
+            // FIXME: Make this a unary operation.
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Quoted) {
+            auto literal = expressions.append(Literal {
+                tokens[end],
+            });
+            rvalue.expressions.push_back({ literal, end, end + 1 });
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Identifier) {
+            if (tokens[end + 1].type == TokenType::OpenParen) {
+                auto call = TRY(
+                    parse_function_call(expressions, tokens, end));
+                end = call.end_token_index;
+                rvalue.expressions.push_back(std::move(call));
+            } else {
+                auto value = LValue { tokens[end] };
+                auto expression = Expression(value, end, end + 1);
+                end = expression.end_token_index;
+                rvalue.expressions.push_back(std::move(expression));
+            }
+            continue;
+        }
+
+        return ParseError {
+            "expected ',' or '{'",
+            "did you forget a comma?",
+            tokens[end],
+        };
+    }
+
+    if (tokens[end].type == TokenType::Comma) {
+        auto rvalue_id = expressions.append(std::move(rvalue));
+        return Expression {
+            rvalue_id,
+            start,
+            end,
+        };
+    }
+
+    if (tokens[end].type == TokenType::OpenCurly) {
+        auto rvalue_id = expressions.append(std::move(rvalue));
+        return Expression {
+            rvalue_id,
+            start,
+            end,
+        };
+    }
+
+    return ParseError {
+        "expected ',' or '{'",
+        "did you forget a comma?",
+        tokens[end],
+    };
 }
 
 static ParseSingleItemResult parse_rvalue(
@@ -1090,7 +1385,8 @@ static ParseSingleItemResult parse_struct(
     };
     // NOTE: Swallow semicolon.
     auto end = semicolon_index + 1;
-    auto struct_id = expressions.append(std::move(struct_declaration));
+    auto struct_id
+        = expressions.append(std::move(struct_declaration));
     return Expression(struct_id, start, end);
 }
 
@@ -1141,10 +1437,42 @@ static ParseSingleItemResult parse_private_variable(
         };
     }
 
+    auto struct_name_index = rvalue_start_index;
+    auto struct_name = tokens[struct_name_index];
+    if (struct_name.type == TokenType::Identifier) {
+        auto open_curly_index = struct_name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.type == TokenType::OpenCurly) {
+            auto value = TRY(parse_struct_initializer(expressions,
+                tokens, struct_name_index));
+
+            auto semicolon_index = value.end_token_index;
+            auto semicolon = tokens[semicolon_index];
+            if (semicolon.type != TokenType::Semicolon) {
+                return ParseError {
+                    "expected ';' after struct initializer",
+                    "did you forget a semicolon?",
+                    semicolon,
+                };
+            }
+            // NOTE: Swallow semicolon;
+            auto end = semicolon_index + 1;
+
+            auto value_id = expressions.append(std::move(value));
+            auto constant = PrivateVariableDeclaration {
+                .name = name,
+                .type = type,
+                .value = value_id,
+            };
+
+            return Expression(constant, start, end);
+        }
+    }
+
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto rvalue = value.release_as_rvalue();
+    auto value_id = expressions.append(std::move(value));
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1162,7 +1490,7 @@ static ParseSingleItemResult parse_private_variable(
     auto variable = PrivateVariableDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue,
+        .value = value_id,
     };
     return Expression(variable, start, end);
 }
@@ -1214,10 +1542,42 @@ static ParseSingleItemResult parse_public_variable(
         };
     }
 
+    auto struct_name_index = rvalue_start_index;
+    auto struct_name = tokens[struct_name_index];
+    if (struct_name.type == TokenType::Identifier) {
+        auto open_curly_index = struct_name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.type == TokenType::OpenCurly) {
+            auto value = TRY(parse_struct_initializer(expressions,
+                tokens, struct_name_index));
+
+            auto semicolon_index = value.end_token_index;
+            auto semicolon = tokens[semicolon_index];
+            if (semicolon.type != TokenType::Semicolon) {
+                return ParseError {
+                    "expected ';' after struct initializer",
+                    "did you forget a semicolon?",
+                    semicolon,
+                };
+            }
+            // NOTE: Swallow semicolon;
+            auto end = semicolon_index + 1;
+
+            auto value_id = expressions.append(std::move(value));
+            auto constant = PublicVariableDeclaration {
+                .name = name,
+                .type = type,
+                .value = value_id,
+            };
+
+            return Expression(constant, start, end);
+        }
+    }
+
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto rvalue = value.release_as_rvalue();
+    auto value_id = expressions.append(std::move(value));
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1235,7 +1595,7 @@ static ParseSingleItemResult parse_public_variable(
     auto variable = PublicVariableDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue,
+        .value = value_id,
     };
     return Expression(variable, start, end);
 }
@@ -1287,10 +1647,42 @@ static ParseSingleItemResult parse_private_constant(
         };
     }
 
+    auto struct_name_index = rvalue_start_index;
+    auto struct_name = tokens[struct_name_index];
+    if (struct_name.type == TokenType::Identifier) {
+        auto open_curly_index = struct_name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.type == TokenType::OpenCurly) {
+            auto value = TRY(parse_struct_initializer(expressions,
+                tokens, struct_name_index));
+
+            auto semicolon_index = value.end_token_index;
+            auto semicolon = tokens[semicolon_index];
+            if (semicolon.type != TokenType::Semicolon) {
+                return ParseError {
+                    "expected ';' after struct initializer",
+                    "did you forget a semicolon?",
+                    semicolon,
+                };
+            }
+            // NOTE: Swallow semicolon;
+            auto end = semicolon_index + 1;
+
+            auto value_id = expressions.append(std::move(value));
+            auto constant = PrivateConstantDeclaration {
+                .name = name,
+                .type = type,
+                .value = value_id,
+            };
+
+            return Expression(constant, start, end);
+        }
+    }
+
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto rvalue = value.release_as_rvalue();
+    auto value_id = expressions.append(std::move(value));
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1308,7 +1700,7 @@ static ParseSingleItemResult parse_private_constant(
     auto constant = PrivateConstantDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue,
+        .value = value_id,
     };
     return Expression(constant, start, end);
 }
@@ -1360,10 +1752,41 @@ static ParseSingleItemResult parse_public_constant(
         };
     }
 
+    auto struct_name_index = rvalue_start_index;
+    auto struct_name = tokens[struct_name_index];
+    if (struct_name.type == TokenType::Identifier) {
+        auto open_curly_index = struct_name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.type == TokenType::OpenCurly) {
+            auto value = TRY(parse_struct_initializer(expressions,
+                tokens, struct_name_index));
+
+            auto semicolon_index = value.end_token_index;
+            auto semicolon = tokens[semicolon_index];
+            if (semicolon.type != TokenType::Semicolon) {
+                return ParseError {
+                    "expected ';' after struct initializer",
+                    "did you forget a semicolon?",
+                    semicolon,
+                };
+            }
+            // NOTE: Swallow semicolon;
+            auto end = semicolon_index + 1;
+
+            auto value_id = expressions.append(std::move(value));
+            auto constant = PublicConstantDeclaration {
+                .name = name,
+                .type = type,
+                .value = value_id,
+            };
+
+            return Expression(constant, start, end);
+        }
+    }
+
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto rvalue = value.release_as_rvalue();
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1378,10 +1801,11 @@ static ParseSingleItemResult parse_public_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
+    auto value_id = expressions.append(std::move(value));
     auto constant = PublicConstantDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue,
+        .value = value_id,
     };
     return Expression(constant, start, end);
 }
@@ -1433,6 +1857,38 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
         };
     }
 
+    auto struct_name_index = rvalue_start_index;
+    auto struct_name = tokens[struct_name_index];
+    if (struct_name.type == TokenType::Identifier) {
+        auto open_curly_index = struct_name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.type == TokenType::OpenCurly) {
+            auto value = TRY(parse_struct_initializer(expressions,
+                tokens, struct_name_index));
+
+            auto semicolon_index = value.end_token_index;
+            auto semicolon = tokens[semicolon_index];
+            if (semicolon.type != TokenType::Semicolon) {
+                return ParseError {
+                    "expected ';' after struct initializer",
+                    "did you forget a semicolon?",
+                    semicolon,
+                };
+            }
+            // NOTE: Swallow semicolon;
+            auto end = semicolon_index + 1;
+
+            auto value_id = expressions.append(std::move(value));
+            auto constant = PrivateConstantDeclaration {
+                .name = name,
+                .type = type,
+                .value = value_id,
+            };
+
+            return Expression(constant, start, end);
+        }
+    }
+
     auto struct_token_index = colon_or_assign_index + 1;
     auto struct_token = tokens[struct_token_index];
     if (struct_token.type == TokenType::Struct)
@@ -1441,7 +1897,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto rvalue = value.release_as_rvalue();
+    auto value_id = expressions.append(std::move(value));
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1459,7 +1915,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto constant = PrivateConstantDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue,
+        .value = value_id,
     };
     return Expression(constant, start, end);
 }

@@ -38,7 +38,7 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
         return 1;
     };
 
-    var lexer: Lexer = @uninitialized();
+    var lexer = Lexer {};
     if lexer_init(&mut lexer, source_file) < 0 {
         fprintf(stderr, "could not init lexer\n");
         return 1;

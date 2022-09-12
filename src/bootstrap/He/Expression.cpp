@@ -33,6 +33,11 @@ void Expression::dump(ParsedExpressions const& expressions,
             source, indent);
         break;
 
+    case ExpressionType::StructInitializer:
+        expressions[as_struct_initializer()].dump(expressions,
+            source, indent);
+        break;
+
     case ExpressionType::LValue:
         as_lvalue().dump(expressions, source, indent);
         break;
@@ -111,7 +116,9 @@ std::string_view expression_type_string(ExpressionType type)
         CASE_RETURN(PublicVariableDeclaration);
         CASE_RETURN(PrivateConstantDeclaration);
         CASE_RETURN(PublicConstantDeclaration);
+
         CASE_RETURN(StructDeclaration);
+        CASE_RETURN(StructInitializer);
 
         CASE_RETURN(LValue);
         CASE_RETURN(RValue);
@@ -189,6 +196,22 @@ void StructDeclaration::dump(ParsedExpressions const&,
     }
     std::cerr << "\b\b ";
     std::cerr << "])";
+}
+
+void StructInitializer::dump(ParsedExpressions const& expressions,
+    std::string_view source, u32 indent) const
+{
+    std::cerr << "StructInitializer(" << '\'' << type.text(source)
+              << "' "
+              << "{ ";
+    for (auto member : initializers) {
+        auto name = member.name;
+        std::cerr << '\'' << name.text(source) << "' = ";
+        expressions[member.value].dump(expressions, source, indent);
+        std::cerr << ", ";
+    }
+    std::cerr << "\b\b ";
+    std::cerr << "})";
 }
 
 void Literal::dump(ParsedExpressions const&,
@@ -351,7 +374,7 @@ void Return::dump(ParsedExpressions const& expressions,
     std::string_view source, u32 indent) const
 {
     std::cerr << "Return(";
-    expressions[rvalue].dump(expressions, source, indent);
+    expressions[value].dump(expressions, source, indent);
     std::cerr << ')';
 }
 
