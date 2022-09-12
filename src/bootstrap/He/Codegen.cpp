@@ -268,22 +268,23 @@ static void dump_expression(FileBuffer& out, Context const& context,
 
     case ExpressionType::PrivateFunction:
         dump_private_function(out, context,
-            expression.as_private_function());
+            context.expressions[expression.as_private_function()]);
         break;
 
     case ExpressionType::PublicFunction:
         dump_public_function(out, context,
-            expression.as_public_function());
+            context.expressions[expression.as_public_function()]);
         break;
 
     case ExpressionType::PrivateCFunction:
         dump_private_c_function(out, context,
-            expression.as_private_c_function());
+            context
+                .expressions[expression.as_private_c_function()]);
         break;
 
     case ExpressionType::PublicCFunction:
         dump_public_c_function(out, context,
-            expression.as_public_c_function());
+            context.expressions[expression.as_public_c_function()]);
         break;
 
     case ExpressionType::FunctionCall:

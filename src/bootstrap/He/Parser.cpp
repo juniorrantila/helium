@@ -394,8 +394,10 @@ static ParseSingleItemResult parse_public_function(
         .return_type = function.return_type,
         .block = function.block,
     };
+
+    auto function_id = expressions.append(std::move(public_function));
     return Expression {
-        std::move(public_function),
+        function_id,
         function.start_token_index,
         function.end_token_index,
     };
@@ -411,8 +413,9 @@ static ParseSingleItemResult parse_public_c_function(
         .return_type = function.return_type,
         .block = function.block,
     };
+    auto function_id = expressions.append(std::move(public_function));
     return Expression {
-        std::move(public_function),
+        function_id,
         function.start_token_index,
         function.end_token_index,
     };
@@ -428,8 +431,10 @@ static ParseSingleItemResult parse_private_function(
         .return_type = function.return_type,
         .block = function.block,
     };
+    auto function_id
+        = expressions.append(std::move(private_function));
     return Expression {
-        std::move(private_function),
+        function_id,
         function.start_token_index,
         function.end_token_index,
     };
@@ -445,8 +450,9 @@ static ParseSingleItemResult parse_private_c_function(
         .return_type = function.return_type,
         .block = function.block,
     };
+    auto function_id = expressions.append(std::move(private_function));
     return Expression {
-        std::move(private_function),
+        function_id,
         function.start_token_index,
         function.end_token_index,
     };

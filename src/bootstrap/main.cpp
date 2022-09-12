@@ -1,3 +1,4 @@
+#include "He/Expression.h"
 #include <CLI/ArgumentParser.h>
 #include <Core/MappedFile.h>
 #include <He/Codegen.h>

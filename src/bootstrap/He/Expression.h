@@ -281,33 +281,33 @@ struct Expression {
     {
     }
 
-    constexpr Expression(PrivateFunction&& value, u32 start_index,
+    constexpr Expression(Id<PrivateFunction> value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(PublicFunction&& value, u32 start_index,
+    constexpr Expression(Id<PublicFunction> value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(PrivateCFunction&& value, u32 start_index,
+    constexpr Expression(Id<PrivateCFunction> value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(PublicCFunction&& value, u32 start_index,
+    constexpr Expression(Id<PublicCFunction> value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
@@ -437,24 +437,24 @@ struct Expression {
         return std::get<While>(m_storage);
     }
 
-    constexpr PrivateFunction const& as_private_function() const
+    constexpr Id<PrivateFunction> const& as_private_function() const
     {
-        return std::get<PrivateFunction>(m_storage);
+        return std::get<Id<PrivateFunction>>(m_storage);
     }
 
-    constexpr PublicFunction const& as_public_function() const
+    constexpr Id<PublicFunction> const& as_public_function() const
     {
-        return std::get<PublicFunction>(m_storage);
+        return std::get<Id<PublicFunction>>(m_storage);
     }
 
-    constexpr PrivateCFunction const& as_private_c_function() const
+    constexpr Id<PrivateCFunction> const& as_private_c_function() const
     {
-        return std::get<PrivateCFunction>(m_storage);
+        return std::get<Id<PrivateCFunction>>(m_storage);
     }
 
-    constexpr PublicCFunction const& as_public_c_function() const
+    constexpr Id<PublicCFunction> const& as_public_c_function() const
     {
-        return std::get<PublicCFunction>(m_storage);
+        return std::get<Id<PublicCFunction>>(m_storage);
     }
 
     constexpr FunctionCall const& as_function_call() const
@@ -524,10 +524,10 @@ private:
         If,
         While,
         Id<Block>,
-        PrivateCFunction,
-        PublicCFunction,
-        PrivateFunction,
-        PublicFunction,
+        Id<PrivateCFunction>,
+        Id<PublicCFunction>,
+        Id<PrivateFunction>,
+        Id<PublicFunction>,
         FunctionCall,
         Return,
         ImportC,
@@ -555,8 +555,12 @@ struct ParsedExpressions {
     }                                                            \
     std::vector<T> name {}
 
-    SOA_MEMBER(Literal, literals);
     SOA_MEMBER(Block, blocks);
+    SOA_MEMBER(Literal, literals);
+    SOA_MEMBER(PrivateCFunction, private_c_functions);
+    SOA_MEMBER(PrivateFunction, private_functions);
+    SOA_MEMBER(PublicCFunction, public_c_functions);
+    SOA_MEMBER(PublicFunction, public_functions);
     SOA_MEMBER(RValue, rvalues);
 
 #undef SOA_MEMBER

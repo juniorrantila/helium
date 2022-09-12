@@ -57,19 +57,20 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::PublicFunction:
-        as_public_function().dump(expressions, source, indent);
+        expressions[as_public_function()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::PrivateFunction:
-        as_private_function().dump(expressions, source, indent);
+        expressions[as_private_function()].dump(expressions, source,
+            indent);
         break;
 
     case ExpressionType::PublicCFunction:
-        as_public_c_function().dump(expressions, source, indent);
+        expressions[as_public_c_function()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::PrivateCFunction:
-        as_private_c_function().dump(expressions, source, indent);
+        expressions[as_private_c_function()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::FunctionCall:

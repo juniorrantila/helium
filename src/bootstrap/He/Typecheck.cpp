@@ -23,10 +23,11 @@ TypecheckResult typecheck(Context& context)
             output.import_c_filenames.push_back(import_c.filename);
         }
 
-        if (expression.type() == ExpressionType::StructDeclaration) {
+        if (expression.type()
+            == ExpressionType::StructDeclaration) {
             auto declaration = expression.as_struct_declaration();
             auto name = declaration.name;
-            output.struct_forward_declarations.push_back({name});
+            output.struct_forward_declarations.push_back({ name });
         }
 
         if (expression.type() == ExpressionType::InlineC) {
@@ -35,7 +36,8 @@ TypecheckResult typecheck(Context& context)
         }
 
         if (expression.type() == ExpressionType::PrivateFunction) {
-            auto const& function = expression.as_private_function();
+            auto const& function
+                = expressions[expression.as_private_function()];
             auto name = function.name;
             auto return_type = function.return_type;
             auto decl = FunctionForwardDeclaration { name,
@@ -46,7 +48,7 @@ TypecheckResult typecheck(Context& context)
         }
 
         if (expression.type() == ExpressionType::PublicFunction) {
-            auto const& function = expression.as_public_function();
+            auto const& function = expressions[expression.as_public_function()];
             auto name = function.name;
             auto return_type = function.return_type;
             auto decl = FunctionForwardDeclaration { name,
