@@ -220,7 +220,7 @@ void If::dump(ParsedExpressions const& expressions,
     std::cerr << '\n';
     for (u32 i = 0; i < indent + 1; i++)
         std::cerr << ' ';
-    block.dump(expressions, source, indent + 1);
+    expressions[block].dump(expressions, source, indent + 1);
     std::cerr << '\n';
     for (u32 i = 0; i < indent; i++)
         std::cerr << ' ';

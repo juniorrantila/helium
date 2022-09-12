@@ -394,7 +394,8 @@ static void dump_if_statement(FileBuffer& out,
     out.write("if (");
     dump_rvalue(out, context, if_statement.condition);
     out.write(") ");
-    dump_block(out, context, if_statement.block);
+    dump_block(out, context,
+        context.expressions[if_statement.block]);
 }
 
 static void dump_while_loop(FileBuffer& out, Context const& context,

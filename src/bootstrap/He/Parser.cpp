@@ -103,11 +103,12 @@ static ParseSingleItemResult parse_if(
     }
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
+    auto block_id = expressions.append(block.release_as_block());
 
     auto end = block.end_token_index;
     auto if_statement = If {
         condition.release_as_rvalue(),
-        block.release_as_block(),
+        block_id,
     };
     return Expression(std::move(if_statement), start, end);
 }

@@ -156,7 +156,7 @@ struct [[gnu::packed]] PublicConstantDeclaration {
 
 struct [[gnu::packed]] If {
     RValue condition;
-    Block block;
+    Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
