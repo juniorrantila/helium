@@ -28,7 +28,13 @@ struct Codegen {
         private_function_forward_declarations {};
 
     FunctionForwardDeclarations
+        private_c_function_forward_declarations {};
+
+    FunctionForwardDeclarations
         public_function_forward_declarations {};
+
+    FunctionForwardDeclarations
+        public_c_function_forward_declarations {};
 
     StructForwardDeclarations struct_forward_declarations {};
 

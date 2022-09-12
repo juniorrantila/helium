@@ -16,14 +16,19 @@ namespace He {
 
 static void dump_literal(FileBuffer& out, Context const&,
     Id<Literal>);
+
 static void dump_lvalue(FileBuffer& out, Context const&,
     LValue const&);
+
 static void dump_rvalue(FileBuffer& out, Context const&,
     RValue const&);
+
 static void dump_if_statement(FileBuffer& out, Context const&,
     If const&);
+
 static void dump_return(FileBuffer& out, Context const&,
     Return const&);
+
 static void dump_block(FileBuffer& out, Context const&,
     Block const&);
 
@@ -47,6 +52,7 @@ static void dump_struct_declaration(FileBuffer& out, Context const&,
 
 static void dump_while_loop(FileBuffer& out, Context const&,
     While const&);
+
 static void dump_public_function(FileBuffer& out, Context const&,
     PublicFunction const&);
 
@@ -155,23 +161,39 @@ typedef char const* c_string;
         out.writeln("typedef struct ", name, ' ', name, ';');
     }
 
-    for (auto const& declaration :
+    for (auto const& function :
         public_function_forward_declarations) {
-        auto type
-            = declaration.return_type.text(context.source.text);
-        auto name = declaration.name.text(context.source.text);
+        auto type = function.return_type.text(context.source.text);
+        auto name = function.name.text(context.source.text);
         out.write(type, ' ', name);
-        dump_parameters(out, context, declaration.parameters);
+        dump_parameters(out, context, function.parameters);
         out.writeln(';');
     }
 
-    for (auto const& declaration :
+    for (auto const& function :
         private_function_forward_declarations) {
-        auto type
-            = declaration.return_type.text(context.source.text);
-        auto name = declaration.name.text(context.source.text);
+        auto type = function.return_type.text(context.source.text);
+        auto name = function.name.text(context.source.text);
         out.write("static ", type, ' ', name);
-        dump_parameters(out, context, declaration.parameters);
+        dump_parameters(out, context, function.parameters);
+        out.writeln(';');
+    }
+
+    for (auto const& function :
+        public_c_function_forward_declarations) {
+        auto type = function.return_type.text(context.source.text);
+        auto name = function.name.text(context.source.text);
+        out.write(type, ' ', name);
+        dump_parameters(out, context, function.parameters);
+        out.writeln(';');
+    }
+
+    for (auto const& function :
+        private_c_function_forward_declarations) {
+        auto type = function.return_type.text(context.source.text);
+        auto name = function.name.text(context.source.text);
+        out.write("static ", type, ' ', name);
+        dump_parameters(out, context, function.parameters);
         out.writeln(';');
     }
 
@@ -182,8 +204,10 @@ typedef char const* c_string;
     auto* iovec
         = (struct iovec*)malloc(sizeof(struct iovec) * vecs);
     for (u32 i = 0; i < vecs; i++) {
-        iovec[i] = { .iov_base = files[i].data,
-            .iov_len = files[i].size };
+        iovec[i] = {
+            .iov_base = files[i].data,
+            .iov_len = files[i].size,
+        };
     }
     writev(out_fd, iovec, vecs);
     free(iovec);
@@ -241,7 +265,8 @@ static void dump_expression(FileBuffer& out, Context const& context,
 
     case ExpressionType::StructDeclaration:
         dump_struct_declaration(out, context,
-            context.expressions[expression.as_struct_declaration()]);
+            context
+                .expressions[expression.as_struct_declaration()]);
         break;
 
     case ExpressionType::LValue:
