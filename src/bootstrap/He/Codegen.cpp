@@ -241,7 +241,7 @@ static void dump_expression(FileBuffer& out, Context const& context,
 
     case ExpressionType::StructDeclaration:
         dump_struct_declaration(out, context,
-            expression.as_struct_declaration());
+            context.expressions[expression.as_struct_declaration()]);
         break;
 
     case ExpressionType::LValue:

@@ -395,7 +395,8 @@ static ParseSingleItemResult parse_public_function(
         .block = function.block,
     };
 
-    auto function_id = expressions.append(std::move(public_function));
+    auto function_id
+        = expressions.append(std::move(public_function));
     return Expression {
         function_id,
         function.start_token_index,
@@ -413,7 +414,8 @@ static ParseSingleItemResult parse_public_c_function(
         .return_type = function.return_type,
         .block = function.block,
     };
-    auto function_id = expressions.append(std::move(public_function));
+    auto function_id
+        = expressions.append(std::move(public_function));
     return Expression {
         function_id,
         function.start_token_index,
@@ -450,7 +452,8 @@ static ParseSingleItemResult parse_private_c_function(
         .return_type = function.return_type,
         .block = function.block,
     };
-    auto function_id = expressions.append(std::move(private_function));
+    auto function_id
+        = expressions.append(std::move(private_function));
     return Expression {
         function_id,
         function.start_token_index,
@@ -968,8 +971,8 @@ static ParseSingleItemResult parse_prvalue(
     };
 }
 
-static ParseSingleItemResult parse_struct(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_struct(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
 
@@ -1087,7 +1090,8 @@ static ParseSingleItemResult parse_struct(ParsedExpressions&,
     };
     // NOTE: Swallow semicolon.
     auto end = semicolon_index + 1;
-    return Expression(std::move(struct_declaration), start, end);
+    auto struct_id = expressions.append(std::move(struct_declaration));
+    return Expression(struct_id, start, end);
 }
 
 static ParseSingleItemResult parse_private_variable(

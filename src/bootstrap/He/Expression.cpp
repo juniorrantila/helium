@@ -29,7 +29,8 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::StructDeclaration:
-        as_struct_declaration().dump(expressions, source, indent);
+        expressions[as_struct_declaration()].dump(expressions,
+            source, indent);
         break;
 
     case ExpressionType::LValue:
@@ -57,7 +58,8 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::PublicFunction:
-        expressions[as_public_function()].dump(expressions, source, indent);
+        expressions[as_public_function()].dump(expressions, source,
+            indent);
         break;
 
     case ExpressionType::PrivateFunction:
@@ -66,11 +68,13 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::PublicCFunction:
-        expressions[as_public_c_function()].dump(expressions, source, indent);
+        expressions[as_public_c_function()].dump(expressions,
+            source, indent);
         break;
 
     case ExpressionType::PrivateCFunction:
-        expressions[as_private_c_function()].dump(expressions, source, indent);
+        expressions[as_private_c_function()].dump(expressions,
+            source, indent);
         break;
 
     case ExpressionType::FunctionCall:

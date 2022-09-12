@@ -25,7 +25,7 @@ TypecheckResult typecheck(Context& context)
 
         if (expression.type()
             == ExpressionType::StructDeclaration) {
-            auto declaration = expression.as_struct_declaration();
+            auto const& declaration = context.expressions[expression.as_struct_declaration()];
             auto name = declaration.name;
             output.struct_forward_declarations.push_back({ name });
         }
