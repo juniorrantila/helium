@@ -1,10 +1,12 @@
 #pragma once
-#include <string_view>
-#include <vector>
 #include <He/Token.h>
+#include <string_view>
 #include <variant>
+#include <vector>
 
 namespace He {
+
+struct ParsedExpressions;
 
 enum class ExpressionType {
     Literal,
@@ -47,13 +49,13 @@ struct Return;
 struct Literal {
     Token token {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] Block {
     std::vector<Expression> expressions;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] Variable {
@@ -69,55 +71,55 @@ struct [[gnu::packed]] StructDeclaration {
     Token name {};
     Members members {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PrivateFunction {
-    Block block;
     Parameters parameters {};
     Token name {};
     Token return_type {};
+    Block block;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PublicFunction {
-    Block block;
     Parameters parameters {};
     Token name {};
     Token return_type {};
+    Block block;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PrivateCFunction {
-    Block block;
     Parameters parameters {};
     Token name {};
     Token return_type {};
+    Block block;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PublicCFunction {
-    Block block;
     Parameters parameters {};
     Token name {};
     Token return_type {};
+    Block block;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] LValue {
     Token token {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] RValue {
     std::vector<Expression> expressions;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PrivateVariableDeclaration {
@@ -125,7 +127,7 @@ struct [[gnu::packed]] PrivateVariableDeclaration {
     Token name {};
     Token type {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PublicVariableDeclaration {
@@ -133,7 +135,7 @@ struct [[gnu::packed]] PublicVariableDeclaration {
     Token name {};
     Token type {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PrivateConstantDeclaration {
@@ -141,7 +143,7 @@ struct [[gnu::packed]] PrivateConstantDeclaration {
     Token name {};
     Token type {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] PublicConstantDeclaration {
@@ -149,46 +151,46 @@ struct [[gnu::packed]] PublicConstantDeclaration {
     Token name {};
     Token type {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] If {
     RValue condition;
     Block block;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] While {
     RValue condition;
     Block block;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] Return {
     RValue rvalue;
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] FunctionCall {
     Expressions arguments;
     Token name {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] ImportC {
     Token filename {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] InlineC {
     Token literal {};
 
-    void dump(std::string_view source, u32 indent) const;
+    void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct Expression {
@@ -232,8 +234,8 @@ struct Expression {
     {
     }
 
-    constexpr Expression(StructDeclaration&& value,
-        u32 start_index, u32 end_index)
+    constexpr Expression(StructDeclaration&& value, u32 start_index,
+        u32 end_index)
         : m_storage(std::move(value))
         , start_token_index(start_index)
         , end_token_index(end_index)
@@ -359,9 +361,11 @@ struct Expression {
         return std::get<PrivateVariableDeclaration>(m_storage);
     }
 
-    constexpr PrivateVariableDeclaration release_as_private_variable_declaration()
+    constexpr PrivateVariableDeclaration
+    release_as_private_variable_declaration()
     {
-        return std::get<PrivateVariableDeclaration>(std::move(m_storage));
+        return std::get<PrivateVariableDeclaration>(
+            std::move(m_storage));
     }
 
     constexpr PublicVariableDeclaration const&
@@ -370,9 +374,11 @@ struct Expression {
         return std::get<PublicVariableDeclaration>(m_storage);
     }
 
-    constexpr PublicVariableDeclaration release_as_public_variable_declaration()
+    constexpr PublicVariableDeclaration
+    release_as_public_variable_declaration()
     {
-        return std::get<PublicVariableDeclaration>(std::move(m_storage));
+        return std::get<PublicVariableDeclaration>(
+            std::move(m_storage));
     }
 
     constexpr PublicConstantDeclaration const&
@@ -381,9 +387,11 @@ struct Expression {
         return std::get<PublicConstantDeclaration>(m_storage);
     }
 
-    constexpr PublicConstantDeclaration release_as_public_constant_declaration()
+    constexpr PublicConstantDeclaration
+    release_as_public_constant_declaration()
     {
-        return std::get<PublicConstantDeclaration>(std::move(m_storage));
+        return std::get<PublicConstantDeclaration>(
+            std::move(m_storage));
     }
 
     constexpr PrivateConstantDeclaration const&
@@ -392,13 +400,14 @@ struct Expression {
         return std::get<PrivateConstantDeclaration>(m_storage);
     }
 
-    constexpr PrivateConstantDeclaration release_as_private_constant_declaration()
+    constexpr PrivateConstantDeclaration
+    release_as_private_constant_declaration()
     {
-        return std::get<PrivateConstantDeclaration>(std::move(m_storage));
+        return std::get<PrivateConstantDeclaration>(
+            std::move(m_storage));
     }
 
-    constexpr StructDeclaration const&
-    as_struct_declaration() const
+    constexpr StructDeclaration const& as_struct_declaration() const
     {
         return std::get<StructDeclaration>(m_storage);
     }
@@ -498,7 +507,8 @@ struct Expression {
         return inline_c;
     }
 
-    void dump(std::string_view source, u32 indent = 0) const;
+    void dump(ParsedExpressions const&, std::string_view source,
+        u32 indent = 0) const;
 
 private:
     // clang-format off
@@ -528,6 +538,27 @@ private:
 public:
     u32 start_token_index { 0 };
     u32 end_token_index { 0 };
+};
+
+struct ParsedExpressions {
+#define SOA_MEMBER(T, name)                                      \
+    constexpr T& operator[](Id<T> id) { return name[id.raw()]; } \
+    constexpr T const& operator[](Id<T> id) const                \
+    {                                                            \
+        return name[id.raw()];                                   \
+    }                                                            \
+    constexpr Id<T> append(T&& value)                            \
+    {                                                            \
+        auto id = Id<T>(name.size());                            \
+        name.push_back(value);                                   \
+        return id;                                               \
+    }                                                            \
+    std::vector<T> name
+
+    SOA_MEMBER(Literal, literals);
+
+#undef SOA_MEMBER
+    std::vector<Expression> expressions;
 };
 
 }

@@ -91,7 +91,7 @@ int main(int argc, c_string argv[])
 
     if (dump_expressions) {
         for (auto const& expression : expressions.expressions) {
-            expression.dump(source_file.text);
+            expression.dump(expressions, source_file.text);
             std::cerr << "\n\n";
         }
     }

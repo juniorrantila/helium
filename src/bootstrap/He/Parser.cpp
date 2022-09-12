@@ -1,7 +1,7 @@
-#include "He/Expression.h"
 #include <Core/ErrorOr.h>
 #include <Core/Try.h>
 #include <He/Context.h>
+#include <He/Expression.h>
 #include <He/Parser.h>
 #include <He/Token.h>
 #include <Util.h>
@@ -10,35 +10,35 @@
 namespace He {
 
 using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
-static ParseSingleItemResult parse_root_item(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_root_item(ParsedExpressions&, Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_top_level_constant_or_struct(
     ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_public_constant(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_public_constant(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_public_variable(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_public_variable(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_private_constant(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_private_variable(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_struct(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_rvalue(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_return(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_public_function(
+static ParseSingleItemResult parse_private_constant(
     ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_private_variable(
+    ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult
+parse_struct(ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult
+parse_rvalue(ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult
+parse_return(ParsedExpressions&, Tokens const&, u32 start);
+
+static ParseSingleItemResult
+parse_public_function(ParsedExpressions&, Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_public_c_function(
     ParsedExpressions&, Tokens const&, u32 start);
@@ -49,26 +49,26 @@ static ParseSingleItemResult parse_private_function(
 static ParseSingleItemResult parse_private_c_function(
     ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_import_c(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_import_c(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_inline_c(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_block(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_block(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_function_call(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_function_call(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_prvalue(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_prvalue(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_if(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_if(ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_while(ParsedExpressions&,
-    Tokens const&, u32 start);
+static ParseSingleItemResult
+parse_while(ParsedExpressions&, Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_pub_specifier(ParsedExpressions&,
     Tokens const& tokens, u32 start);
@@ -130,13 +130,15 @@ static ParseSingleItemResult parse_while(
         = TRY(parse_block(expressions, tokens, block_start_index));
 
     auto end = block.end_token_index;
-    auto while_ = While { condition.release_as_rvalue(),
-        block.release_as_block() };
+    auto while_ = While {
+        condition.release_as_rvalue(),
+        block.release_as_block(),
+    };
     return Expression(std::move(while_), start, end);
 }
 
-static ParseSingleItemResult parse_import_c(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+static ParseSingleItemResult
+parse_import_c(ParsedExpressions&, Tokens const& tokens, u32 start)
 {
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
@@ -386,10 +388,10 @@ static ParseSingleItemResult parse_public_function(
 {
     auto function = TRY(parse_function(expressions, tokens, start));
     auto public_function = PublicFunction {
-        .block = std::move(function.block),
         .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
+        .block = std::move(function.block),
     };
     return Expression {
         std::move(public_function),
@@ -403,10 +405,10 @@ static ParseSingleItemResult parse_public_c_function(
 {
     auto function = TRY(parse_function(expressions, tokens, start));
     auto public_function = PublicCFunction {
-        .block = std::move(function.block),
         .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
+        .block = std::move(function.block),
     };
     return Expression {
         std::move(public_function),
@@ -420,10 +422,10 @@ static ParseSingleItemResult parse_private_function(
 {
     auto function = TRY(parse_function(expressions, tokens, start));
     auto private_function = PrivateFunction {
-        .block = std::move(function.block),
         .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
+        .block = function.block,
     };
     return Expression {
         std::move(private_function),
@@ -437,10 +439,10 @@ static ParseSingleItemResult parse_private_c_function(
 {
     auto function = TRY(parse_function(expressions, tokens, start));
     auto private_function = PrivateCFunction {
-        .block = std::move(function.block),
         .parameters = function.parameters,
         .name = function.name,
         .return_type = function.return_type,
+        .block = function.block,
     };
     return Expression {
         std::move(private_function),
@@ -511,8 +513,8 @@ static ParseSingleItemResult parse_return(
     return Expression(std::move(return_expression), start, end);
 }
 
-static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+static ParseSingleItemResult
+parse_inline_c(ParsedExpressions&, Tokens const& tokens, u32 start)
 {
     i32 level = 0;
     auto block_start_index = start + 1;
@@ -582,16 +584,16 @@ static ParseSingleItemResult parse_block(
         }
 
         if (tokens[end].type == TokenType::Let) {
-            auto variable
-                = TRY(parse_public_constant(expressions, tokens, end));
+            auto variable = TRY(
+                parse_public_constant(expressions, tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Var) {
-            auto variable
-                = TRY(parse_public_variable(expressions, tokens, end));
+            auto variable = TRY(
+                parse_public_variable(expressions, tokens, end));
             end = variable.end_token_index;
             block.expressions.push_back(std::move(variable));
             continue;
@@ -663,8 +665,8 @@ static ParseSingleItemResult parse_block(
             tokens[end],
         };
     }
-    end++; // NOTE: Swallow close curly
-    return Expression(std::move(block), start, end);
+    // NOTE: Swallow close curly
+    return Expression(std::move(block), start, end + 1);
 }
 
 static ParseSingleItemResult parse_rvalue(
@@ -934,8 +936,8 @@ static ParseSingleItemResult parse_prvalue(
     };
 }
 
-static ParseSingleItemResult parse_struct(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+static ParseSingleItemResult
+parse_struct(ParsedExpressions&, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
 
