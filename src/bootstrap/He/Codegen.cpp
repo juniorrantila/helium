@@ -1,6 +1,7 @@
-#include "He/Expression.h"
+#include <FileBuffer.h>
 #include <He/Codegen.h>
 #include <He/Context.h>
+#include <He/Expression.h>
 #include <He/Parser.h>
 #include <SourceFile.h>
 #include <iostream>
@@ -13,124 +14,61 @@
 
 namespace He {
 
-struct File {
-    constexpr File(char* data, u32 capacity)
-        : data(data)
-        , capacity(capacity)
-    {
-    }
+static void dump_literal(FileBuffer& out, Context const&,
+    Id<Literal>);
+static void dump_lvalue(FileBuffer& out, Context const&,
+    LValue const&);
+static void dump_rvalue(FileBuffer& out, Context const&,
+    RValue const&);
+static void dump_if_statement(FileBuffer& out, Context const&,
+    If const&);
+static void dump_return(FileBuffer& out, Context const&,
+    Return const&);
+static void dump_block(FileBuffer& out, Context const&,
+    Block const&);
 
-    char* data { nullptr };
-    u32 size { 0 };
-    u32 capacity { 0 };
-
-    template <typename... Args> constexpr void write(Args... args)
-    {
-        const std::string_view strings[]
-            = { std::string_view(args)... };
-        for (auto const string : strings)
-            write(string);
-    }
-
-    template <typename... Args> constexpr void writeln(Args... args)
-    {
-        const std::string_view strings[]
-            = { std::string_view(args)... };
-        for (auto const string : strings)
-            write(string);
-        write('\n');
-    }
-
-    constexpr void write(std::string_view string)
-    {
-        if (size + string.size() >= capacity) {
-            __builtin_printf("overflow file buffer");
-            __builtin_abort();
-        }
-        string.copy(&data[size], string.size());
-        size += string.size();
-    }
-
-    constexpr void writeln(std::string_view string)
-    {
-        if (size + string.size() >= capacity) {
-            __builtin_printf("overflow file buffer");
-            __builtin_abort();
-        }
-        string.copy(&data[size], string.size());
-        size += string.size();
-        write('\n');
-    }
-
-    constexpr void write(char c)
-    {
-        if (size + 1 >= capacity) {
-            __builtin_printf("overflow file buffer");
-            __builtin_abort();
-        }
-        data[size++] = c;
-    }
-
-    constexpr void writeln(char c)
-    {
-        if (size + 2 >= capacity) {
-            __builtin_printf("overflow file buffer");
-            __builtin_abort();
-        }
-        data[size++] = c;
-        data[size++] = '\n';
-    }
-};
-
-static void dump_literal(File& out, Context const&, Id<Literal>);
-static void dump_lvalue(File& out, Context const&, LValue const&);
-static void dump_rvalue(File& out, Context const&, RValue const&);
-static void dump_if_statement(File& out, Context const&, If const&);
-static void dump_return(File& out, Context const&, Return const&);
-static void dump_block(File& out, Context const&, Block const&);
-
-static void dump_expression(File& out, Context const&,
+static void dump_expression(FileBuffer& out, Context const&,
     Expression const&, bool in_rvalue_expression);
 
-static void dump_public_variable_declaration(File& out,
+static void dump_public_variable_declaration(FileBuffer& out,
     Context const&, PublicVariableDeclaration const&);
 
-static void dump_private_variable_declaration(File& out,
+static void dump_private_variable_declaration(FileBuffer& out,
     Context const&, PrivateVariableDeclaration const&);
 
-static void dump_public_constant_declaration(File& out,
+static void dump_public_constant_declaration(FileBuffer& out,
     Context const&, PublicConstantDeclaration const&);
 
-static void dump_private_constant_declaration(File& out,
+static void dump_private_constant_declaration(FileBuffer& out,
     Context const&, PrivateConstantDeclaration const&);
 
-static void dump_struct_declaration(File& out, Context const&,
+static void dump_struct_declaration(FileBuffer& out, Context const&,
     StructDeclaration const&);
 
-static void dump_while_loop(File& out, Context const&,
+static void dump_while_loop(FileBuffer& out, Context const&,
     While const&);
-static void dump_public_function(File& out, Context const&,
+static void dump_public_function(FileBuffer& out, Context const&,
     PublicFunction const&);
 
-static void dump_private_function(File& out, Context const&,
+static void dump_private_function(FileBuffer& out, Context const&,
     PrivateFunction const&);
 
-static void dump_public_c_function(File& out, Context const&,
+static void dump_public_c_function(FileBuffer& out, Context const&,
     PublicCFunction const&);
 
-static void dump_private_c_function(File& out, Context const&,
+static void dump_private_c_function(FileBuffer& out, Context const&,
     PrivateCFunction const&);
 
-static void dump_parameters(File& out, Context const&,
+static void dump_parameters(FileBuffer& out, Context const&,
     Parameters const&);
 
-static void dump_function_call(File& out, Context const&,
+static void dump_function_call(FileBuffer& out, Context const&,
     FunctionCall const&);
 
-static void dump_import_c(File& out, Context const&,
+static void dump_import_c(FileBuffer& out, Context const&,
     ImportC const&);
 
-static void dump_inline_c(File& out, Context const&,
+static void dump_inline_c(FileBuffer& out, Context const&,
     InlineC const&);
 
 static char* create_buffer_for_each_thread(u32 size,
@@ -151,10 +89,10 @@ static void destroy_buffer_for_each_thread(char* buf, u32 size,
     munmap(buf, memory_size);
 }
 
-static File* create_file_for_each_thread(u32 size,
+static FileBuffer* create_file_for_each_thread(u32 size,
     u32 threads = std::thread::hardware_concurrency())
 {
-    auto* files = (File*)malloc(sizeof(File) * threads);
+    auto* files = (FileBuffer*)malloc(sizeof(FileBuffer) * threads);
     if (!files)
         return files;
     auto* buf = create_buffer_for_each_thread(size);
@@ -163,7 +101,7 @@ static File* create_file_for_each_thread(u32 size,
         return nullptr;
     }
     for (u64 i = 0; i < threads; i++) {
-        files[i] = File {
+        files[i] = FileBuffer {
             &buf[i * size],
             size,
         };
@@ -171,7 +109,7 @@ static File* create_file_for_each_thread(u32 size,
     return files;
 }
 
-static void destroy_file_for_each_thread(File* file,
+static void destroy_file_for_each_thread(FileBuffer* file,
     u32 threads = std::thread::hardware_concurrency())
 {
     destroy_buffer_for_each_thread(file->data, file->capacity,
@@ -214,7 +152,7 @@ typedef char const* c_string;
 
     for (auto declaration : struct_forward_declarations) {
         auto name = declaration.name.text(context.source.text);
-        out.writeln("typedef struct ", name, " ", name, ";");
+        out.writeln("typedef struct ", name, ' ', name, ';');
     }
 
     for (auto const& declaration :
@@ -222,7 +160,7 @@ typedef char const* c_string;
         auto type
             = declaration.return_type.text(context.source.text);
         auto name = declaration.name.text(context.source.text);
-        out.write(type, " ", name);
+        out.write(type, ' ', name);
         dump_parameters(out, context, declaration.parameters);
         out.writeln(';');
     }
@@ -232,7 +170,7 @@ typedef char const* c_string;
         auto type
             = declaration.return_type.text(context.source.text);
         auto name = declaration.name.text(context.source.text);
-        out.write("static ", type, " ", name);
+        out.write("static ", type, ' ', name);
         dump_parameters(out, context, declaration.parameters);
         out.writeln(';');
     }
@@ -252,7 +190,7 @@ typedef char const* c_string;
     destroy_file_for_each_thread(files);
 }
 
-static void dump_parameters(File& out, Context const& context,
+static void dump_parameters(FileBuffer& out, Context const& context,
     Parameters const& parameters)
 {
     auto source = context.source.text;
@@ -263,17 +201,17 @@ static void dump_parameters(File& out, Context const& context,
         auto last_parameter = parameters.size() - 1;
         for (u32 i = 0; i < last_parameter; i++) {
             auto parameter = parameters[i];
-            out.write(parameter.type.text(source), " ",
+            out.write(parameter.type.text(source), ' ',
                 parameter.name.text(source), ", ");
         }
         auto parameter = parameters[last_parameter];
-        out.write(parameter.type.text(source), " ",
+        out.write(parameter.type.text(source), ' ',
             parameter.name.text(source));
     }
     out.write(')');
 }
 
-static void dump_expression(File& out, Context const& context,
+static void dump_expression(FileBuffer& out, Context const& context,
     Expression const& expression, bool in_rvalue_expression)
 {
     switch (expression.type()) {
@@ -371,28 +309,31 @@ static void dump_expression(File& out, Context const& context,
     }
 }
 
-static void dump_public_variable_declaration(File& out,
-    Context const& context, PublicVariableDeclaration const& variable)
+static void dump_public_variable_declaration(FileBuffer& out,
+    Context const& context,
+    PublicVariableDeclaration const& variable)
 {
     auto source = context.source.text;
-    out.write(variable.type.text(source), " ",
+    out.write(variable.type.text(source), ' ',
         variable.name.text(source), " = ");
     dump_rvalue(out, context, variable.value);
     out.writeln(';');
 }
 
-static void dump_private_variable_declaration(File& out,
-    Context const& context, PrivateVariableDeclaration const& variable)
+static void dump_private_variable_declaration(FileBuffer& out,
+    Context const& context,
+    PrivateVariableDeclaration const& variable)
 {
     auto source = context.source.text;
-    out.write("static ", variable.type.text(source), " ",
+    out.write("static ", variable.type.text(source), ' ',
         variable.name.text(source), " = ");
     dump_rvalue(out, context, variable.value);
     out.writeln(';');
 }
 
-static void dump_public_constant_declaration(File& out,
-    Context const& context, PublicConstantDeclaration const& variable)
+static void dump_public_constant_declaration(FileBuffer& out,
+    Context const& context,
+    PublicConstantDeclaration const& variable)
 {
     auto source = context.source.text;
     out.write(variable.type.text(source), " const ",
@@ -401,8 +342,9 @@ static void dump_public_constant_declaration(File& out,
     out.writeln(';');
 }
 
-static void dump_private_constant_declaration(File& out,
-    Context const& context, PrivateConstantDeclaration const& variable)
+static void dump_private_constant_declaration(FileBuffer& out,
+    Context const& context,
+    PrivateConstantDeclaration const& variable)
 {
     auto source = context.source.text;
     out.write("static ", variable.type.text(source), " const ",
@@ -411,8 +353,7 @@ static void dump_private_constant_declaration(File& out,
     out.writeln(';');
 }
 
-
-static void dump_struct_declaration(File& out,
+static void dump_struct_declaration(FileBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {
     auto source = context.source.text;
@@ -420,12 +361,12 @@ static void dump_struct_declaration(File& out,
     for (auto member : struct_.members) {
         auto type = member.type.text(source);
         auto name = member.name.text(source);
-        out.writeln(type, " ", name, ";");
+        out.writeln(type, ' ', name, ';');
     }
     out.writeln("};");
 }
 
-static void dump_literal(File& out, Context const& context,
+static void dump_literal(FileBuffer& out, Context const& context,
     Id<Literal> literal)
 {
     auto source = context.source.text;
@@ -433,22 +374,22 @@ static void dump_literal(File& out, Context const& context,
     out.write(token.text(source));
 }
 
-static void dump_lvalue(File& out, Context const& context,
+static void dump_lvalue(FileBuffer& out, Context const& context,
     LValue const& lvalue)
 {
     auto source = context.source.text;
     out.write(lvalue.token.text(source));
 }
 
-static void dump_rvalue(File& out, Context const& context,
+static void dump_rvalue(FileBuffer& out, Context const& context,
     RValue const& rvalue)
 {
     for (auto const& expression : rvalue.expressions)
         dump_expression(out, context, expression, true);
 }
 
-static void dump_if_statement(File& out, Context const& context,
-    If const& if_statement)
+static void dump_if_statement(FileBuffer& out,
+    Context const& context, If const& if_statement)
 {
     out.write("if (");
     dump_rvalue(out, context, if_statement.condition);
@@ -456,7 +397,7 @@ static void dump_if_statement(File& out, Context const& context,
     dump_block(out, context, if_statement.block);
 }
 
-static void dump_while_loop(File& out, Context const& context,
+static void dump_while_loop(FileBuffer& out, Context const& context,
     While const& while_loop)
 {
     out.write("while (");
@@ -465,7 +406,7 @@ static void dump_while_loop(File& out, Context const& context,
     dump_block(out, context, while_loop.block);
 }
 
-static void dump_block(File& out, Context const& context,
+static void dump_block(FileBuffer& out, Context const& context,
     Block const& block)
 {
     out.writeln('{');
@@ -474,8 +415,8 @@ static void dump_block(File& out, Context const& context,
     out.writeln('}');
 }
 
-static void dump_private_function(File& out, Context const& context,
-    PrivateFunction const& function)
+static void dump_private_function(FileBuffer& out,
+    Context const& context, PrivateFunction const& function)
 {
     auto source = context.source.text;
     out.write("static ", function.return_type.text(source), " ",
@@ -484,8 +425,8 @@ static void dump_private_function(File& out, Context const& context,
     dump_block(out, context, function.block);
 }
 
-static void dump_public_function(File& out, Context const& context,
-    PublicFunction const& function)
+static void dump_public_function(FileBuffer& out,
+    Context const& context, PublicFunction const& function)
 {
     auto source = context.source.text;
     out.write(function.return_type.text(source), " ",
@@ -494,7 +435,7 @@ static void dump_public_function(File& out, Context const& context,
     dump_block(out, context, function.block);
 }
 
-static void dump_private_c_function(File& out,
+static void dump_private_c_function(FileBuffer& out,
     Context const& context, PrivateCFunction const& function)
 {
     auto source = context.source.text;
@@ -504,7 +445,7 @@ static void dump_private_c_function(File& out,
     dump_block(out, context, function.block);
 }
 
-static void dump_public_c_function(File& out,
+static void dump_public_c_function(FileBuffer& out,
     Context const& context, PublicCFunction const& function)
 {
     auto source = context.source.text;
@@ -514,8 +455,8 @@ static void dump_public_c_function(File& out,
     dump_block(out, context, function.block);
 }
 
-static void dump_function_call(File& out, Context const& context,
-    FunctionCall const& function)
+static void dump_function_call(FileBuffer& out,
+    Context const& context, FunctionCall const& function)
 {
     auto source = context.source.text;
 
@@ -535,7 +476,7 @@ static void dump_function_call(File& out, Context const& context,
     out.writeln(')');
 }
 
-static void dump_return(File& out, Context const& context,
+static void dump_return(FileBuffer& out, Context const& context,
     Return const& return_)
 {
     out.write("return ");
@@ -543,7 +484,7 @@ static void dump_return(File& out, Context const& context,
     out.writeln(';');
 }
 
-static void dump_import_c(File& out, Context const& context,
+static void dump_import_c(FileBuffer& out, Context const& context,
     ImportC const& import_c)
 {
     auto source = context.source.text;
@@ -552,7 +493,7 @@ static void dump_import_c(File& out, Context const& context,
         out.writeln("#include ", import_c.filename.text(source));
 }
 
-static void dump_inline_c(File& out, Context const& context,
+static void dump_inline_c(FileBuffer& out, Context const& context,
     InlineC const& inline_c)
 {
     auto source = context.source.text;
