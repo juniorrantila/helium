@@ -249,7 +249,8 @@ static void dump_expression(FileBuffer& out, Context const& context,
         break;
 
     case ExpressionType::RValue:
-        dump_rvalue(out, context, expression.as_rvalue());
+        dump_rvalue(out, context,
+            context.expressions[expression.as_rvalue()]);
         break;
 
     case ExpressionType::If:
@@ -471,12 +472,13 @@ static void dump_function_call(FileBuffer& out,
     }
     for (u32 i = 0; i < function.arguments.size() - 1; i++) {
         auto const& argument = function.arguments[i].as_rvalue();
-        dump_rvalue(out, context, argument);
+        dump_rvalue(out, context, context.expressions[argument]);
         out.write(", ");
     }
     auto last_index = function.arguments.size() - 1;
     auto const& last_argument = function.arguments[last_index];
-    dump_rvalue(out, context, last_argument.as_rvalue());
+    dump_rvalue(out, context,
+        context.expressions[last_argument.as_rvalue()]);
     out.writeln(')');
 }
 

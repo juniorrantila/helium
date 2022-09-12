@@ -250,9 +250,9 @@ struct Expression {
     {
     }
 
-    constexpr Expression(RValue&& value, u32 start_index,
+    constexpr Expression(Id<RValue> value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
@@ -417,14 +417,14 @@ struct Expression {
         return std::get<LValue>(m_storage);
     }
 
-    constexpr RValue const& as_rvalue() const
+    constexpr Id<RValue> const& as_rvalue() const
     {
-        return std::get<RValue>(m_storage);
+        return std::get<Id<RValue>>(m_storage);
     }
 
-    constexpr RValue release_as_rvalue()
+    constexpr Id<RValue> release_as_rvalue()
     {
-        return std::get<RValue>(std::move(m_storage));
+        return std::get<Id<RValue>>(std::move(m_storage));
     }
 
     constexpr If const& as_if() const
@@ -520,7 +520,7 @@ private:
         PrivateConstantDeclaration,
         StructDeclaration,
         LValue,
-        RValue,
+        Id<RValue>,
         If,
         While,
         Id<Block>,
@@ -553,7 +553,7 @@ struct ParsedExpressions {
         name.push_back(value);                                   \
         return id;                                               \
     }                                                            \
-    std::vector<T> name
+    std::vector<T> name {}
 
     SOA_MEMBER(Literal, literals);
     SOA_MEMBER(Block, blocks);

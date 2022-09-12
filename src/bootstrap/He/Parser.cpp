@@ -10,17 +10,17 @@
 namespace He {
 
 using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
-static ParseSingleItemResult
-parse_root_item(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_root_item(ParsedExpressions&,
+    Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_top_level_constant_or_struct(
     ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_public_constant(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_public_constant(
+    ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_public_variable(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_public_variable(
+    ParsedExpressions&, Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_private_constant(
     ParsedExpressions&, Tokens const&, u32 start);
@@ -28,17 +28,17 @@ static ParseSingleItemResult parse_private_constant(
 static ParseSingleItemResult parse_private_variable(
     ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_struct(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_struct(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_rvalue(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_rvalue(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_return(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_return(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_public_function(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_public_function(
+    ParsedExpressions&, Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_public_c_function(
     ParsedExpressions&, Tokens const&, u32 start);
@@ -49,26 +49,26 @@ static ParseSingleItemResult parse_private_function(
 static ParseSingleItemResult parse_private_c_function(
     ParsedExpressions&, Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_import_c(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_import_c(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_inline_c(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_block(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_block(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_function_call(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_function_call(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_prvalue(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_prvalue(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_if(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_if(ParsedExpressions&,
+    Tokens const&, u32 start);
 
-static ParseSingleItemResult
-parse_while(ParsedExpressions&, Tokens const&, u32 start);
+static ParseSingleItemResult parse_while(ParsedExpressions&,
+    Tokens const&, u32 start);
 
 static ParseSingleItemResult parse_pub_specifier(ParsedExpressions&,
     Tokens const& tokens, u32 start);
@@ -104,11 +104,9 @@ static ParseSingleItemResult parse_if(
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
 
-    auto condition_id = expressions.append(condition.release_as_rvalue());
-
     auto end = block.end_token_index;
     auto if_statement = If {
-        condition_id,
+        condition.release_as_rvalue(),
         block.release_as_block(),
     };
     return Expression(if_statement, start, end);
@@ -133,16 +131,15 @@ static ParseSingleItemResult parse_while(
 
     auto end = block.end_token_index;
 
-    auto condition_id = expressions.append(condition.release_as_rvalue());
     auto while_ = While {
-        condition_id,
+        condition.release_as_rvalue(),
         block.release_as_block(),
     };
     return Expression(while_, start, end);
 }
 
-static ParseSingleItemResult
-parse_import_c(ParsedExpressions&, Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_import_c(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
 {
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
@@ -512,14 +509,17 @@ static ParseSingleItemResult parse_return(
     auto end = generic_rvalue.end_token_index;
     auto rvalue = generic_rvalue.release_as_rvalue();
 
-    auto rvalue_id = expressions.append(std::move(rvalue));
-    auto return_expression = Return { rvalue_id };
-
-    return Expression(return_expression, start, end);
+    return Expression {
+        Return {
+            rvalue,
+        },
+        start,
+        end,
+    };
 }
 
-static ParseSingleItemResult
-parse_inline_c(ParsedExpressions&, Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
 {
     i32 level = 0;
     auto block_start_index = start + 1;
@@ -692,8 +692,13 @@ static ParseSingleItemResult parse_rvalue(
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index;
             rvalue.expressions.push_back(inline_c);
+            auto rvalue_id = expressions.append(std::move(rvalue));
             // NOTE: Unconsume ';'
-            return Expression { std::move(rvalue), start, end - 1 };
+            return Expression {
+                rvalue_id,
+                start,
+                end - 1,
+            };
         }
 
         if (tokens[end].type == TokenType::Uninitialized) {
@@ -717,7 +722,7 @@ static ParseSingleItemResult parse_rvalue(
                 };
             }
             end = close_paren_index;
-            auto block_id = expressions.append(Block{});
+            auto block_id = expressions.append(Block {});
             rvalue.expressions.emplace_back(block_id, end, end + 1);
             end = close_paren_index + 1;
             continue;
@@ -814,16 +819,18 @@ static ParseSingleItemResult parse_rvalue(
     }
 
     if (tokens[end].type == TokenType::Semicolon) {
+        auto rvalue_id = expressions.append(std::move(rvalue));
         return Expression {
-            std::move(rvalue),
+            rvalue_id,
             start,
             end,
         };
     }
 
     if (tokens[end].type == TokenType::OpenCurly) {
+        auto rvalue_id = expressions.append(std::move(rvalue));
         return Expression {
-            std::move(rvalue),
+            rvalue_id,
             start,
             end,
         };
@@ -931,10 +938,22 @@ static ParseSingleItemResult parse_prvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::Comma)
-        return Expression { std::move(rvalue), start, end };
-    if (tokens[end].type == TokenType::CloseParen)
-        return Expression { std::move(rvalue), start, end };
+    if (tokens[end].type == TokenType::Comma) {
+        auto rvalue_id = expressions.append(std::move(rvalue));
+        return Expression {
+            rvalue_id,
+            start,
+            end,
+        };
+    }
+    if (tokens[end].type == TokenType::CloseParen) {
+        auto rvalue_id = expressions.append(std::move(rvalue));
+        return Expression {
+            rvalue_id,
+            start,
+            end,
+        };
+    }
 
     return ParseError {
         "expected ',' or ')'",
@@ -943,8 +962,8 @@ static ParseSingleItemResult parse_prvalue(
     };
 }
 
-static ParseSingleItemResult
-parse_struct(ParsedExpressions&, Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_struct(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
 
@@ -1130,11 +1149,10 @@ static ParseSingleItemResult parse_private_variable(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto rvalue_id = expressions.append(std::move(rvalue));
     auto variable = PrivateVariableDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue_id,
+        .value = rvalue,
     };
     return Expression(variable, start, end);
 }
@@ -1204,11 +1222,10 @@ static ParseSingleItemResult parse_public_variable(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto rvalue_id = expressions.append(std::move(rvalue));
     auto variable = PublicVariableDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue_id,
+        .value = rvalue,
     };
     return Expression(variable, start, end);
 }
@@ -1278,11 +1295,10 @@ static ParseSingleItemResult parse_private_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto rvalue_id = expressions.append(std::move(rvalue));
     auto constant = PrivateConstantDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue_id,
+        .value = rvalue,
     };
     return Expression(constant, start, end);
 }
@@ -1352,11 +1368,10 @@ static ParseSingleItemResult parse_public_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto rvalue_id = expressions.append(std::move(rvalue));
     auto constant = PublicConstantDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue_id,
+        .value = rvalue,
     };
     return Expression(constant, start, end);
 }
@@ -1431,11 +1446,10 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto rvalue_id = expressions.append(std::move(rvalue));
     auto constant = PrivateConstantDeclaration {
         .name = name,
         .type = type,
-        .value = rvalue_id,
+        .value = rvalue,
     };
     return Expression(constant, start, end);
 }

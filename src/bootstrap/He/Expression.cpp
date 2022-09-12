@@ -37,7 +37,7 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::RValue:
-        as_rvalue().dump(expressions, source, indent);
+        expressions[as_rvalue()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::If:
