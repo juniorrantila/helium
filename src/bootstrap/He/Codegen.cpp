@@ -261,7 +261,7 @@ static void dump_expression(FileBuffer& out, Context const& context,
         break;
 
     case ExpressionType::Block:
-        dump_block(out, context, expression.as_block());
+        dump_block(out, context, context.expressions[expression.as_block()]);
         break;
 
     case ExpressionType::PrivateFunction:

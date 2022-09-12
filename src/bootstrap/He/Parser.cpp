@@ -103,12 +103,11 @@ static ParseSingleItemResult parse_if(
     }
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
-    auto block_id = expressions.append(block.release_as_block());
 
     auto end = block.end_token_index;
     auto if_statement = If {
         condition.release_as_rvalue(),
-        block_id,
+        block.release_as_block(),
     };
     return Expression(std::move(if_statement), start, end);
 }
@@ -129,12 +128,11 @@ static ParseSingleItemResult parse_while(
     }
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
-    auto block_id = expressions.append(block.release_as_block());
 
     auto end = block.end_token_index;
     auto while_ = While {
         condition.release_as_rvalue(),
-        block_id,
+        block.release_as_block(),
     };
     return Expression(std::move(while_), start, end);
 }
@@ -374,13 +372,12 @@ static Core::ErrorOr<Function, ParseError> parse_function(
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
     auto block_end_index = block.end_token_index;
-    auto block_id = expressions.append(block.release_as_block());
 
     return Function {
         name,
         return_type,
         std::move(parameters),
-        block_id,
+        block.release_as_block(),
         start,
         block_end_index,
     };
@@ -668,8 +665,9 @@ static ParseSingleItemResult parse_block(
             tokens[end],
         };
     }
+    auto block_id = expressions.append(std::move(block));
     // NOTE: Swallow close curly
-    return Expression(std::move(block), start, end + 1);
+    return Expression(block_id, start, end + 1);
 }
 
 static ParseSingleItemResult parse_rvalue(
@@ -714,7 +712,8 @@ static ParseSingleItemResult parse_rvalue(
                 };
             }
             end = close_paren_index;
-            rvalue.expressions.emplace_back(Block {}, end, end + 1);
+            auto block_id = expressions.append(Block{});
+            rvalue.expressions.emplace_back(block_id, end, end + 1);
             end = close_paren_index + 1;
             continue;
         }

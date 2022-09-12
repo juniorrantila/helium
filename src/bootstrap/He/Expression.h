@@ -273,9 +273,9 @@ struct Expression {
     {
     }
 
-    constexpr Expression(Block&& value, u32 start_index,
+    constexpr Expression(Id<Block> value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
@@ -462,14 +462,14 @@ struct Expression {
         return std::get<FunctionCall>(m_storage);
     }
 
-    constexpr Block const& as_block() const
+    constexpr Id<Block> const& as_block() const
     {
-        return std::get<Block>(m_storage);
+        return std::get<Id<Block>>(m_storage);
     }
 
-    constexpr Block release_as_block()
+    constexpr Id<Block> release_as_block()
     {
-        return std::get<Block>(std::move(m_storage));
+        return std::get<Id<Block>>(std::move(m_storage));
     }
 
     constexpr Return const& as_return() const
@@ -523,7 +523,7 @@ private:
         RValue,
         If,
         While,
-        Block,
+        Id<Block>,
         PrivateCFunction,
         PublicCFunction,
         PrivateFunction,

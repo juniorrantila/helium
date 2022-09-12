@@ -53,7 +53,7 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::Block:
-        as_block().dump(expressions, source, indent);
+        expressions[as_block()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::PublicFunction:
