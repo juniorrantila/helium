@@ -104,12 +104,14 @@ static ParseSingleItemResult parse_if(
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
 
+    auto condition_id = expressions.append(condition.release_as_rvalue());
+
     auto end = block.end_token_index;
     auto if_statement = If {
-        condition.release_as_rvalue(),
+        condition_id,
         block.release_as_block(),
     };
-    return Expression(std::move(if_statement), start, end);
+    return Expression(if_statement, start, end);
 }
 
 static ParseSingleItemResult parse_while(
@@ -130,11 +132,13 @@ static ParseSingleItemResult parse_while(
         = TRY(parse_block(expressions, tokens, block_start_index));
 
     auto end = block.end_token_index;
+
+    auto condition_id = expressions.append(condition.release_as_rvalue());
     auto while_ = While {
-        condition.release_as_rvalue(),
+        condition_id,
         block.release_as_block(),
     };
-    return Expression(std::move(while_), start, end);
+    return Expression(while_, start, end);
 }
 
 static ParseSingleItemResult

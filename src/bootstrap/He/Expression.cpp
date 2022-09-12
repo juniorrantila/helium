@@ -216,7 +216,7 @@ void If::dump(ParsedExpressions const& expressions,
     std::cerr << "If(\n";
     for (u32 i = 0; i < indent + 1; i++)
         std::cerr << ' ';
-    condition.dump(expressions, source, indent + 1);
+    expressions[condition].dump(expressions, source, indent + 1);
     std::cerr << '\n';
     for (u32 i = 0; i < indent + 1; i++)
         std::cerr << ' ';
@@ -233,7 +233,7 @@ void While::dump(ParsedExpressions const& expressions,
     std::cerr << "While(\n";
     for (u32 i = 0; i < indent + 1; i++)
         std::cerr << ' ';
-    condition.dump(expressions, source, indent + 1);
+    expressions[condition].dump(expressions, source, indent + 1);
     std::cerr << '\n';
     for (u32 i = 0; i < indent + 1; i++)
         std::cerr << ' ';

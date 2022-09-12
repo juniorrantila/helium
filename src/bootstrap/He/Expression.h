@@ -155,14 +155,14 @@ struct [[gnu::packed]] PublicConstantDeclaration {
 };
 
 struct [[gnu::packed]] If {
-    RValue condition;
+    Id<RValue> condition;
     Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };
 
 struct [[gnu::packed]] While {
-    RValue condition;
+    Id<RValue> condition;
     Id<Block> block;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
@@ -258,16 +258,16 @@ struct Expression {
     {
     }
 
-    constexpr Expression(If&& value, u32 start_index, u32 end_index)
-        : m_storage(std::move(value))
+    constexpr Expression(If value, u32 start_index, u32 end_index)
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(While&& value, u32 start_index,
+    constexpr Expression(While value, u32 start_index,
         u32 end_index)
-        : m_storage(std::move(value))
+        : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {

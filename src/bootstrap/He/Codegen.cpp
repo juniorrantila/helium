@@ -261,7 +261,8 @@ static void dump_expression(FileBuffer& out, Context const& context,
         break;
 
     case ExpressionType::Block:
-        dump_block(out, context, context.expressions[expression.as_block()]);
+        dump_block(out, context,
+            context.expressions[expression.as_block()]);
         break;
 
     case ExpressionType::PrivateFunction:
@@ -392,7 +393,8 @@ static void dump_if_statement(FileBuffer& out,
     Context const& context, If const& if_statement)
 {
     out.write("if (");
-    dump_rvalue(out, context, if_statement.condition);
+    dump_rvalue(out, context,
+        context.expressions[if_statement.condition]);
     out.write(") ");
     dump_block(out, context,
         context.expressions[if_statement.block]);
@@ -402,7 +404,8 @@ static void dump_while_loop(FileBuffer& out, Context const& context,
     While const& while_loop)
 {
     out.write("while (");
-    dump_rvalue(out, context, while_loop.condition);
+    dump_rvalue(out, context,
+        context.expressions[while_loop.condition]);
     out.write(") ");
     dump_block(out, context, context.expressions[while_loop.block]);
 }
