@@ -169,7 +169,7 @@ struct [[gnu::packed]] While {
 };
 
 struct [[gnu::packed]] Return {
-    RValue rvalue;
+    Id<RValue> rvalue;
 
     void dump(ParsedExpressions const&, std::string_view source, u32 indent) const;
 };

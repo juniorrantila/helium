@@ -346,7 +346,7 @@ void Return::dump(ParsedExpressions const& expressions,
     std::string_view source, u32 indent) const
 {
     std::cerr << "Return(";
-    rvalue.dump(expressions, source, indent);
+    expressions[rvalue].dump(expressions, source, indent);
     std::cerr << ')';
 }
 

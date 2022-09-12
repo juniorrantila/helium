@@ -481,7 +481,7 @@ static void dump_return(FileBuffer& out, Context const& context,
     Return const& return_)
 {
     out.write("return ");
-    dump_rvalue(out, context, return_.rvalue);
+    dump_rvalue(out, context, context.expressions[return_.rvalue]);
     out.writeln(';');
 }
 

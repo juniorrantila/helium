@@ -508,9 +508,10 @@ static ParseSingleItemResult parse_return(
     auto end = generic_rvalue.end_token_index;
     auto rvalue = generic_rvalue.release_as_rvalue();
 
-    auto return_expression = Return { std::move(rvalue) };
+    auto rvalue_id = expressions.append(std::move(rvalue));
+    auto return_expression = Return { rvalue_id };
 
-    return Expression(std::move(return_expression), start, end);
+    return Expression(return_expression, start, end);
 }
 
 static ParseSingleItemResult
