@@ -858,7 +858,14 @@ static ParseSingleItemResult parse_irvalue(
                 };
             }
             end = close_paren_index;
-            auto block_id = expressions.append(Block{});
+            auto number_id
+                = expressions.append(CompilerProvidedU64 {
+                    .number = 0,
+                });
+            auto block = Block();
+            block.expressions.reserve(1);
+            block.expressions.emplace_back(number_id, 0, 0);
+            auto block_id = expressions.append(std::move(block));
             rvalue.expressions.emplace_back(block_id, end, end + 1);
             end = close_paren_index + 1;
             continue;
@@ -1026,7 +1033,14 @@ static ParseSingleItemResult parse_rvalue(
                 };
             }
             end = close_paren_index;
-            auto block_id = expressions.append(Block {});
+            auto number_id
+                = expressions.append(CompilerProvidedU64 {
+                    .number = 0,
+                });
+            auto block = Block();
+            block.expressions.reserve(1);
+            block.expressions.emplace_back(number_id, 0, 0);
+            auto block_id = expressions.append(std::move(block));
             rvalue.expressions.emplace_back(block_id, end, end + 1);
             end = close_paren_index + 1;
             continue;

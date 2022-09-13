@@ -98,6 +98,11 @@ void Expression::dump(ParsedExpressions const& expressions,
         as_inline_c().dump(expressions, source, indent);
         break;
 
+    case ExpressionType::CompilerProvidedU64:
+        expressions[as_compiler_provided_u64()].dump(expressions,
+            source, indent);
+        break;
+
     case ExpressionType::Invalid:
         std::cerr << "reached ExpressionType::Invalid in "
                   << __FUNCTION__;
@@ -137,6 +142,8 @@ std::string_view expression_type_string(ExpressionType type)
 
         CASE_RETURN(ImportC);
         CASE_RETURN(InlineC);
+
+        CASE_RETURN(CompilerProvidedU64);
 
         CASE_RETURN(Invalid);
 #undef CASE_RETURN
@@ -388,6 +395,12 @@ void InlineC::dump(ParsedExpressions const&,
     std::string_view source, u32) const
 {
     std::cerr << "InlineC('" << literal.text(source) << "')";
+}
+
+void CompilerProvidedU64::dump(ParsedExpressions const&,
+    std::string_view, u32) const
+{
+    std::cerr << "CompilerProvidedU64('" << number << "')";
 }
 
 }

@@ -1,5 +1,6 @@
 #include <Types.h>
 #include <string_view>
+#include <string>
 
 // clang-format off
 [[maybe_unused]]
@@ -18,6 +19,12 @@ constexpr static auto to_string_view(char const& c)
 constexpr static auto to_string_view(std::string_view data)
 {
     return data;
+}
+
+[[maybe_unused]]
+constexpr static auto to_string_view(std::string const& data)
+{
+    return std::string_view { data.data(), data.size() };
 }
 // clang-format on
 

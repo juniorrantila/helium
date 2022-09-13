@@ -5,6 +5,7 @@
 #include <He/Parser.h>
 #include <SourceFile.h>
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <sys/mman.h>
 #include <sys/uio.h>
@@ -79,6 +80,9 @@ static void dump_import_c(FileBuffer& out, Context const&,
 
 static void dump_inline_c(FileBuffer& out, Context const&,
     InlineC const&);
+
+static void dump_compiler_provided_u64(FileBuffer& out,
+    Context const&, CompilerProvidedU64 const&);
 
 static char* create_buffer_for_each_thread(u32 size,
     u32 threads = std::thread::hardware_concurrency())
@@ -280,6 +284,12 @@ static void dump_expression(FileBuffer& out, Context const& context,
         dump_public_variable_declaration(out, context,
             expression.as_public_variable_declaration());
         break;
+
+    case ExpressionType::CompilerProvidedU64: {
+        auto number_id = expression.as_compiler_provided_u64();
+        auto number = context.expressions[number_id];
+        dump_compiler_provided_u64(out, context, number);
+    } break;
 
     case ExpressionType::PrivateConstantDeclaration:
         dump_private_constant_declaration(out, context,
@@ -589,6 +599,14 @@ static void dump_inline_c(FileBuffer& out, Context const& context,
 {
     auto source = context.source.text;
     out.write(inline_c.literal.text(source));
+}
+
+static void dump_compiler_provided_u64(FileBuffer& out,
+    Context const&,
+    CompilerProvidedU64 const& compiler_provided_u64)
+{
+    auto number = std::to_string(compiler_provided_u64.number);
+    out.write(std::move(number));
 }
 
 }

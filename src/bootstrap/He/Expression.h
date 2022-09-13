@@ -38,6 +38,8 @@ enum class ExpressionType {
     ImportC,
     InlineC,
 
+    CompilerProvidedU64,
+
     Invalid,
 };
 
@@ -61,6 +63,8 @@ struct [[gnu::packed]] Block {
         u32 indent) const;
 };
 
+struct CompilerProvidedU64 {
+    u64 number;
 
     void dump(ParsedExpressions const&, std::string_view source,
         u32 indent) const;
@@ -235,6 +239,14 @@ struct [[gnu::packed]] InlineC {
 struct Expression {
     constexpr Expression(Id<Literal> value, u32 start_index,
         u32 end_index)
+        : m_storage(value)
+        , start_token_index(start_index)
+        , end_token_index(end_index)
+    {
+    }
+
+    constexpr Expression(Id<CompilerProvidedU64> value,
+        u32 start_index, u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
@@ -563,6 +575,12 @@ struct Expression {
         return inline_c;
     }
 
+    constexpr Id<CompilerProvidedU64> const&
+    as_compiler_provided_u64() const
+    {
+        return std::get<Id<CompilerProvidedU64>>(m_storage);
+    }
+
     void dump(ParsedExpressions const&, std::string_view source,
         u32 indent = 0) const;
 
@@ -588,7 +606,8 @@ private:
         FunctionCall,
         Return,
         ImportC,
-        InlineC
+        InlineC,
+        Id<CompilerProvidedU64>
     > m_storage {};
     // clang-format on
 
@@ -622,6 +641,7 @@ struct ParsedExpressions {
     SOA_MEMBER(StructDeclaration, struct_declarations);
     SOA_MEMBER(StructInitializer, struct_initializers);
     SOA_MEMBER(Expression, late_expressions);
+    SOA_MEMBER(CompilerProvidedU64, compiler_provided_u64s);
 
 #undef SOA_MEMBER
     std::vector<Expression> expressions;
