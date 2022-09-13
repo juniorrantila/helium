@@ -20,7 +20,7 @@ struct StructForwardDeclaration {
 using StructForwardDeclarations
     = std::vector<StructForwardDeclaration>;
 
-struct Codegen {
+struct TypecheckedExpressions {
     std::vector<Token> import_c_filenames {};
     std::vector<Token> inline_c_expressions {};
 
@@ -38,7 +38,7 @@ struct Codegen {
 
     StructForwardDeclarations struct_forward_declarations {};
 
-    void dump(int out_fd, Context const&) const;
+    void codegen(int out_fd, Context const&) const;
 };
 
 }

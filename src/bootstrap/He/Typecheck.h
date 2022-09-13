@@ -1,6 +1,6 @@
 #pragma once
 #include <Core/ErrorOr.h>
-#include <He/Codegen.h>
+#include <He/TypecheckedExpression.h>
 #include <He/Context.h>
 #include <He/Parser.h>
 #include <string_view>
@@ -14,7 +14,7 @@ struct TypecheckError {
     Core::ErrorOr<void> show(Context const& context) const;
 };
 
-using TypecheckResult = Core::ErrorOr<Codegen, TypecheckError>;
+using TypecheckResult = Core::ErrorOr<TypecheckedExpressions, TypecheckError>;
 TypecheckResult typecheck(Context& context);
 
 }

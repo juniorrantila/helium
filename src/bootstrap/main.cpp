@@ -1,7 +1,7 @@
-#include "He/Expression.h"
+#include <He/Expression.h>
 #include <CLI/ArgumentParser.h>
 #include <Core/MappedFile.h>
-#include <He/Codegen.h>
+#include <He/TypecheckedExpression.h>
 #include <He/Context.h>
 #include <He/Lexer.h>
 #include <He/Parser.h>
@@ -105,7 +105,7 @@ int main(int argc, c_string argv[])
             result.error().show();
         return 1;
     }
-    auto codegen = typecheck_result.release_value();
+    auto typechecked_expressions = typecheck_result.release_value();
 
     char temporary_file[] = "XXXXXX.c";
     int output_file = STDOUT_FILENO;
@@ -120,7 +120,7 @@ int main(int argc, c_string argv[])
             return 1;
         }
     }
-    codegen.dump(output_file, context);
+    typechecked_expressions.codegen(output_file, context);
 
     if (output_file != STDOUT_FILENO) {
         if (fsync(output_file) < 0) {

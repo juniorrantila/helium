@@ -1,6 +1,6 @@
-#include "He/Expression.h"
+#include <He/Expression.h>
 #include <Core/ErrorOr.h>
-#include <He/Codegen.h>
+#include <He/TypecheckedExpression.h>
 #include <He/Context.h>
 #include <He/Parser.h>
 #include <He/Typecheck.h>
@@ -15,7 +15,7 @@ Core::ErrorOr<void> TypecheckError::show(Context const&) const
 
 TypecheckResult typecheck(Context& context)
 {
-    auto output = Codegen();
+    auto output = TypecheckedExpressions();
     auto& expressions = context.expressions;
     for (auto& expression : expressions.expressions) {
         if (expression.type() == ExpressionType::ImportC) {

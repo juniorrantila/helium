@@ -1,5 +1,5 @@
 #include <FileBuffer.h>
-#include <He/Codegen.h>
+#include <He/TypecheckedExpression.h>
 #include <He/Context.h>
 #include <He/Expression.h>
 #include <He/Parser.h>
@@ -15,73 +15,73 @@
 
 namespace He {
 
-static void dump_literal(FileBuffer& out, Context const&,
+static void codegen_literal(FileBuffer& out, Context const&,
     Id<Literal>);
 
-static void dump_lvalue(FileBuffer& out, Context const&,
+static void codegen_lvalue(FileBuffer& out, Context const&,
     LValue const&);
 
-static void dump_rvalue(FileBuffer& out, Context const&,
+static void codegen_rvalue(FileBuffer& out, Context const&,
     RValue const&);
 
-static void dump_if_statement(FileBuffer& out, Context const&,
+static void codegen_if_statement(FileBuffer& out, Context const&,
     If const&);
 
-static void dump_return(FileBuffer& out, Context const&,
+static void codegen_return(FileBuffer& out, Context const&,
     Return const&);
 
-static void dump_block(FileBuffer& out, Context const&,
+static void codegen_block(FileBuffer& out, Context const&,
     Block const&);
 
-static void dump_expression(FileBuffer& out, Context const&,
+static void codegen_expression(FileBuffer& out, Context const&,
     Expression const&, bool in_rvalue_expression);
 
-static void dump_public_variable_declaration(FileBuffer& out,
+static void codegen_public_variable_declaration(FileBuffer& out,
     Context const&, PublicVariableDeclaration const&);
 
-static void dump_private_variable_declaration(FileBuffer& out,
+static void codegen_private_variable_declaration(FileBuffer& out,
     Context const&, PrivateVariableDeclaration const&);
 
-static void dump_public_constant_declaration(FileBuffer& out,
+static void codegen_public_constant_declaration(FileBuffer& out,
     Context const&, PublicConstantDeclaration const&);
 
-static void dump_private_constant_declaration(FileBuffer& out,
+static void codegen_private_constant_declaration(FileBuffer& out,
     Context const&, PrivateConstantDeclaration const&);
 
-static void dump_struct_declaration(FileBuffer& out, Context const&,
+static void codegen_struct_declaration(FileBuffer& out, Context const&,
     StructDeclaration const&);
 
-static void dump_struct_initializer(FileBuffer& out, Context const&,
+static void codegen_struct_initializer(FileBuffer& out, Context const&,
     StructInitializer const&);
 
-static void dump_while_loop(FileBuffer& out, Context const&,
+static void codegen_while_loop(FileBuffer& out, Context const&,
     While const&);
 
-static void dump_public_function(FileBuffer& out, Context const&,
+static void codegen_public_function(FileBuffer& out, Context const&,
     PublicFunction const&);
 
-static void dump_private_function(FileBuffer& out, Context const&,
+static void codegen_private_function(FileBuffer& out, Context const&,
     PrivateFunction const&);
 
-static void dump_public_c_function(FileBuffer& out, Context const&,
+static void codegen_public_c_function(FileBuffer& out, Context const&,
     PublicCFunction const&);
 
-static void dump_private_c_function(FileBuffer& out, Context const&,
+static void codegen_private_c_function(FileBuffer& out, Context const&,
     PrivateCFunction const&);
 
-static void dump_parameters(FileBuffer& out, Context const&,
+static void codegen_parameters(FileBuffer& out, Context const&,
     Parameters const&);
 
-static void dump_function_call(FileBuffer& out, Context const&,
+static void codegen_function_call(FileBuffer& out, Context const&,
     FunctionCall const&);
 
-static void dump_import_c(FileBuffer& out, Context const&,
+static void codegen_import_c(FileBuffer& out, Context const&,
     ImportC const&);
 
-static void dump_inline_c(FileBuffer& out, Context const&,
+static void codegen_inline_c(FileBuffer& out, Context const&,
     InlineC const&);
 
-static void dump_compiler_provided_u64(FileBuffer& out,
+static void codegen_compiler_provided_u64(FileBuffer& out,
     Context const&, CompilerProvidedU64 const&);
 
 static char* create_buffer_for_each_thread(u32 size,
@@ -130,7 +130,7 @@ static void destroy_file_for_each_thread(FileBuffer* file,
     free(file);
 }
 
-void Codegen::dump(int out_fd, Context const& context) const
+void TypecheckedExpressions::codegen(int out_fd, Context const& context) const
 {
     auto* files = create_file_for_each_thread(2 * 1024 * 1024);
     auto& out = files[0];
@@ -198,7 +198,7 @@ typedef char const* c_string;
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write(type, ' ', name);
-        dump_parameters(out, context, function.parameters);
+        codegen_parameters(out, context, function.parameters);
         out.writeln(';');
     }
 
@@ -207,7 +207,7 @@ typedef char const* c_string;
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write("static ", type, ' ', name);
-        dump_parameters(out, context, function.parameters);
+        codegen_parameters(out, context, function.parameters);
         out.writeln(';');
     }
 
@@ -216,7 +216,7 @@ typedef char const* c_string;
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write(type, ' ', name);
-        dump_parameters(out, context, function.parameters);
+        codegen_parameters(out, context, function.parameters);
         out.writeln(';');
     }
 
@@ -225,12 +225,12 @@ typedef char const* c_string;
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write("static ", type, ' ', name);
-        dump_parameters(out, context, function.parameters);
+        codegen_parameters(out, context, function.parameters);
         out.writeln(';');
     }
 
     for (auto const& expression : context.expressions.expressions)
-        dump_expression(out, context, expression, false);
+        codegen_expression(out, context, expression, false);
 
     u16 vecs = std::thread::hardware_concurrency();
     auto* iovec
@@ -246,133 +246,133 @@ typedef char const* c_string;
     destroy_file_for_each_thread(files);
 }
 
-static void dump_parameters(FileBuffer& out, Context const& context,
+static void codegen_parameters(FileBuffer& out, Context const& context,
     Parameters const& parameters)
 {
     auto source = context.source.text;
-    out.write('(');
     if (parameters.empty()) {
-        out.write("void");
-    } else {
-        auto last_parameter = parameters.size() - 1;
-        for (u32 i = 0; i < last_parameter; i++) {
-            auto parameter = parameters[i];
-            out.write(parameter.type.text(source), ' ',
-                parameter.name.text(source), ", ");
-        }
-        auto parameter = parameters[last_parameter];
-        out.write(parameter.type.text(source), ' ',
-            parameter.name.text(source));
+        out.write("(void)");
+        return;
     }
+    out.write('(');
+    auto last_parameter = parameters.size() - 1;
+    for (u32 i = 0; i < last_parameter; i++) {
+        auto parameter = parameters[i];
+        out.write(parameter.type.text(source), ' ',
+            parameter.name.text(source), ", ");
+    }
+    auto parameter = parameters[last_parameter];
+    out.write(parameter.type.text(source), ' ',
+        parameter.name.text(source));
     out.write(')');
 }
 
-static void dump_expression(FileBuffer& out, Context const& context,
+static void codegen_expression(FileBuffer& out, Context const& context,
     Expression const& expression, bool in_rvalue_expression)
 {
     switch (expression.type()) {
     case ExpressionType::Literal:
-        dump_literal(out, context, expression.as_literal());
+        codegen_literal(out, context, expression.as_literal());
         break;
 
     case ExpressionType::PrivateVariableDeclaration:
-        dump_private_variable_declaration(out, context,
+        codegen_private_variable_declaration(out, context,
             expression.as_private_variable_declaration());
         break;
 
     case ExpressionType::PublicVariableDeclaration:
-        dump_public_variable_declaration(out, context,
+        codegen_public_variable_declaration(out, context,
             expression.as_public_variable_declaration());
         break;
 
     case ExpressionType::CompilerProvidedU64: {
         auto number_id = expression.as_compiler_provided_u64();
         auto number = context.expressions[number_id];
-        dump_compiler_provided_u64(out, context, number);
+        codegen_compiler_provided_u64(out, context, number);
     } break;
 
     case ExpressionType::PrivateConstantDeclaration:
-        dump_private_constant_declaration(out, context,
+        codegen_private_constant_declaration(out, context,
             expression.as_private_constant_declaration());
         break;
 
     case ExpressionType::PublicConstantDeclaration:
-        dump_public_constant_declaration(out, context,
+        codegen_public_constant_declaration(out, context,
             expression.as_public_constant_declaration());
         break;
 
     case ExpressionType::StructDeclaration:
-        dump_struct_declaration(out, context,
+        codegen_struct_declaration(out, context,
             context
                 .expressions[expression.as_struct_declaration()]);
         break;
 
     case ExpressionType::StructInitializer:
-        dump_struct_initializer(out, context,
+        codegen_struct_initializer(out, context,
             context
                 .expressions[expression.as_struct_initializer()]);
         break;
 
     case ExpressionType::LValue:
-        dump_lvalue(out, context, expression.as_lvalue());
+        codegen_lvalue(out, context, expression.as_lvalue());
         break;
 
     case ExpressionType::RValue:
-        dump_rvalue(out, context,
+        codegen_rvalue(out, context,
             context.expressions[expression.as_rvalue()]);
         break;
 
     case ExpressionType::If:
-        dump_if_statement(out, context, expression.as_if());
+        codegen_if_statement(out, context, expression.as_if());
         break;
 
     case ExpressionType::While:
-        dump_while_loop(out, context, expression.as_while());
+        codegen_while_loop(out, context, expression.as_while());
         break;
 
     case ExpressionType::Block:
-        dump_block(out, context,
+        codegen_block(out, context,
             context.expressions[expression.as_block()]);
         break;
 
     case ExpressionType::PrivateFunction:
-        dump_private_function(out, context,
+        codegen_private_function(out, context,
             context.expressions[expression.as_private_function()]);
         break;
 
     case ExpressionType::PublicFunction:
-        dump_public_function(out, context,
+        codegen_public_function(out, context,
             context.expressions[expression.as_public_function()]);
         break;
 
     case ExpressionType::PrivateCFunction:
-        dump_private_c_function(out, context,
+        codegen_private_c_function(out, context,
             context
                 .expressions[expression.as_private_c_function()]);
         break;
 
     case ExpressionType::PublicCFunction:
-        dump_public_c_function(out, context,
+        codegen_public_c_function(out, context,
             context.expressions[expression.as_public_c_function()]);
         break;
 
     case ExpressionType::FunctionCall:
-        dump_function_call(out, context,
+        codegen_function_call(out, context,
             expression.as_function_call());
         if (!in_rvalue_expression)
             out.write(';');
         break;
 
     case ExpressionType::Return:
-        dump_return(out, context, expression.as_return());
+        codegen_return(out, context, expression.as_return());
         break;
 
     case ExpressionType::ImportC:
-        dump_import_c(out, context, expression.as_import_c());
+        codegen_import_c(out, context, expression.as_import_c());
         break;
 
     case ExpressionType::InlineC:
-        dump_inline_c(out, context, expression.as_inline_c());
+        codegen_inline_c(out, context, expression.as_inline_c());
         break;
 
     case ExpressionType::Invalid:
@@ -381,7 +381,7 @@ static void dump_expression(FileBuffer& out, Context const& context,
     }
 }
 
-static void dump_public_variable_declaration(FileBuffer& out,
+static void codegen_public_variable_declaration(FileBuffer& out,
     Context const& context,
     PublicVariableDeclaration const& variable)
 {
@@ -390,11 +390,11 @@ static void dump_public_variable_declaration(FileBuffer& out,
         variable.name.text(source), " = ");
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    dump_expression(out, context, value, false);
+    codegen_expression(out, context, value, false);
     out.writeln(';');
 }
 
-static void dump_private_variable_declaration(FileBuffer& out,
+static void codegen_private_variable_declaration(FileBuffer& out,
     Context const& context,
     PrivateVariableDeclaration const& variable)
 {
@@ -403,11 +403,11 @@ static void dump_private_variable_declaration(FileBuffer& out,
         variable.name.text(source), " = ");
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    dump_expression(out, context, value, false);
+    codegen_expression(out, context, value, false);
     out.writeln(';');
 }
 
-static void dump_public_constant_declaration(FileBuffer& out,
+static void codegen_public_constant_declaration(FileBuffer& out,
     Context const& context,
     PublicConstantDeclaration const& variable)
 {
@@ -416,11 +416,11 @@ static void dump_public_constant_declaration(FileBuffer& out,
         variable.name.text(source), " = ");
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    dump_expression(out, context, value, true);
+    codegen_expression(out, context, value, false);
     out.writeln(';');
 }
 
-static void dump_private_constant_declaration(FileBuffer& out,
+static void codegen_private_constant_declaration(FileBuffer& out,
     Context const& context,
     PrivateConstantDeclaration const& variable)
 {
@@ -429,11 +429,11 @@ static void dump_private_constant_declaration(FileBuffer& out,
         variable.name.text(source), " = ");
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    dump_expression(out, context, value, false);
+    codegen_expression(out, context, value, false);
     out.writeln(';');
 }
 
-static void dump_struct_declaration(FileBuffer& out,
+static void codegen_struct_declaration(FileBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {
     auto source = context.source.text;
@@ -446,7 +446,7 @@ static void dump_struct_declaration(FileBuffer& out,
     out.writeln("};");
 }
 
-static void dump_struct_initializer(FileBuffer& out,
+static void codegen_struct_initializer(FileBuffer& out,
     Context const& context, StructInitializer const& initializer)
 {
     auto source = context.source.text;
@@ -455,13 +455,13 @@ static void dump_struct_initializer(FileBuffer& out,
         auto name = member.name.text(source);
         out.writeln('.', name, '=');
         auto const& irvalue = context.expressions[member.value];
-        dump_rvalue(out, context, irvalue);
+        codegen_rvalue(out, context, irvalue);
         out.writeln(',');
     }
     out.writeln("};");
 }
 
-static void dump_literal(FileBuffer& out, Context const& context,
+static void codegen_literal(FileBuffer& out, Context const& context,
     Id<Literal> literal)
 {
     auto source = context.source.text;
@@ -469,91 +469,91 @@ static void dump_literal(FileBuffer& out, Context const& context,
     out.write(token.text(source));
 }
 
-static void dump_lvalue(FileBuffer& out, Context const& context,
+static void codegen_lvalue(FileBuffer& out, Context const& context,
     LValue const& lvalue)
 {
     auto source = context.source.text;
     out.write(lvalue.token.text(source));
 }
 
-static void dump_rvalue(FileBuffer& out, Context const& context,
+static void codegen_rvalue(FileBuffer& out, Context const& context,
     RValue const& rvalue)
 {
     for (auto const& expression : rvalue.expressions)
-        dump_expression(out, context, expression, true);
+        codegen_expression(out, context, expression, true);
 }
 
-static void dump_if_statement(FileBuffer& out,
+static void codegen_if_statement(FileBuffer& out,
     Context const& context, If const& if_statement)
 {
     out.write("if (");
-    dump_rvalue(out, context,
+    codegen_rvalue(out, context,
         context.expressions[if_statement.condition]);
     out.write(") ");
-    dump_block(out, context,
+    codegen_block(out, context,
         context.expressions[if_statement.block]);
 }
 
-static void dump_while_loop(FileBuffer& out, Context const& context,
+static void codegen_while_loop(FileBuffer& out, Context const& context,
     While const& while_loop)
 {
     out.write("while (");
-    dump_rvalue(out, context,
+    codegen_rvalue(out, context,
         context.expressions[while_loop.condition]);
     out.write(") ");
-    dump_block(out, context, context.expressions[while_loop.block]);
+    codegen_block(out, context, context.expressions[while_loop.block]);
 }
 
-static void dump_block(FileBuffer& out, Context const& context,
+static void codegen_block(FileBuffer& out, Context const& context,
     Block const& block)
 {
     out.writeln('{');
     for (auto const& expression : block.expressions)
-        dump_expression(out, context, expression, false);
+        codegen_expression(out, context, expression, false);
     out.writeln('}');
 }
 
-static void dump_private_function(FileBuffer& out,
+static void codegen_private_function(FileBuffer& out,
     Context const& context, PrivateFunction const& function)
 {
     auto source = context.source.text;
     out.write("static ", function.return_type.text(source), " ",
         function.name.text(source));
-    dump_parameters(out, context, function.parameters);
-    dump_block(out, context, context.expressions[function.block]);
+    codegen_parameters(out, context, function.parameters);
+    codegen_block(out, context, context.expressions[function.block]);
 }
 
-static void dump_public_function(FileBuffer& out,
+static void codegen_public_function(FileBuffer& out,
     Context const& context, PublicFunction const& function)
 {
     auto source = context.source.text;
     out.write(function.return_type.text(source), " ",
         function.name.text(source));
-    dump_parameters(out, context, function.parameters);
-    dump_block(out, context, context.expressions[function.block]);
+    codegen_parameters(out, context, function.parameters);
+    codegen_block(out, context, context.expressions[function.block]);
 }
 
-static void dump_private_c_function(FileBuffer& out,
+static void codegen_private_c_function(FileBuffer& out,
     Context const& context, PrivateCFunction const& function)
 {
     auto source = context.source.text;
     out.write("static ", function.return_type.text(source), " ",
         function.name.text(source));
-    dump_parameters(out, context, function.parameters);
-    dump_block(out, context, context.expressions[function.block]);
+    codegen_parameters(out, context, function.parameters);
+    codegen_block(out, context, context.expressions[function.block]);
 }
 
-static void dump_public_c_function(FileBuffer& out,
+static void codegen_public_c_function(FileBuffer& out,
     Context const& context, PublicCFunction const& function)
 {
     auto source = context.source.text;
     out.write(function.return_type.text(source), " ",
         function.name.text(source));
-    dump_parameters(out, context, function.parameters);
-    dump_block(out, context, context.expressions[function.block]);
+    codegen_parameters(out, context, function.parameters);
+    codegen_block(out, context, context.expressions[function.block]);
 }
 
-static void dump_function_call(FileBuffer& out,
+static void codegen_function_call(FileBuffer& out,
     Context const& context, FunctionCall const& function)
 {
     auto source = context.source.text;
@@ -565,27 +565,27 @@ static void dump_function_call(FileBuffer& out,
     }
     for (u32 i = 0; i < function.arguments.size() - 1; i++) {
         auto const& argument = function.arguments[i].as_rvalue();
-        dump_rvalue(out, context, context.expressions[argument]);
+        codegen_rvalue(out, context, context.expressions[argument]);
         out.write(", ");
     }
     auto last_index = function.arguments.size() - 1;
     auto const& last_argument = function.arguments[last_index];
-    dump_rvalue(out, context,
+    codegen_rvalue(out, context,
         context.expressions[last_argument.as_rvalue()]);
     out.writeln(')');
 }
 
-static void dump_return(FileBuffer& out, Context const& context,
+static void codegen_return(FileBuffer& out, Context const& context,
     Return const& return_)
 {
     out.write("return ");
     auto const& expressions = context.expressions;
     auto const& value = expressions[return_.value];
-    dump_expression(out, context, value, false);
+    codegen_expression(out, context, value, false);
     out.writeln(';');
 }
 
-static void dump_import_c(FileBuffer& out, Context const& context,
+static void codegen_import_c(FileBuffer& out, Context const& context,
     ImportC const& import_c)
 {
     auto source = context.source.text;
@@ -594,14 +594,14 @@ static void dump_import_c(FileBuffer& out, Context const& context,
         out.writeln("#include ", import_c.filename.text(source));
 }
 
-static void dump_inline_c(FileBuffer& out, Context const& context,
+static void codegen_inline_c(FileBuffer& out, Context const& context,
     InlineC const& inline_c)
 {
     auto source = context.source.text;
     out.write(inline_c.literal.text(source));
 }
 
-static void dump_compiler_provided_u64(FileBuffer& out,
+static void codegen_compiler_provided_u64(FileBuffer& out,
     Context const&,
     CompilerProvidedU64 const& compiler_provided_u64)
 {
