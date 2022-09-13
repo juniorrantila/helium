@@ -1,10 +1,10 @@
 #pragma once
 #include <Types.h>
-#include <string_view>
 
 namespace Core {
 
-struct Error {
+typedef struct Error {
+#if __cplusplus
     static Error from_string_literal(
         c_string message,
         c_string function = __builtin_FUNCTION(),
@@ -14,14 +14,14 @@ struct Error {
         return { message, function, file, line_in_file };
     }
 
-    std::string_view message() const { return m_message; }
+    StringView message() const { return m_message; }
 
-    std::string_view function() const
+    StringView function() const
     {
         return m_function;
     }
 
-    std::string_view file() const { return m_file; }
+    StringView file() const { return m_file; }
 
     u32 line_in_file() const { return m_line_in_file; }
 
@@ -39,11 +39,12 @@ private:
         , m_line_in_file(line_in_file)
     {
     }
+#endif
 
     c_string m_message { nullptr };
     c_string m_function { nullptr };
     c_string m_file { nullptr };
     u32 m_line_in_file { 0 };
-};
+} Error;
 
 }
