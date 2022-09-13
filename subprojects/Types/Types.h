@@ -2,6 +2,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#ifndef __cplusplus
+#include <stdbool.h>
+#endif
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -24,14 +27,37 @@ typedef char const* c_string;
 #define var __auto_type
 #define let __auto_type const
 
+#if __cplusplus
+#define M(name) m_##name
+#else
+#define M(name) name
+#endif
+
+#if __cplusplus
+#    include <string_view>
+#endif
 typedef struct StringView {
     char const* data;
     u32 size;
 
 #if __cplusplus
+    constexpr StringView(std::string_view other)
+        : data(other.data())
+        , size(other.size())
+    {
+    }
+
+    constexpr StringView() = default;
+
     constexpr StringView(c_string string)
         : data(string)
         , size(__builtin_strlen(string))
+    {
+    }
+
+    constexpr StringView(c_string data, u32 size)
+        : data(data)
+        , size(size)
     {
     }
 #endif
@@ -39,7 +65,6 @@ typedef struct StringView {
 
 #if __cplusplus
 #    include <iostream>
-#    include <string_view>
 inline std::ostream& operator<<(std::ostream& os, StringView view)
 {
     return std::operator<<(os,

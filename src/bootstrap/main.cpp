@@ -1,11 +1,11 @@
-#include <He/Expression.h>
 #include <CLI/ArgumentParser.h>
 #include <Core/MappedFile.h>
-#include <He/TypecheckedExpression.h>
 #include <He/Context.h>
+#include <He/Expression.h>
 #include <He/Lexer.h>
 #include <He/Parser.h>
 #include <He/Typecheck.h>
+#include <He/TypecheckedExpression.h>
 #include <SourceFile.h>
 #include <cstdio>
 #include <cstdlib>
@@ -51,7 +51,7 @@ int main(int argc, c_string argv[])
             export_source = true;
         });
 
-    std::string_view source_file_path = {};
+    StringView source_file_path = {};
     argument_parser.add_positional_argument("file", [&](auto path) {
         source_file_path = path;
     });
@@ -64,7 +64,18 @@ int main(int argc, c_string argv[])
         return 1;
     }
     auto file = file_or_error.release_value();
-    auto source_file = SourceFile { source_file_path, file.view() };
+    auto source_file_path_view = std::string_view {
+        source_file_path.data,
+        source_file_path.size,
+    };
+    auto file_view = file.view();
+    auto source_file = SourceFile {
+        source_file_path_view,
+        {
+            file_view.data,
+            file_view.size,
+        },
+    };
     auto lex_result = He::lex(source_file.text);
     if (lex_result.is_error()) {
         auto result = lex_result.error().show(source_file);

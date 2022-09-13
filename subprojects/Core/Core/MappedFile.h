@@ -1,49 +1,84 @@
 #pragma once
-#include <Core/ErrorOr.h>
-#include <string_view>
+#include <Types.h>
+#include <Core/Error.h>
 
+#ifdef __cplusplus
 namespace Core {
+#endif
 
-struct MappedFile {
+struct MappedFileOrError;
+typedef struct MappedFile {
+    char const* M(data);
+    u32 M(size);
+    int M(fd);
 
-    MappedFile(MappedFile&& other)
-        : m_data(other.m_data)
-        , m_size(other.m_size)
-        , m_fd(other.m_fd)
-    {
-        other.invalidate();
-    }
+#if __cplusplus
+    MappedFile(MappedFile&& other) asm("MappedFile$move");
 
-    static ErrorOr<MappedFile> open(std::string_view path);
-    ~MappedFile();
+    static MappedFileOrError open(StringView path) asm(
+        "MappedFile$open");
+    ~MappedFile() asm("MappedFile$destroy");
 
-    std::string_view view() const
-    {
-        return std::string_view(m_data, m_size);
-    }
+    StringView view() const asm("MappedFile$view");
 
-private:
-    constexpr MappedFile() = default;
+    bool is_valid() const asm("MappedFile$is_valid");
+    void invalidate() asm("MappedFile$invalidate");
 
-#if __linux__
     constexpr MappedFile(c_string data, u32 size, int fd)
         : m_data(data)
         , m_size(size)
         , m_fd(fd)
     {
     }
-#else
-#error "unimplemented"
+
+    constexpr MappedFile() = default;
+
+#endif
+} MappedFile;
+
+typedef struct MappedFileOrError {
+    union {
+        Error M(error);
+        MappedFile M(value);
+    };
+    bool M(is_error);
+
+#ifdef __cplusplus
+    MappedFileOrError(Error error)
+        : m_error(error)
+        , m_is_error(true)
+    {
+    }
+
+    MappedFileOrError(MappedFile&& value)
+        : m_value(std::move(value))
+        , m_is_error(false)
+    {
+    }
+
+    ~MappedFileOrError()
+    {
+        if (m_is_error) {
+            m_value.~MappedFile();
+        }
+    }
+
+    constexpr Error const& error() const { return m_error; }
+    constexpr Error release_error() const { return m_error; }
+    MappedFile release_value() { return std::move(m_value); }
+    constexpr bool is_error() const { return m_is_error; }
+#endif
+} MappedFileOrError;
+
+#ifndef __cplusplus
+MappedFileOrError MappedFile$open(StringView path);
+void MappedFile$move(MappedFile* dest, MappedFile* src);
+void MappedFile$destroy(MappedFile const*);
+StringView MappedFile$view(MappedFile const*);
+bool MappedFile$is_valid(MappedFile const*);
+void MappedFile$invalidate(MappedFile*);
 #endif
 
-    constexpr bool is_valid() const { return m_data; }
-    void invalidate() { m_data = nullptr; }
-
-    char const* m_data { nullptr };
-    u32 m_size { 0 };
-#if __linux__
-    int m_fd { 0 };
-#endif
-};
-
+#if __cplusplus
 }
+#endif

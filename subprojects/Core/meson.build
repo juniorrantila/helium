@@ -10,6 +10,8 @@ if not meson.is_subproject()
   add_global_arguments('-Wno-unsequenced', language: 'cpp')
   add_global_arguments('-Wno-c11-extensions', language: 'cpp')
   add_global_arguments('-Wno-gnu-case-range', language: 'cpp')
+  add_global_arguments('-Wno-gnu-auto-type', language: 'cpp')
+  add_global_arguments('-Wno-c99-extensions', language: 'cpp')
 endif
 
 types_dep = subproject('Types').get_variable('types_dep')

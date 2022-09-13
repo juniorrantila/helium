@@ -8,6 +8,7 @@
 @import_c("sys/mman.h");
 @import_c("sys/stat.h");
 @import_c("unistd.h");
+@import_c("Core/MappedFile.h");
 
 inline_c typedef c_string* c_string_array;
 pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
@@ -15,45 +16,43 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
         let program_name = inline_c argv[0];
         usage(program_name, 1);
     }
-    let source_path = inline_c argv[1];
-    let source_file_fd = open(source_path, O_RDONLY);
-    if source_file_fd < 0 {
-        perror("open");
-        return 1;
-    }
-    var st = inline_c (struct stat){};
-    if fstat(source_file_fd, &mut st) < 0 {
-        perror("fstat");
-        return 1;
-    }
-    let source_file = inline_c (SourceFile) {
-        .name = source_path,
-        .name_size = strlen(source_path),
-        .text = mmap(0, st.st_size, MAP_PRIVATE,
-                     PROT_READ, source_file_fd, 0),
-        .text_size = st.st_size,
+    inline_c let source_path_string = argv[1];
+    let source_path = StringView {
+        .data = source_path_string,
+        .size = strlen(source_path_string),
     };
-    inline_c if (source_file.text == MAP_FAILED) {
-        perror("mmap");
+
+    let mapped_file_or_error = MappedFile$open(source_path);
+    inline_c if (mapped_file_or_error.is_error) {
+        Error$show(&mapped_file_or_error.error);
         return 1;
+    };
+    inline_c let mapped_file = mapped_file_or_error.value;
+
+    let source_file = inline_c (SourceFile) {
+        .name = source_path.data,
+        .name_size = source_path.size,
+        .text = mapped_file.data,
+        .text_size = mapped_file.size,
     };
 
     var lexer = Lexer {};
     if lexer_init(&mut lexer, source_file) < 0 {
         fprintf(stderr, "could not init lexer\n");
+        MappedFile$destroy(&mapped_file);
         return 1;
     }
+
     if lexer_run(&mut lexer) < 0 {
         fprintf(stderr, "could not run lexer\n");
+        lexer_deinit(&mut lexer);
+        MappedFile$destroy(&mapped_file);
         return 1;
     }
 
     lexer_deinit(&mut lexer);
-    inline_c {{
-        void* data = (void*)source_file.text;
-        u32 size = source_file.text_size;
-        munmap(data, size);
-    }}
+    MappedFile$destroy(&mapped_file);
+
     return 0;
 }
 

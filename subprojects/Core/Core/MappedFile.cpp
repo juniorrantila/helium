@@ -13,10 +13,9 @@
 
 namespace Core {
 
-#if __linux__
-ErrorOr<MappedFile> MappedFile::open(std::string_view path)
+MappedFileOrError MappedFile::open(StringView path)
 {
-    auto path_string = std::string(path);
+    auto path_string = std::string(path.data, path.size);
     auto fd = ::open(path_string.c_str(), O_RDONLY);
     if (fd < 0)
         return Error::from_string_literal(strerror(errno));
@@ -31,17 +30,13 @@ ErrorOr<MappedFile> MappedFile::open(std::string_view path)
     if (!S_ISREG(st.st_mode))
         return Error::from_string_literal("file is not a regular file");
     u32 size = st.st_size;
-    auto data = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    auto* data = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (data == MAP_FAILED)
         return Error::from_string_literal(strerror(errno));
     should_close_file = false;
     return MappedFile((c_string)data, size, fd);
 }
-#else
-#error "unimplemented"
-#endif
 
-#if __linux__
 MappedFile::~MappedFile()
 {
     if (is_valid()) {
@@ -50,8 +45,28 @@ MappedFile::~MappedFile()
         invalidate();
     }
 }
-#else
-#error "unimplemented"
-#endif
+
+bool MappedFile::MappedFile::is_valid() const
+{
+    return m_data != nullptr;
+}
+
+void MappedFile::invalidate()
+{
+    m_data = nullptr;
+}
+
+MappedFile::MappedFile(MappedFile&& other)
+    : m_data(other.m_data)
+    , m_size(other.m_size)
+    , m_fd(other.m_fd)
+{
+    other.invalidate();
+}
+
+StringView MappedFile::view() const
+{
+    return StringView(m_data, m_size);
+}
 
 }

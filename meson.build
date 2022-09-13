@@ -12,6 +12,9 @@ if not meson.is_subproject()
   add_global_arguments('-Wno-gnu-statement-expression', language: 'cpp')
   add_global_arguments('-Wno-gnu-conditional-omitted-operand', language: 'cpp')
   add_global_arguments('-Wno-dollar-in-identifier-extension', language: 'c')
+  add_global_arguments('-Wno-c99-extensions', language: 'cpp')
+  add_global_arguments('-Wno-gnu-auto-type', language: 'cpp')
+  add_global_arguments('-Wno-dollar-in-identifier-extension', language: 'cpp')
 endif
 
 core_proj = subproject('Core')
@@ -55,6 +58,9 @@ stage_1_exe = executable('stage-1', [
     '-Wno-duplicate-decl-specifier',
   ],
   include_directories: 'src/selfhost',
-  dependencies: types_dep)
+  dependencies: [
+    core_dep,
+    types_dep,
+    ])
 
 subdir('samples')
