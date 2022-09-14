@@ -14,6 +14,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+[[nodiscard]] static int move_file(c_string to, c_string from);
+
 [[nodiscard]] static int compile_source(c_string destination_path,
     c_string source_path);
 
@@ -27,7 +29,7 @@ int main(int argc, c_string argv[])
             argument_parser.print_usage_and_exit(program_name, 0);
         });
 
-    std::string_view output_path = "a.out";
+    c_string output_path = "a.out";
     argument_parser.add_option("--output", "-o", "path",
         "output file path", [&](auto path) {
             output_path = path;
@@ -46,12 +48,12 @@ int main(int argc, c_string argv[])
         });
 
     auto export_source = false;
-    argument_parser.add_flag("-S", "--export-generated-source",
+    argument_parser.add_flag("--export-generated-source", "-S",
         "export generated source instead of executable", [&] {
             export_source = true;
         });
 
-    StringView source_file_path = {};
+    c_string source_file_path = nullptr;
     argument_parser.add_positional_argument("file", [&](auto path) {
         source_file_path = path;
     });
@@ -64,10 +66,7 @@ int main(int argc, c_string argv[])
         return 1;
     }
     auto file = file_or_error.release_value();
-    auto source_file_path_view = std::string_view {
-        source_file_path.data,
-        source_file_path.size,
-    };
+    auto source_file_path_view = std::string_view(source_file_path);
     auto file_view = file.view();
     auto source_file = SourceFile {
         source_file_path_view,
@@ -118,46 +117,66 @@ int main(int argc, c_string argv[])
     }
     auto typechecked_expressions = typecheck_result.release_value();
 
-    char temporary_file[] = "XXXXXX.c";
+    char temporary_file[] = "/tmp/XXXXXX.c";
     int output_file = STDOUT_FILENO;
     if (isatty(STDOUT_FILENO) == 1 || export_source) {
-        if (mkstemps(temporary_file, 2) < 0) {
-            perror("mkstemps");
-            return 1;
-        }
-        output_file = open(temporary_file, O_WRONLY);
+        output_file = mkstemps(temporary_file, 2);
         if (output_file < 0) {
-            perror("open");
+            perror("mkstemps");
             return 1;
         }
     }
     typechecked_expressions.codegen(output_file, context);
 
-    if (output_file != STDOUT_FILENO) {
-        if (fsync(output_file) < 0) {
-            perror("fsync");
-            return 1;
-        }
-        if (close(output_file) < 0) {
-            perror("close");
-            return 1;
-        }
+    if (output_file == STDOUT_FILENO)
+        return 0;
 
-        if (!export_source) {
-            if (output_path[output_path.size()] != '\0')
-                __builtin_abort();
-            auto const* output_file = output_path.data();
-            auto const* input_file = temporary_file;
-            if (compile_source(output_file, input_file) < 0)
-                return 1;
-            (void)remove(temporary_file);
-            return 0;
-        }
-        if (rename(temporary_file, output_path.data()) < 0) {
-            perror("rename");
-            return 1;
-        }
+    if (fsync(output_file) < 0) {
+        perror("fsync");
+        return 1;
     }
+    if (close(output_file) < 0) {
+        perror("close");
+        return 1;
+    }
+
+    if (!export_source) {
+        auto const* input_file = temporary_file;
+        if (compile_source(output_path, input_file) < 0)
+            return 1;
+        (void)remove(temporary_file);
+        return 0;
+    }
+    if (move_file(output_path, temporary_file) < 0) {
+        return 1;
+    }
+}
+
+static int move_file(c_string to, c_string from)
+{
+    (void)fflush(nullptr); // ??
+    char* argv[] = {
+        (char*)"mv",
+        (char*)from,
+        (char*)to,
+    };
+    int pid = -1;
+    if (posix_spawnp(&pid, argv[0], 0, 0, argv, environ) != 0) {
+        perror("posix_spawnp");
+        return -1;
+    }
+    if (pid < 0)
+        return -1;
+
+    int exit_code = 0;
+    waitpid(pid, &exit_code, 0);
+    if (WIFEXITED(exit_code)) {
+        auto status = WEXITSTATUS(exit_code);
+        if (status > 0)
+            status = -status;
+        return status;
+    }
+    return -1;
 }
 
 [[nodiscard]] static int compile_source(c_string destination_path,
