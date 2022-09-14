@@ -1473,13 +1473,13 @@ static ParseSingleItemResult parse_private_variable(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto constant = PrivateVariableDeclaration {
+            auto variable = expressions.append(PrivateVariableDeclaration {
                 .name = name,
                 .type = type,
                 .value = value_id,
-            };
+            });
 
-            return Expression(constant, start, end);
+            return Expression(variable, start, end);
         }
     }
 
@@ -1501,11 +1501,11 @@ static ParseSingleItemResult parse_private_variable(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto variable = PrivateVariableDeclaration {
+    auto variable = expressions.append(PrivateVariableDeclaration {
         .name = name,
         .type = type,
         .value = value_id,
-    };
+    });
     return Expression(variable, start, end);
 }
 
@@ -1578,13 +1578,14 @@ static ParseSingleItemResult parse_public_variable(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto constant = PublicVariableDeclaration {
-                .name = name,
-                .type = type,
-                .value = value_id,
-            };
+            auto variable_id
+                = expressions.append(PublicVariableDeclaration {
+                    .name = name,
+                    .type = type,
+                    .value = value_id,
+                });
 
-            return Expression(constant, start, end);
+            return Expression(variable_id, start, end);
         }
     }
 
@@ -1606,11 +1607,11 @@ static ParseSingleItemResult parse_public_variable(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto variable = PublicVariableDeclaration {
+    auto variable = expressions.append(PublicVariableDeclaration {
         .name = name,
         .type = type,
         .value = value_id,
-    };
+    });
     return Expression(variable, start, end);
 }
 
@@ -1683,11 +1684,12 @@ static ParseSingleItemResult parse_private_constant(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto constant = PrivateConstantDeclaration {
-                .name = name,
-                .type = type,
-                .value = value_id,
-            };
+            auto constant
+                = expressions.append(PrivateConstantDeclaration {
+                    .name = name,
+                    .type = type,
+                    .value = value_id,
+                });
 
             return Expression(constant, start, end);
         }
@@ -1711,11 +1713,11 @@ static ParseSingleItemResult parse_private_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto constant = PrivateConstantDeclaration {
+    auto constant = expressions.append(PrivateConstantDeclaration {
         .name = name,
         .type = type,
         .value = value_id,
-    };
+    });
     return Expression(constant, start, end);
 }
 
@@ -1788,11 +1790,12 @@ static ParseSingleItemResult parse_public_constant(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto constant = PublicConstantDeclaration {
-                .name = name,
-                .type = type,
-                .value = value_id,
-            };
+            auto constant
+                = expressions.append(PublicConstantDeclaration {
+                    .name = name,
+                    .type = type,
+                    .value = value_id,
+                });
 
             return Expression(constant, start, end);
         }
@@ -1816,11 +1819,11 @@ static ParseSingleItemResult parse_public_constant(
     auto end = semicolon_index + 1;
 
     auto value_id = expressions.append(std::move(value));
-    auto constant = PublicConstantDeclaration {
+    auto constant = expressions.append(PublicConstantDeclaration {
         .name = name,
         .type = type,
         .value = value_id,
-    };
+    });
     return Expression(constant, start, end);
 }
 
@@ -1893,11 +1896,11 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto constant = PrivateConstantDeclaration {
+            auto constant = expressions.append(PrivateConstantDeclaration {
                 .name = name,
                 .type = type,
                 .value = value_id,
-            };
+            });
 
             return Expression(constant, start, end);
         }
@@ -1926,11 +1929,11 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto constant = PrivateConstantDeclaration {
+    auto constant = expressions.append(PrivateConstantDeclaration {
         .name = name,
         .type = type,
         .value = value_id,
-    };
+    });
     return Expression(constant, start, end);
 }
 

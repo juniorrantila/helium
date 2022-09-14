@@ -9,23 +9,23 @@ void Expression::dump(ParsedExpressions const& expressions,
 {
     switch (type()) {
     case ExpressionType::PrivateVariableDeclaration:
-        as_private_variable_declaration().dump(expressions, source,
-            indent);
+        expressions[as_private_variable_declaration()].dump(
+            expressions, source, indent);
         break;
 
     case ExpressionType::PublicVariableDeclaration:
-        as_public_variable_declaration().dump(expressions, source,
-            indent);
+        expressions[as_public_variable_declaration()].dump(
+            expressions, source, indent);
         break;
 
     case ExpressionType::PrivateConstantDeclaration:
-        as_private_constant_declaration().dump(expressions, source,
-            indent);
+        expressions[as_private_constant_declaration()].dump(
+            expressions, source, indent);
         break;
 
     case ExpressionType::PublicConstantDeclaration:
-        as_public_constant_declaration().dump(expressions, source,
-            indent);
+        expressions[as_public_constant_declaration()].dump(
+            expressions, source, indent);
         break;
 
     case ExpressionType::StructDeclaration:

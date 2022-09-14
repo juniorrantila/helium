@@ -253,7 +253,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(PrivateVariableDeclaration value,
+    constexpr Expression(Id<PrivateVariableDeclaration> value,
         u32 start_index, u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -261,7 +261,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(PublicVariableDeclaration value,
+    constexpr Expression(Id<PublicVariableDeclaration> value,
         u32 start_index, u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -269,7 +269,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(PrivateConstantDeclaration value,
+    constexpr Expression(Id<PrivateConstantDeclaration> value,
         u32 start_index, u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -277,7 +277,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(PublicConstantDeclaration value,
+    constexpr Expression(Id<PublicConstantDeclaration> value,
         u32 start_index, u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -414,55 +414,55 @@ struct Expression {
         return std::get<Id<Literal>>(m_storage);
     }
 
-    constexpr PrivateVariableDeclaration const&
+    constexpr Id<PrivateVariableDeclaration> const&
     as_private_variable_declaration() const
     {
-        return std::get<PrivateVariableDeclaration>(m_storage);
+        return std::get<Id<PrivateVariableDeclaration>>(m_storage);
     }
 
-    constexpr PrivateVariableDeclaration
+    constexpr Id<PrivateVariableDeclaration>
     release_as_private_variable_declaration()
     {
-        return std::get<PrivateVariableDeclaration>(
+        return std::get<Id<PrivateVariableDeclaration>>(
             std::move(m_storage));
     }
 
-    constexpr PublicVariableDeclaration const&
+    constexpr Id<PublicVariableDeclaration> const&
     as_public_variable_declaration() const
     {
-        return std::get<PublicVariableDeclaration>(m_storage);
+        return std::get<Id<PublicVariableDeclaration>>(m_storage);
     }
 
-    constexpr PublicVariableDeclaration
+    constexpr Id<PublicVariableDeclaration>
     release_as_public_variable_declaration()
     {
-        return std::get<PublicVariableDeclaration>(
+        return std::get<Id<PublicVariableDeclaration>>(
             std::move(m_storage));
     }
 
-    constexpr PublicConstantDeclaration const&
+    constexpr Id<PublicConstantDeclaration> const&
     as_public_constant_declaration() const
     {
-        return std::get<PublicConstantDeclaration>(m_storage);
+        return std::get<Id<PublicConstantDeclaration>>(m_storage);
     }
 
-    constexpr PublicConstantDeclaration
+    constexpr Id<PublicConstantDeclaration>
     release_as_public_constant_declaration()
     {
-        return std::get<PublicConstantDeclaration>(
+        return std::get<Id<PublicConstantDeclaration>>(
             std::move(m_storage));
     }
 
-    constexpr PrivateConstantDeclaration const&
+    constexpr Id<PrivateConstantDeclaration> const&
     as_private_constant_declaration() const
     {
-        return std::get<PrivateConstantDeclaration>(m_storage);
+        return std::get<Id<PrivateConstantDeclaration>>(m_storage);
     }
 
-    constexpr PrivateConstantDeclaration
+    constexpr Id<PrivateConstantDeclaration>
     release_as_private_constant_declaration()
     {
-        return std::get<PrivateConstantDeclaration>(
+        return std::get<Id<PrivateConstantDeclaration>>(
             std::move(m_storage));
     }
 
@@ -588,10 +588,10 @@ private:
     // clang-format off
     std::variant<
         Id<Literal>,
-        PublicVariableDeclaration,
-        PrivateVariableDeclaration,
-        PublicConstantDeclaration,
-        PrivateConstantDeclaration,
+        Id<PublicVariableDeclaration>,
+        Id<PrivateVariableDeclaration>,
+        Id<PublicConstantDeclaration>,
+        Id<PrivateConstantDeclaration>,
         Id<StructDeclaration>,
         Id<StructInitializer>,
         LValue,
@@ -633,6 +633,14 @@ struct ParsedExpressions {
 
     SOA_MEMBER(Block, blocks);
     SOA_MEMBER(Literal, literals);
+    SOA_MEMBER(PublicVariableDeclaration,
+        public_variable_declarations);
+    SOA_MEMBER(PrivateVariableDeclaration,
+        private_variable_declarations);
+    SOA_MEMBER(PublicConstantDeclaration,
+        public_constant_declarations);
+    SOA_MEMBER(PrivateConstantDeclaration,
+        private_constant_declarations);
     SOA_MEMBER(PrivateCFunction, private_c_functions);
     SOA_MEMBER(PrivateFunction, private_functions);
     SOA_MEMBER(PublicCFunction, public_c_functions);
