@@ -204,10 +204,10 @@ static ParseSingleItemResult parse_if(
         = TRY(parse_block(expressions, tokens, block_start_index));
 
     auto end = block.end_token_index;
-    auto if_statement = If {
+    auto if_statement = expressions.append(If {
         condition.release_as_rvalue(),
         block.release_as_block(),
-    };
+    });
     return Expression(if_statement, start, end);
 }
 
@@ -230,10 +230,10 @@ static ParseSingleItemResult parse_while(
 
     auto end = block.end_token_index;
 
-    auto while_ = While {
+    auto while_ = expressions.append(While {
         condition.release_as_rvalue(),
         block.release_as_block(),
-    };
+    });
     return Expression(while_, start, end);
 }
 

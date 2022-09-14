@@ -334,13 +334,17 @@ static void codegen_expression(FileBuffer& out,
         codegen_rvalue(out, context, rvalue);
     } break;
 
-    case ExpressionType::If:
-        codegen_if_statement(out, context, expression.as_if());
-        break;
+    case ExpressionType::If: {
+        auto id = expression.as_if();
+        auto const& if_ = expressions[id];
+        codegen_if_statement(out, context, if_);
+    } break;
 
-    case ExpressionType::While:
-        codegen_while_loop(out, context, expression.as_while());
-        break;
+    case ExpressionType::While: {
+        auto id = expression.as_while();
+        auto const& while_ = expressions[id];
+        codegen_while_loop(out, context, while_);
+    } break;
 
     case ExpressionType::Block: {
         auto id = expression.as_block();

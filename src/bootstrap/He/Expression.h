@@ -317,14 +317,15 @@ struct Expression {
     {
     }
 
-    constexpr Expression(If value, u32 start_index, u32 end_index)
+    constexpr Expression(Id<If> value, u32 start_index,
+        u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
         , end_token_index(end_index)
     {
     }
 
-    constexpr Expression(While value, u32 start_index,
+    constexpr Expression(Id<While> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -493,14 +494,14 @@ struct Expression {
         return std::get<Id<RValue>>(std::move(m_storage));
     }
 
-    constexpr If const& as_if() const
+    constexpr Id<If> const& as_if() const
     {
-        return std::get<If>(m_storage);
+        return std::get<Id<If>>(m_storage);
     }
 
-    constexpr While const& as_while() const
+    constexpr Id<While> const& as_while() const
     {
-        return std::get<While>(m_storage);
+        return std::get<Id<While>>(m_storage);
     }
 
     constexpr Id<PrivateFunction> const& as_private_function() const
@@ -596,8 +597,8 @@ private:
         Id<StructInitializer>,
         Id<LValue>,
         Id<RValue>,
-        If,
-        While,
+        Id<If>,
+        Id<While>,
         Id<Block>,
         Id<PrivateCFunction>,
         Id<PublicCFunction>,
@@ -641,12 +642,17 @@ struct ParsedExpressions {
         public_constant_declarations);
     SOA_MEMBER(PrivateConstantDeclaration,
         private_constant_declarations);
+
     SOA_MEMBER(LValue, lvalues);
+    SOA_MEMBER(RValue, rvalues);
+
+    SOA_MEMBER(If, if_statements);
+    SOA_MEMBER(While, while_statements);
+
     SOA_MEMBER(PrivateCFunction, private_c_functions);
     SOA_MEMBER(PrivateFunction, private_functions);
     SOA_MEMBER(PublicCFunction, public_c_functions);
     SOA_MEMBER(PublicFunction, public_functions);
-    SOA_MEMBER(RValue, rvalues);
     SOA_MEMBER(StructDeclaration, struct_declarations);
     SOA_MEMBER(StructInitializer, struct_initializers);
     SOA_MEMBER(Expression, late_expressions);

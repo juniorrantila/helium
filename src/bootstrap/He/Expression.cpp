@@ -47,11 +47,11 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::If:
-        as_if().dump(expressions, source, indent);
+        expressions[as_if()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::While:
-        as_while().dump(expressions, source, indent);
+        expressions[as_while()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::Literal:
