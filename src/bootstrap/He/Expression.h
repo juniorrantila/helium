@@ -40,6 +40,7 @@ enum class ExpressionType {
 
     CompilerProvidedU64,
 
+    Moved,
     Invalid,
 };
 
@@ -235,6 +236,8 @@ struct [[gnu::packed]] InlineC {
     void dump(ParsedExpressions const&, std::string_view source,
         u32 indent) const;
 };
+
+struct Moved {};
 
 struct Expression {
     constexpr Expression(Id<Literal> value, u32 start_index,
@@ -550,10 +553,7 @@ struct Expression {
     constexpr ImportC release_as_import_c()
     {
         auto import_c = std::get<ImportC>(m_storage);
-        auto import_c_copy = import_c;
-        import_c_copy.filename.start_index = 0;
-        import_c_copy.filename.size = 0;
-        m_storage = import_c_copy;
+        m_storage = Moved{};
         return import_c;
     }
 
@@ -565,10 +565,7 @@ struct Expression {
     constexpr InlineC release_as_inline_c()
     {
         auto inline_c = std::get<InlineC>(m_storage);
-        auto inline_c_copy = inline_c;
-        inline_c_copy.literal.start_index = 0;
-        inline_c_copy.literal.size = 0;
-        m_storage = inline_c_copy;
+        m_storage = Moved{};
         return inline_c;
     }
 
@@ -604,7 +601,8 @@ private:
         Id<Return>,
         ImportC,
         InlineC,
-        Id<CompilerProvidedU64>
+        Id<CompilerProvidedU64>,
+        Moved
     > m_storage {};
     // clang-format on
 

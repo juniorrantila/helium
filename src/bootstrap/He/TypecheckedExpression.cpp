@@ -398,6 +398,9 @@ static void codegen_expression(FileBuffer& out,
         codegen_inline_c(out, context, expression.as_inline_c());
         break;
 
+    case ExpressionType::Moved:
+        break;
+
     case ExpressionType::Invalid:
         std::cerr << "ExpressionType::Invalid in codegen\n";
         break;

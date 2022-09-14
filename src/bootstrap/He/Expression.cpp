@@ -104,6 +104,9 @@ void Expression::dump(ParsedExpressions const& expressions,
             source, indent);
         break;
 
+    case ExpressionType::Moved:
+        break;
+
     case ExpressionType::Invalid:
         std::cerr << "reached ExpressionType::Invalid in "
                   << __FUNCTION__;
@@ -146,6 +149,7 @@ std::string_view expression_type_string(ExpressionType type)
 
         CASE_RETURN(CompilerProvidedU64);
 
+        CASE_RETURN(Moved);
         CASE_RETURN(Invalid);
 #undef CASE_RETURN
     }
