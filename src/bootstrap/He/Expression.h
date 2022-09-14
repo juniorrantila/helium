@@ -392,7 +392,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(ImportC value, u32 start_index,
+    constexpr Expression(Id<ImportC> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -400,7 +400,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(InlineC value, u32 start_index,
+    constexpr Expression(Id<InlineC> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -545,26 +545,26 @@ struct Expression {
         return std::get<Id<Return>>(m_storage);
     }
 
-    constexpr ImportC const& as_import_c() const
+    constexpr Id<ImportC> const& as_import_c() const
     {
-        return std::get<ImportC>(m_storage);
+        return std::get<Id<ImportC>>(m_storage);
     }
 
-    constexpr ImportC release_as_import_c()
+    constexpr Id<ImportC> release_as_import_c()
     {
-        auto import_c = std::get<ImportC>(m_storage);
+        auto import_c = std::get<Id<ImportC>>(m_storage);
         m_storage = Moved{};
         return import_c;
     }
 
-    constexpr InlineC const& as_inline_c() const
+    constexpr Id<InlineC> const& as_inline_c() const
     {
-        return std::get<InlineC>(m_storage);
+        return std::get<Id<InlineC>>(m_storage);
     }
 
-    constexpr InlineC release_as_inline_c()
+    constexpr Id<InlineC> release_as_inline_c()
     {
-        auto inline_c = std::get<InlineC>(m_storage);
+        auto inline_c = std::get<Id<InlineC>>(m_storage);
         m_storage = Moved{};
         return inline_c;
     }
@@ -599,8 +599,8 @@ private:
         Id<PublicFunction>,
         Id<FunctionCall>,
         Id<Return>,
-        ImportC,
-        InlineC,
+        Id<ImportC>,
+        Id<InlineC>,
         Id<CompilerProvidedU64>,
         Moved
     > m_storage {};
@@ -659,6 +659,10 @@ struct ParsedExpressions {
     SOA_MEMBER(StructDeclaration, struct_declarations);
     SOA_MEMBER(StructInitializer, struct_initializers);
     SOA_MEMBER(Expression, late_expressions);
+
+    SOA_MEMBER(ImportC, import_cs);
+    SOA_MEMBER(InlineC, inline_cs);
+
     SOA_MEMBER(CompilerProvidedU64, compiler_provided_u64s);
 
 #undef SOA_MEMBER

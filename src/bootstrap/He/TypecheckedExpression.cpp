@@ -390,16 +390,19 @@ static void codegen_expression(FileBuffer& out,
         codegen_return(out, context, return_);
     } break;
 
-    case ExpressionType::ImportC:
-        codegen_import_c(out, context, expression.as_import_c());
-        break;
+    case ExpressionType::ImportC: {
+        auto id = expression.as_import_c();
+        auto const& import_c = expressions[id];
+        codegen_import_c(out, context, import_c);
+    } break;
 
-    case ExpressionType::InlineC:
-        codegen_inline_c(out, context, expression.as_inline_c());
-        break;
+    case ExpressionType::InlineC: {
+        auto id = expression.as_inline_c();
+        auto const& inline_c = expressions[id];
+        codegen_inline_c(out, context, inline_c);
+    } break;
 
-    case ExpressionType::Moved:
-        break;
+    case ExpressionType::Moved: break;
 
     case ExpressionType::Invalid:
         std::cerr << "ExpressionType::Invalid in codegen\n";

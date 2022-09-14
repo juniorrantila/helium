@@ -92,11 +92,13 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::ImportC:
-        as_import_c().dump(expressions, source, indent);
+        expressions[as_import_c()].dump(expressions, source,
+            indent);
         break;
 
     case ExpressionType::InlineC:
-        as_inline_c().dump(expressions, source, indent);
+        expressions[as_inline_c()].dump(expressions, source,
+            indent);
         break;
 
     case ExpressionType::CompilerProvidedU64:
@@ -104,8 +106,7 @@ void Expression::dump(ParsedExpressions const& expressions,
             source, indent);
         break;
 
-    case ExpressionType::Moved:
-        break;
+    case ExpressionType::Moved: break;
 
     case ExpressionType::Invalid:
         std::cerr << "reached ExpressionType::Invalid in "

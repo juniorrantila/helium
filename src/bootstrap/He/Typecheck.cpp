@@ -19,12 +19,14 @@ TypecheckResult typecheck(Context& context)
     auto& expressions = context.expressions;
     for (auto& expression : expressions.expressions) {
         if (expression.type() == ExpressionType::ImportC) {
-            auto import_c = expression.release_as_import_c();
+            auto import_c_id = expression.release_as_import_c();
+            auto import_c = expressions[import_c_id];
             output.import_c_filenames.push_back(import_c.filename);
         }
 
         if (expression.type() == ExpressionType::InlineC) {
-            auto inline_c = expression.release_as_inline_c();
+            auto inline_c_id = expression.release_as_inline_c();
+            auto inline_c = expressions[inline_c_id];
             output.inline_c_expressions.push_back(inline_c.literal);
         }
     }

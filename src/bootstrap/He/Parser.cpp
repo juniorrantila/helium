@@ -237,8 +237,8 @@ static ParseSingleItemResult parse_while(
     return Expression(while_, start, end);
 }
 
-static ParseSingleItemResult parse_import_c(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_import_c(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
@@ -281,7 +281,9 @@ static ParseSingleItemResult parse_import_c(ParsedExpressions&,
         };
     }
 
-    auto import_c = ImportC { header };
+    auto import_c = expressions.append(ImportC {
+        header,
+    });
 
     // NOTE: Swallow semicolon.
     return Expression(import_c, start, semicolon_index + 1);
@@ -648,8 +650,8 @@ static ParseSingleItemResult parse_return(
     };
 }
 
-static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_inline_c(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     i32 level = 0;
     auto block_start_index = start + 1;
@@ -668,7 +670,10 @@ static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
         auto last_token = tokens[end];
         token.start_index++;
         token.set_end_index(last_token.end_index() - 1);
-        return Expression(InlineC { token }, start, end + 1);
+        auto inline_c = expressions.append(InlineC {
+            token,
+        });
+        return Expression(inline_c, start, end + 1);
     }
 
     for (; end < tokens.size(); end++) {
@@ -690,7 +695,12 @@ static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
     auto token = tokens[start + 1];
     auto last_token = tokens[end];
     token.set_end_index(last_token.end_index());
-    return Expression(InlineC { token }, start, end + 1);
+
+    auto inline_c = expressions.append(InlineC {
+        token,
+    });
+
+    return Expression(inline_c, start, end + 1);
 }
 
 static ParseSingleItemResult parse_block(
