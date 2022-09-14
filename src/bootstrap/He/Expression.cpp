@@ -8,151 +8,14 @@ void Expression::dump(ParsedExpressions const& expressions,
     std::string_view source, u32 indent) const
 {
     switch (type()) {
-    case ExpressionType::PrivateVariableDeclaration:
-        expressions[as_private_variable_declaration()].dump(
-            expressions, source, indent);
+#define X(type_name, instance_name, ...)                    \
+    case ExpressionType::type_name:                         \
+        expressions[as_##instance_name()].dump(expressions, \
+            source, indent);                                \
         break;
 
-    case ExpressionType::PublicVariableDeclaration:
-        expressions[as_public_variable_declaration()].dump(
-            expressions, source, indent);
-        break;
-
-    case ExpressionType::PrivateConstantDeclaration:
-        expressions[as_private_constant_declaration()].dump(
-            expressions, source, indent);
-        break;
-
-    case ExpressionType::PublicConstantDeclaration:
-        expressions[as_public_constant_declaration()].dump(
-            expressions, source, indent);
-        break;
-
-    case ExpressionType::StructDeclaration:
-        expressions[as_struct_declaration()].dump(expressions,
-            source, indent);
-        break;
-
-    case ExpressionType::StructInitializer:
-        expressions[as_struct_initializer()].dump(expressions,
-            source, indent);
-        break;
-
-    case ExpressionType::LValue:
-        expressions[as_lvalue()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::RValue:
-        expressions[as_rvalue()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::If:
-        expressions[as_if()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::While:
-        expressions[as_while()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::Literal:
-        expressions[as_literal()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::Block:
-        expressions[as_block()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::PublicFunction:
-        expressions[as_public_function()].dump(expressions, source,
-            indent);
-        break;
-
-    case ExpressionType::PrivateFunction:
-        expressions[as_private_function()].dump(expressions, source,
-            indent);
-        break;
-
-    case ExpressionType::PublicCFunction:
-        expressions[as_public_c_function()].dump(expressions,
-            source, indent);
-        break;
-
-    case ExpressionType::PrivateCFunction:
-        expressions[as_private_c_function()].dump(expressions,
-            source, indent);
-        break;
-
-    case ExpressionType::FunctionCall:
-        expressions[as_function_call()].dump(expressions, source,
-            indent);
-        break;
-
-    case ExpressionType::Return:
-        expressions[as_return()].dump(expressions, source, indent);
-        break;
-
-    case ExpressionType::ImportC:
-        expressions[as_import_c()].dump(expressions, source,
-            indent);
-        break;
-
-    case ExpressionType::InlineC:
-        expressions[as_inline_c()].dump(expressions, source,
-            indent);
-        break;
-
-    case ExpressionType::CompilerProvidedU64:
-        expressions[as_compiler_provided_u64()].dump(expressions,
-            source, indent);
-        break;
-
-    case ExpressionType::Moved: break;
-
-    case ExpressionType::Invalid:
-        std::cerr << "reached ExpressionType::Invalid in "
-                  << __FUNCTION__;
-        __builtin_unreachable();
-        break;
-    }
-}
-
-std::string_view expression_type_string(ExpressionType type)
-{
-    switch (type) {
-#define CASE_RETURN(variant) \
-    case ExpressionType::variant: return #variant
-        CASE_RETURN(Literal);
-        CASE_RETURN(PrivateVariableDeclaration);
-        CASE_RETURN(PublicVariableDeclaration);
-        CASE_RETURN(PrivateConstantDeclaration);
-        CASE_RETURN(PublicConstantDeclaration);
-
-        CASE_RETURN(StructDeclaration);
-        CASE_RETURN(StructInitializer);
-
-        CASE_RETURN(LValue);
-        CASE_RETURN(RValue);
-
-        CASE_RETURN(If);
-        CASE_RETURN(While);
-
-        CASE_RETURN(Block);
-        CASE_RETURN(PublicFunction);
-        CASE_RETURN(PrivateFunction);
-        CASE_RETURN(PublicCFunction);
-        CASE_RETURN(PrivateCFunction);
-        CASE_RETURN(FunctionCall);
-
-        CASE_RETURN(Return);
-
-        CASE_RETURN(ImportC);
-        CASE_RETURN(InlineC);
-
-        CASE_RETURN(CompilerProvidedU64);
-
-        CASE_RETURN(Moved);
-        CASE_RETURN(Invalid);
-#undef CASE_RETURN
+        EXPRESSIONS
+#undef X
     }
 }
 
@@ -407,6 +270,12 @@ void CompilerProvidedU64::dump(ParsedExpressions const&,
     std::string_view, u32) const
 {
     std::cerr << "CompilerProvidedU64('" << number << "')";
+}
+
+void Invalid::dump(ParsedExpressions const&, std::string_view, u32)
+{
+    std::cerr << "Trying to dump ExpressionType::Invalid\n";
+    __builtin_abort();
 }
 
 }

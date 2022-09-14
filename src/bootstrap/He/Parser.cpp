@@ -5,7 +5,6 @@
 #include <He/Parser.h>
 #include <He/Token.h>
 #include <Util.h>
-#include <iostream>
 
 namespace He {
 
@@ -87,7 +86,7 @@ ParseResult parse(Tokens const& tokens)
             continue; // Ignore leading and trailing new lines.
         auto item
             = TRY(parse_root_item(expressions, tokens, start));
-        start = item.end_token_index;
+        start = item.end_token_index();
         expressions.expressions.push_back(item);
     }
     return expressions;
@@ -148,7 +147,7 @@ ParseSingleItemResult parse_struct_initializer(
         auto value
             = TRY(parse_irvalue(expressions, tokens, value_index));
 
-        auto comma_index = value.end_token_index;
+        auto comma_index = value.end_token_index();
         auto comma = tokens[comma_index];
         if (comma.type != TokenType::Comma) {
             return ParseError {
@@ -191,7 +190,7 @@ static ParseSingleItemResult parse_if(
 {
     auto condition
         = TRY(parse_rvalue(expressions, tokens, start + 1));
-    auto block_start_index = condition.end_token_index;
+    auto block_start_index = condition.end_token_index();
     auto block_start = tokens[block_start_index];
     if (block_start.type != TokenType::OpenCurly) {
         return ParseError {
@@ -203,7 +202,7 @@ static ParseSingleItemResult parse_if(
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
 
-    auto end = block.end_token_index;
+    auto end = block.end_token_index();
     auto if_statement = expressions.append(If {
         condition.release_as_rvalue(),
         block.release_as_block(),
@@ -216,7 +215,7 @@ static ParseSingleItemResult parse_while(
 {
     auto condition
         = TRY(parse_rvalue(expressions, tokens, start + 1));
-    auto block_start_index = condition.end_token_index;
+    auto block_start_index = condition.end_token_index();
     auto block_start = tokens[block_start_index];
     if (block_start.type != TokenType::OpenCurly) {
         return ParseError {
@@ -228,7 +227,7 @@ static ParseSingleItemResult parse_while(
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
 
-    auto end = block.end_token_index;
+    auto end = block.end_token_index();
 
     auto while_ = expressions.append(While {
         condition.release_as_rvalue(),
@@ -473,7 +472,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
     auto block
         = TRY(parse_block(expressions, tokens, block_start_index));
-    auto block_end_index = block.end_token_index;
+    auto block_end_index = block.end_token_index();
 
     return Function {
         name,
@@ -595,7 +594,7 @@ static ParseSingleItemResult parse_function_call(
         auto argument_index = right_paren_index + 1;
         auto argument = TRY(
             parse_prvalue(expressions, tokens, argument_index));
-        right_paren_index = argument.end_token_index;
+        right_paren_index = argument.end_token_index();
         call.arguments.push_back(argument);
     }
 
@@ -631,14 +630,14 @@ static ParseSingleItemResult parse_return(
             return Expression {
                 return_id,
                 name_index,
-                value.end_token_index,
+                value.end_token_index(),
             };
         }
     }
 
     auto value = TRY(parse_rvalue(expressions, tokens, start + 1));
     auto value_id = expressions.append(value);
-    auto end = value.end_token_index;
+    auto end = value.end_token_index();
 
     auto return_id = expressions.append(Return {
         value_id,
@@ -715,7 +714,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::InlineC) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
-            end = inline_c.end_token_index;
+            end = inline_c.end_token_index();
             block.expressions.push_back(inline_c);
             continue;
         }
@@ -723,7 +722,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::OpenCurly) {
             auto sub_block
                 = TRY(parse_block(expressions, tokens, end));
-            end = sub_block.end_token_index + 1;
+            end = sub_block.end_token_index() + 1;
             block.expressions.push_back(sub_block);
             continue;
         }
@@ -731,7 +730,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::Let) {
             auto variable = TRY(
                 parse_public_constant(expressions, tokens, end));
-            end = variable.end_token_index;
+            end = variable.end_token_index();
             block.expressions.push_back(variable);
             continue;
         }
@@ -739,7 +738,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::Var) {
             auto variable = TRY(
                 parse_public_variable(expressions, tokens, end));
-            end = variable.end_token_index;
+            end = variable.end_token_index();
             block.expressions.push_back(variable);
             continue;
         }
@@ -747,7 +746,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::Return) {
             auto return_expression
                 = TRY(parse_return(expressions, tokens, end));
-            end = return_expression.end_token_index;
+            end = return_expression.end_token_index();
 
             if (tokens[end].type != TokenType::Semicolon) {
                 return ParseError {
@@ -767,14 +766,14 @@ static ParseSingleItemResult parse_block(
                 auto rvalue = TRY(
                     parse_rvalue(expressions, tokens, end + 2));
                 // Note: Swallow semicolon.
-                end = rvalue.end_token_index + 1;
+                end = rvalue.end_token_index() + 1;
                 block.expressions.push_back(rvalue);
                 continue;
             }
 
             auto call = TRY(
                 parse_function_call(expressions, tokens, end));
-            end = call.end_token_index;
+            end = call.end_token_index();
             block.expressions.push_back(call);
 
             if (tokens[end].type != TokenType::Semicolon) {
@@ -790,7 +789,7 @@ static ParseSingleItemResult parse_block(
 
         if (tokens[end].type == TokenType::If) {
             auto if_ = TRY(parse_if(expressions, tokens, end));
-            end = if_.end_token_index;
+            end = if_.end_token_index();
             block.expressions.push_back(if_);
             continue;
         }
@@ -798,7 +797,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::While) {
             auto while_
                 = TRY(parse_while(expressions, tokens, end));
-            end = while_.end_token_index;
+            end = while_.end_token_index();
             block.expressions.push_back(while_);
             continue;
         }
@@ -830,7 +829,7 @@ static ParseSingleItemResult parse_irvalue(
             if (tokens[end + 1].type == TokenType::OpenCurly) {
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, end));
-                end = initializer.end_token_index + 1;
+                end = initializer.end_token_index() + 1;
                 rvalue.expressions.push_back(initializer);
                 continue;
             }
@@ -839,7 +838,7 @@ static ParseSingleItemResult parse_irvalue(
         if (tokens[end].type == TokenType::InlineC) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
-            end = inline_c.end_token_index;
+            end = inline_c.end_token_index();
             rvalue.expressions.push_back(inline_c);
             auto rvalue_id = expressions.append(std::move(rvalue));
             // NOTE: Unconsume ';'
@@ -956,14 +955,14 @@ static ParseSingleItemResult parse_irvalue(
             if (tokens[end + 1].type == TokenType::OpenParen) {
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
-                end = call.end_token_index;
+                end = call.end_token_index();
                 rvalue.expressions.push_back(call);
             } else {
                 auto value = expressions.append(LValue {
                     tokens[end],
                 });
                 auto expression = Expression(value, end, end + 1);
-                end = expression.end_token_index;
+                end = expression.end_token_index();
                 rvalue.expressions.push_back(expression);
             }
             continue;
@@ -1016,7 +1015,7 @@ static ParseSingleItemResult parse_rvalue(
         if (tokens[end].type == TokenType::InlineC) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
-            end = inline_c.end_token_index;
+            end = inline_c.end_token_index();
             rvalue.expressions.push_back(inline_c);
             auto rvalue_id = expressions.append(std::move(rvalue));
             // NOTE: Unconsume ';'
@@ -1133,14 +1132,14 @@ static ParseSingleItemResult parse_rvalue(
             if (tokens[end + 1].type == TokenType::OpenParen) {
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
-                end = call.end_token_index;
+                end = call.end_token_index();
                 rvalue.expressions.push_back(call);
             } else {
                 auto value = expressions.append(LValue {
                     tokens[end],
                 });
                 auto expression = Expression(value, end, end + 1);
-                end = expression.end_token_index;
+                end = expression.end_token_index();
                 rvalue.expressions.push_back(expression);
             }
             continue;
@@ -1254,14 +1253,14 @@ static ParseSingleItemResult parse_prvalue(
             if (tokens[end + 1].type == TokenType::OpenParen) {
                 auto function_call = TRY(
                     parse_function_call(expressions, tokens, end));
-                end = function_call.end_token_index;
+                end = function_call.end_token_index();
                 rvalue.expressions.push_back(function_call);
             } else {
                 auto value = expressions.append(LValue {
                     tokens[end],
                 });
                 auto expression = Expression(value, end, end + 1);
-                end = expression.end_token_index;
+                end = expression.end_token_index();
                 rvalue.expressions.push_back(expression);
             }
             continue;
@@ -1478,7 +1477,7 @@ static ParseSingleItemResult parse_private_variable(
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
-            auto semicolon_index = value.end_token_index;
+            auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
             if (semicolon.type != TokenType::Semicolon) {
                 return ParseError {
@@ -1504,7 +1503,7 @@ static ParseSingleItemResult parse_private_variable(
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
-    auto rvalue_end_index = value.end_token_index;
+    auto rvalue_end_index = value.end_token_index();
     auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
@@ -1584,7 +1583,7 @@ static ParseSingleItemResult parse_public_variable(
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
-            auto semicolon_index = value.end_token_index;
+            auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
             if (semicolon.type != TokenType::Semicolon) {
                 return ParseError {
@@ -1610,7 +1609,7 @@ static ParseSingleItemResult parse_public_variable(
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
-    auto rvalue_end_index = value.end_token_index;
+    auto rvalue_end_index = value.end_token_index();
     auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
@@ -1690,7 +1689,7 @@ static ParseSingleItemResult parse_private_constant(
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
-            auto semicolon_index = value.end_token_index;
+            auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
             if (semicolon.type != TokenType::Semicolon) {
                 return ParseError {
@@ -1716,7 +1715,7 @@ static ParseSingleItemResult parse_private_constant(
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
-    auto rvalue_end_index = value.end_token_index;
+    auto rvalue_end_index = value.end_token_index();
     auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
@@ -1796,7 +1795,7 @@ static ParseSingleItemResult parse_public_constant(
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
-            auto semicolon_index = value.end_token_index;
+            auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
             if (semicolon.type != TokenType::Semicolon) {
                 return ParseError {
@@ -1822,7 +1821,7 @@ static ParseSingleItemResult parse_public_constant(
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
-    auto rvalue_end_index = value.end_token_index;
+    auto rvalue_end_index = value.end_token_index();
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1902,7 +1901,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
-            auto semicolon_index = value.end_token_index;
+            auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
             if (semicolon.type != TokenType::Semicolon) {
                 return ParseError {
@@ -1933,7 +1932,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
-    auto rvalue_end_index = value.end_token_index;
+    auto rvalue_end_index = value.end_token_index();
     auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;

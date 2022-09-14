@@ -1,54 +1,71 @@
 #pragma once
 #include <He/Token.h>
+#include <stdio.h>
 #include <string_view>
-#include <variant>
 #include <vector>
 
 namespace He {
 
 struct ParsedExpressions;
 
-enum class ExpressionType {
-    Literal,
+#define EXPRESSIONS                                             \
+    X(CompilerProvidedU64, compiler_provided_u64)               \
+    X(Literal, literal)                                         \
+                                                                \
+    X(PrivateConstantDeclaration, private_constant_declaration) \
+    X(PrivateVariableDeclaration, private_variable_declaration) \
+    X(PublicConstantDeclaration, public_constant_declaration)   \
+    X(PublicVariableDeclaration, public_variable_declaration)   \
+                                                                \
+    X(StructDeclaration, struct_declaration)                    \
+    X(StructInitializer, struct_initializer)                    \
+                                                                \
+    X(LValue, lvalue)                                           \
+    X(RValue, rvalue)                                           \
+                                                                \
+    X(If, if_statement)                                         \
+    X(Return, return_statement)                                 \
+    X(While, while_statement)                                   \
+                                                                \
+    X(Block, block)                                             \
+                                                                \
+    X(FunctionCall, function_call)                              \
+    X(PrivateCFunction, private_c_function)                     \
+    X(PrivateFunction, private_function)                        \
+    X(PublicCFunction, public_c_function)                       \
+    X(PublicFunction, public_function)                          \
+                                                                \
+    X(ImportC, import_c)                                        \
+    X(InlineC, inline_c)                                        \
+                                                                \
+    X(Moved, moved_value)                                       \
+    X(Invalid, invalid)
 
-    PublicVariableDeclaration,
-    PrivateVariableDeclaration,
-    PublicConstantDeclaration,
-    PrivateConstantDeclaration,
-
-    StructDeclaration,
-    StructInitializer,
-
-    LValue,
-    RValue,
-
-    If,
-    While,
-
-    Block,
-
-    PrivateCFunction,
-    PublicCFunction,
-    PrivateFunction,
-    PublicFunction,
-    FunctionCall,
-
-    Return,
-
-    ImportC,
-    InlineC,
-
-    CompilerProvidedU64,
-
-    Moved,
-    Invalid,
+enum class ExpressionType : u8 {
+#define X(T, ...) T,
+    EXPRESSIONS
+#undef X
 };
 
-std::string_view expression_type_string(ExpressionType type);
+#define FORWARD_DECLARE(T) struct T
+#define X(T, ...) FORWARD_DECLARE(T);
+EXPRESSIONS
+#undef FORWARD_DECLARE
+#undef X
+
+constexpr std::string_view expression_type_string(
+    ExpressionType type)
+{
+    switch (type) {
+#define X(T, ...) \
+    case ExpressionType::T: return #T;
+        EXPRESSIONS
+#undef X
+    }
+}
 
 struct Expression;
 using Expressions = std::vector<Expression>;
-struct Return;
 
 struct Literal {
     Token token {};
@@ -88,12 +105,12 @@ struct [[gnu::packed]] StructDeclaration {
         u32 indent) const;
 };
 
-struct RValue;
 struct Initializer {
     Token name {};
     Id<RValue> value {};
 };
 using Initializers = std::vector<Initializer>;
+
 struct [[gnu::packed]] StructInitializer {
     Initializers initializers {};
     Token type {};
@@ -237,378 +254,64 @@ struct [[gnu::packed]] InlineC {
         u32 indent) const;
 };
 
-struct Moved {};
+struct Moved {
+    static void dump(ParsedExpressions const&, std::string_view,
+        u32)
+    {
+    }
+};
+
+struct Invalid {
+    static void dump(ParsedExpressions const&, std::string_view,
+        u32);
+};
 
 struct Expression {
-    constexpr Expression(Id<Literal> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
+#define VARIANT(T, name)                                      \
+    constexpr Expression(Id<T> value, u32 start_index,        \
+        u32 end_index)                                        \
+        : name(value)                                         \
+        , start_token_index(start_index)                      \
+        , end_token_offset(end_index - start_index)           \
+        , m_type(ExpressionType::T)                           \
+    {                                                         \
+    }                                                         \
+    constexpr Id<T> const& as_##name() const { return name; } \
+    constexpr Id<T> release_as_##name()                       \
+    {                                                         \
+        auto value = name;                                    \
+        m_type = ExpressionType::Moved;                       \
+        return value;                                         \
     }
 
-    constexpr Expression(Id<CompilerProvidedU64> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PrivateVariableDeclaration> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PublicVariableDeclaration> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PrivateConstantDeclaration> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PublicConstantDeclaration> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<StructDeclaration> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<StructInitializer> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<LValue> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<RValue> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<If> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<While> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<Block> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PrivateFunction> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PublicFunction> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PrivateCFunction> value,
-        u32 start_index, u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<PublicCFunction> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<FunctionCall> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<Return> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<ImportC> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr Expression(Id<InlineC> value, u32 start_index,
-        u32 end_index)
-        : m_storage(value)
-        , start_token_index(start_index)
-        , end_token_index(end_index)
-    {
-    }
-
-    constexpr ExpressionType type() const
-    {
-        return (ExpressionType)m_storage.index();
-    }
-
-    constexpr Id<Literal> as_literal() const
-    {
-        return std::get<Id<Literal>>(m_storage);
-    }
-
-    constexpr Id<PrivateVariableDeclaration> const&
-    as_private_variable_declaration() const
-    {
-        return std::get<Id<PrivateVariableDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PrivateVariableDeclaration>
-    release_as_private_variable_declaration()
-    {
-        return std::get<Id<PrivateVariableDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PublicVariableDeclaration> const&
-    as_public_variable_declaration() const
-    {
-        return std::get<Id<PublicVariableDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PublicVariableDeclaration>
-    release_as_public_variable_declaration()
-    {
-        return std::get<Id<PublicVariableDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PublicConstantDeclaration> const&
-    as_public_constant_declaration() const
-    {
-        return std::get<Id<PublicConstantDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PublicConstantDeclaration>
-    release_as_public_constant_declaration()
-    {
-        return std::get<Id<PublicConstantDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PrivateConstantDeclaration> const&
-    as_private_constant_declaration() const
-    {
-        return std::get<Id<PrivateConstantDeclaration>>(m_storage);
-    }
-
-    constexpr Id<PrivateConstantDeclaration>
-    release_as_private_constant_declaration()
-    {
-        return std::get<Id<PrivateConstantDeclaration>>(m_storage);
-    }
-
-    constexpr Id<StructDeclaration> const&
-    as_struct_declaration() const
-    {
-        return std::get<Id<StructDeclaration>>(m_storage);
-    }
-
-    constexpr Id<StructInitializer> const&
-    as_struct_initializer() const
-    {
-        return std::get<Id<StructInitializer>>(m_storage);
-    }
-
-    constexpr Id<LValue> const& as_lvalue() const
-    {
-        return std::get<Id<LValue>>(m_storage);
-    }
-
-    constexpr Id<RValue> const& as_rvalue() const
-    {
-        return std::get<Id<RValue>>(m_storage);
-    }
-
-    constexpr Id<RValue> release_as_rvalue()
-    {
-        return std::get<Id<RValue>>(m_storage);
-    }
-
-    constexpr Id<If> const& as_if() const
-    {
-        return std::get<Id<If>>(m_storage);
-    }
-
-    constexpr Id<While> const& as_while() const
-    {
-        return std::get<Id<While>>(m_storage);
-    }
-
-    constexpr Id<PrivateFunction> const& as_private_function() const
-    {
-        return std::get<Id<PrivateFunction>>(m_storage);
-    }
-
-    constexpr Id<PublicFunction> const& as_public_function() const
-    {
-        return std::get<Id<PublicFunction>>(m_storage);
-    }
-
-    constexpr Id<PrivateCFunction> const&
-    as_private_c_function() const
-    {
-        return std::get<Id<PrivateCFunction>>(m_storage);
-    }
-
-    constexpr Id<PublicCFunction> const&
-    as_public_c_function() const
-    {
-        return std::get<Id<PublicCFunction>>(m_storage);
-    }
-
-    constexpr Id<FunctionCall> const& as_function_call() const
-    {
-        return std::get<Id<FunctionCall>>(m_storage);
-    }
-
-    constexpr Id<Block> const& as_block() const
-    {
-        return std::get<Id<Block>>(m_storage);
-    }
-
-    constexpr Id<Block> release_as_block()
-    {
-        return std::get<Id<Block>>(m_storage);
-    }
-
-    constexpr Id<Return> const& as_return() const
-    {
-        return std::get<Id<Return>>(m_storage);
-    }
-
-    constexpr Id<ImportC> const& as_import_c() const
-    {
-        return std::get<Id<ImportC>>(m_storage);
-    }
-
-    constexpr Id<ImportC> release_as_import_c()
-    {
-        auto import_c = std::get<Id<ImportC>>(m_storage);
-        m_storage = Moved{};
-        return import_c;
-    }
-
-    constexpr Id<InlineC> const& as_inline_c() const
-    {
-        return std::get<Id<InlineC>>(m_storage);
-    }
-
-    constexpr Id<InlineC> release_as_inline_c()
-    {
-        auto inline_c = std::get<Id<InlineC>>(m_storage);
-        m_storage = Moved{};
-        return inline_c;
-    }
-
-    constexpr Id<CompilerProvidedU64> const&
-    as_compiler_provided_u64() const
-    {
-        return std::get<Id<CompilerProvidedU64>>(m_storage);
-    }
+#define X(T, name, ...) VARIANT(T, name);
+    EXPRESSIONS
+#undef X
+#undef VARIANT
 
     void dump(ParsedExpressions const&, std::string_view source,
         u32 indent = 0) const;
 
 private:
-    // clang-format off
-    std::variant<
-        Id<Literal>,
-        Id<PublicVariableDeclaration>,
-        Id<PrivateVariableDeclaration>,
-        Id<PublicConstantDeclaration>,
-        Id<PrivateConstantDeclaration>,
-        Id<StructDeclaration>,
-        Id<StructInitializer>,
-        Id<LValue>,
-        Id<RValue>,
-        Id<If>,
-        Id<While>,
-        Id<Block>,
-        Id<PrivateCFunction>,
-        Id<PublicCFunction>,
-        Id<PrivateFunction>,
-        Id<PublicFunction>,
-        Id<FunctionCall>,
-        Id<Return>,
-        Id<ImportC>,
-        Id<InlineC>,
-        Id<CompilerProvidedU64>,
-        Moved
-    > m_storage {};
-    // clang-format on
+    union {
+#define X(T, name, ...) Id<T> name;
+        EXPRESSIONS
+#undef X
+    };
 
 public:
     u32 start_token_index { 0 };
-    u32 end_token_index { 0 };
+    u32 end_token_offset : 24 { 0 };
+
+    constexpr u32 end_token_index() const
+    {
+        return start_token_index + end_token_offset;
+    }
+
+    constexpr ExpressionType type() const { return m_type; }
+
+private:
+    ExpressionType m_type { ExpressionType::Invalid };
 };
 
 struct ParsedExpressions {
@@ -632,41 +335,14 @@ struct ParsedExpressions {
     }                                                            \
     std::vector<T> name { }
 
-    SOA_MEMBER(Block, blocks);
-    SOA_MEMBER(Literal, literals);
-    SOA_MEMBER(PublicVariableDeclaration,
-        public_variable_declarations);
-    SOA_MEMBER(PrivateVariableDeclaration,
-        private_variable_declarations);
-    SOA_MEMBER(PublicConstantDeclaration,
-        public_constant_declarations);
-    SOA_MEMBER(PrivateConstantDeclaration,
-        private_constant_declarations);
+#define X(T, name, ...) SOA_MEMBER(T, name##s);
+    EXPRESSIONS
+#undef X
 
-    SOA_MEMBER(LValue, lvalues);
-    SOA_MEMBER(RValue, rvalues);
-
-    SOA_MEMBER(If, if_statements);
-    SOA_MEMBER(While, while_statements);
-
-    SOA_MEMBER(FunctionCall, function_calls);
-    SOA_MEMBER(Return, returns);
-
-    SOA_MEMBER(PrivateCFunction, private_c_functions);
-    SOA_MEMBER(PrivateFunction, private_functions);
-    SOA_MEMBER(PublicCFunction, public_c_functions);
-    SOA_MEMBER(PublicFunction, public_functions);
-    SOA_MEMBER(StructDeclaration, struct_declarations);
-    SOA_MEMBER(StructInitializer, struct_initializers);
     SOA_MEMBER(Expression, late_expressions);
 
-    SOA_MEMBER(ImportC, import_cs);
-    SOA_MEMBER(InlineC, inline_cs);
-
-    SOA_MEMBER(CompilerProvidedU64, compiler_provided_u64s);
-
 #undef SOA_MEMBER
-    std::vector<Expression> expressions;
+    Expressions expressions;
 };
 
 }
