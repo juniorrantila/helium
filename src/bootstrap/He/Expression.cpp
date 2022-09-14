@@ -39,7 +39,7 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::LValue:
-        as_lvalue().dump(expressions, source, indent);
+        expressions[as_lvalue()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::RValue:

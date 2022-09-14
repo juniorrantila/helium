@@ -946,7 +946,9 @@ static ParseSingleItemResult parse_irvalue(
                 end = call.end_token_index;
                 rvalue.expressions.push_back(std::move(call));
             } else {
-                auto value = LValue { tokens[end] };
+                auto value = expressions.append(LValue {
+                    tokens[end],
+                });
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index;
                 rvalue.expressions.push_back(std::move(expression));
@@ -1121,7 +1123,9 @@ static ParseSingleItemResult parse_rvalue(
                 end = call.end_token_index;
                 rvalue.expressions.push_back(std::move(call));
             } else {
-                auto value = LValue { tokens[end] };
+                auto value = expressions.append(LValue {
+                    tokens[end],
+                });
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index;
                 rvalue.expressions.push_back(std::move(expression));
@@ -1241,7 +1245,9 @@ static ParseSingleItemResult parse_prvalue(
                 rvalue.expressions.push_back(
                     std::move(function_call));
             } else {
-                auto value = LValue { tokens[end] };
+                auto value = expressions.append(LValue {
+                    tokens[end],
+                });
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index;
                 rvalue.expressions.push_back(std::move(expression));
@@ -1473,11 +1479,12 @@ static ParseSingleItemResult parse_private_variable(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto variable = expressions.append(PrivateVariableDeclaration {
-                .name = name,
-                .type = type,
-                .value = value_id,
-            });
+            auto variable
+                = expressions.append(PrivateVariableDeclaration {
+                    .name = name,
+                    .type = type,
+                    .value = value_id,
+                });
 
             return Expression(variable, start, end);
         }
@@ -1896,11 +1903,12 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
             auto end = semicolon_index + 1;
 
             auto value_id = expressions.append(std::move(value));
-            auto constant = expressions.append(PrivateConstantDeclaration {
-                .name = name,
-                .type = type,
-                .value = value_id,
-            });
+            auto constant
+                = expressions.append(PrivateConstantDeclaration {
+                    .name = name,
+                    .type = type,
+                    .value = value_id,
+                });
 
             return Expression(constant, start, end);
         }

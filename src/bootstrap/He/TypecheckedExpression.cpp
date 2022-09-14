@@ -322,9 +322,11 @@ static void codegen_expression(FileBuffer& out,
         codegen_struct_initializer(out, context, initializer);
     } break;
 
-    case ExpressionType::LValue:
-        codegen_lvalue(out, context, expression.as_lvalue());
-        break;
+    case ExpressionType::LValue: {
+        auto id = expression.as_lvalue();
+        auto const& lvalue = expressions[id];
+        codegen_lvalue(out, context, lvalue);
+    } break;
 
     case ExpressionType::RValue: {
         auto id = expression.as_rvalue();

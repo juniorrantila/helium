@@ -301,7 +301,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(LValue value, u32 start_index,
+    constexpr Expression(Id<LValue> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -478,9 +478,9 @@ struct Expression {
         return std::get<Id<StructInitializer>>(m_storage);
     }
 
-    constexpr LValue const& as_lvalue() const
+    constexpr Id<LValue> const& as_lvalue() const
     {
-        return std::get<LValue>(m_storage);
+        return std::get<Id<LValue>>(m_storage);
     }
 
     constexpr Id<RValue> const& as_rvalue() const
@@ -594,7 +594,7 @@ private:
         Id<PrivateConstantDeclaration>,
         Id<StructDeclaration>,
         Id<StructInitializer>,
-        LValue,
+        Id<LValue>,
         Id<RValue>,
         If,
         While,
@@ -641,6 +641,7 @@ struct ParsedExpressions {
         public_constant_declarations);
     SOA_MEMBER(PrivateConstantDeclaration,
         private_constant_declarations);
+    SOA_MEMBER(LValue, lvalues);
     SOA_MEMBER(PrivateCFunction, private_c_functions);
     SOA_MEMBER(PrivateFunction, private_functions);
     SOA_MEMBER(PublicCFunction, public_c_functions);
