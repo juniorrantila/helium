@@ -83,11 +83,12 @@ void Expression::dump(ParsedExpressions const& expressions,
         break;
 
     case ExpressionType::FunctionCall:
-        as_function_call().dump(expressions, source, indent);
+        expressions[as_function_call()].dump(expressions, source,
+            indent);
         break;
 
     case ExpressionType::Return:
-        as_return().dump(expressions, source, indent);
+        expressions[as_return()].dump(expressions, source, indent);
         break;
 
     case ExpressionType::ImportC:

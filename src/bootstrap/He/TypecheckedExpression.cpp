@@ -376,16 +376,19 @@ static void codegen_expression(FileBuffer& out,
         codegen_public_c_function(out, context, function);
     } break;
 
-    case ExpressionType::FunctionCall:
-        codegen_function_call(out, context,
-            expression.as_function_call());
+    case ExpressionType::FunctionCall: {
+        auto id = expression.as_function_call();
+        auto const& function_call = expressions[id];
+        codegen_function_call(out, context, function_call);
         if (!in_rvalue_expression)
             out.write(';');
-        break;
+    } break;
 
-    case ExpressionType::Return:
-        codegen_return(out, context, expression.as_return());
-        break;
+    case ExpressionType::Return: {
+        auto id = expression.as_return();
+        auto const& return_ = expressions[id];
+        codegen_return(out, context, return_);
+    } break;
 
     case ExpressionType::ImportC:
         codegen_import_c(out, context, expression.as_import_c());

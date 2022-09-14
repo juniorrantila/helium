@@ -88,7 +88,7 @@ ParseResult parse(Tokens const& tokens)
         auto item
             = TRY(parse_root_item(expressions, tokens, start));
         start = item.end_token_index;
-        expressions.expressions.push_back(std::move(item));
+        expressions.expressions.push_back(item);
     }
     return expressions;
 }
@@ -582,7 +582,8 @@ static ParseSingleItemResult parse_function_call(
     auto right_paren_index = left_paren_index + 1;
     if (tokens[right_paren_index].type == TokenType::CloseParen) {
         // NOTE: Swallow right parenthesis
-        return Expression(call, start, right_paren_index + 1);
+        auto id = expressions.append(std::move(call));
+        return Expression(id, start, right_paren_index + 1);
     }
 
     right_paren_index = left_paren_index;
@@ -593,7 +594,7 @@ static ParseSingleItemResult parse_function_call(
         auto argument = TRY(
             parse_prvalue(expressions, tokens, argument_index));
         right_paren_index = argument.end_token_index;
-        call.arguments.push_back(std::move(argument));
+        call.arguments.push_back(argument);
     }
 
     auto right_paren = tokens[right_paren_index];
@@ -606,7 +607,8 @@ static ParseSingleItemResult parse_function_call(
     }
 
     // NOTE: Swallow right parenthesis
-    return Expression(call, start, right_paren_index + 1);
+    auto id = expressions.append(std::move(call));
+    return Expression(id, start, right_paren_index + 1);
 }
 
 static ParseSingleItemResult parse_return(
@@ -620,11 +622,12 @@ static ParseSingleItemResult parse_return(
         if (open_curly.type == TokenType::OpenCurly) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, name_index));
-            auto value_id = expressions.append(std::move(value));
+            auto value_id = expressions.append(value);
+            auto return_id = expressions.append(Return {
+                value_id,
+            });
             return Expression {
-                Return {
-                    value_id,
-                },
+                return_id,
                 name_index,
                 value.end_token_index,
             };
@@ -632,13 +635,14 @@ static ParseSingleItemResult parse_return(
     }
 
     auto value = TRY(parse_rvalue(expressions, tokens, start + 1));
-    auto value_id = expressions.append(std::move(value));
+    auto value_id = expressions.append(value);
     auto end = value.end_token_index;
 
+    auto return_id = expressions.append(Return {
+        value_id,
+    });
     return Expression {
-        Return {
-            value_id,
-        },
+        return_id,
         start,
         end,
     };
@@ -702,7 +706,7 @@ static ParseSingleItemResult parse_block(
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index;
-            block.expressions.push_back(std::move(inline_c));
+            block.expressions.push_back(inline_c);
             continue;
         }
 
@@ -710,7 +714,7 @@ static ParseSingleItemResult parse_block(
             auto sub_block
                 = TRY(parse_block(expressions, tokens, end));
             end = sub_block.end_token_index + 1;
-            block.expressions.push_back(std::move(sub_block));
+            block.expressions.push_back(sub_block);
             continue;
         }
 
@@ -718,7 +722,7 @@ static ParseSingleItemResult parse_block(
             auto variable = TRY(
                 parse_public_constant(expressions, tokens, end));
             end = variable.end_token_index;
-            block.expressions.push_back(std::move(variable));
+            block.expressions.push_back(variable);
             continue;
         }
 
@@ -726,7 +730,7 @@ static ParseSingleItemResult parse_block(
             auto variable = TRY(
                 parse_public_variable(expressions, tokens, end));
             end = variable.end_token_index;
-            block.expressions.push_back(std::move(variable));
+            block.expressions.push_back(variable);
             continue;
         }
 
@@ -744,8 +748,7 @@ static ParseSingleItemResult parse_block(
             }
             end++; // NOTE: Swallow semicolon.
 
-            block.expressions.push_back(
-                std::move(return_expression));
+            block.expressions.push_back(return_expression);
             continue;
         }
 
@@ -755,14 +758,14 @@ static ParseSingleItemResult parse_block(
                     parse_rvalue(expressions, tokens, end + 2));
                 // Note: Swallow semicolon.
                 end = rvalue.end_token_index + 1;
-                block.expressions.push_back(std::move(rvalue));
+                block.expressions.push_back(rvalue);
                 continue;
             }
 
             auto call = TRY(
                 parse_function_call(expressions, tokens, end));
             end = call.end_token_index;
-            block.expressions.push_back(std::move(call));
+            block.expressions.push_back(call);
 
             if (tokens[end].type != TokenType::Semicolon) {
                 return ParseError {
@@ -778,7 +781,7 @@ static ParseSingleItemResult parse_block(
         if (tokens[end].type == TokenType::If) {
             auto if_ = TRY(parse_if(expressions, tokens, end));
             end = if_.end_token_index;
-            block.expressions.push_back(std::move(if_));
+            block.expressions.push_back(if_);
             continue;
         }
 
@@ -786,7 +789,7 @@ static ParseSingleItemResult parse_block(
             auto while_
                 = TRY(parse_while(expressions, tokens, end));
             end = while_.end_token_index;
-            block.expressions.push_back(std::move(while_));
+            block.expressions.push_back(while_);
             continue;
         }
 
@@ -944,14 +947,14 @@ static ParseSingleItemResult parse_irvalue(
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index;
-                rvalue.expressions.push_back(std::move(call));
+                rvalue.expressions.push_back(call);
             } else {
                 auto value = expressions.append(LValue {
                     tokens[end],
                 });
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index;
-                rvalue.expressions.push_back(std::move(expression));
+                rvalue.expressions.push_back(expression);
             }
             continue;
         }
@@ -1121,14 +1124,14 @@ static ParseSingleItemResult parse_rvalue(
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index;
-                rvalue.expressions.push_back(std::move(call));
+                rvalue.expressions.push_back(call);
             } else {
                 auto value = expressions.append(LValue {
                     tokens[end],
                 });
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index;
-                rvalue.expressions.push_back(std::move(expression));
+                rvalue.expressions.push_back(expression);
             }
             continue;
         }
@@ -1242,15 +1245,14 @@ static ParseSingleItemResult parse_prvalue(
                 auto function_call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = function_call.end_token_index;
-                rvalue.expressions.push_back(
-                    std::move(function_call));
+                rvalue.expressions.push_back(function_call);
             } else {
                 auto value = expressions.append(LValue {
                     tokens[end],
                 });
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index;
-                rvalue.expressions.push_back(std::move(expression));
+                rvalue.expressions.push_back(expression);
             }
             continue;
         }
@@ -1478,7 +1480,7 @@ static ParseSingleItemResult parse_private_variable(
             // NOTE: Swallow semicolon;
             auto end = semicolon_index + 1;
 
-            auto value_id = expressions.append(std::move(value));
+            auto value_id = expressions.append(value);
             auto variable
                 = expressions.append(PrivateVariableDeclaration {
                     .name = name,
@@ -1493,7 +1495,7 @@ static ParseSingleItemResult parse_private_variable(
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto value_id = expressions.append(std::move(value));
+    auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1584,7 +1586,7 @@ static ParseSingleItemResult parse_public_variable(
             // NOTE: Swallow semicolon;
             auto end = semicolon_index + 1;
 
-            auto value_id = expressions.append(std::move(value));
+            auto value_id = expressions.append(value);
             auto variable_id
                 = expressions.append(PublicVariableDeclaration {
                     .name = name,
@@ -1599,7 +1601,7 @@ static ParseSingleItemResult parse_public_variable(
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto value_id = expressions.append(std::move(value));
+    auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1690,7 +1692,7 @@ static ParseSingleItemResult parse_private_constant(
             // NOTE: Swallow semicolon;
             auto end = semicolon_index + 1;
 
-            auto value_id = expressions.append(std::move(value));
+            auto value_id = expressions.append(value);
             auto constant
                 = expressions.append(PrivateConstantDeclaration {
                     .name = name,
@@ -1705,7 +1707,7 @@ static ParseSingleItemResult parse_private_constant(
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto value_id = expressions.append(std::move(value));
+    auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
@@ -1796,7 +1798,7 @@ static ParseSingleItemResult parse_public_constant(
             // NOTE: Swallow semicolon;
             auto end = semicolon_index + 1;
 
-            auto value_id = expressions.append(std::move(value));
+            auto value_id = expressions.append(value);
             auto constant
                 = expressions.append(PublicConstantDeclaration {
                     .name = name,
@@ -1825,7 +1827,7 @@ static ParseSingleItemResult parse_public_constant(
     // NOTE: Swallow semicolon;
     auto end = semicolon_index + 1;
 
-    auto value_id = expressions.append(std::move(value));
+    auto value_id = expressions.append(value);
     auto constant = expressions.append(PublicConstantDeclaration {
         .name = name,
         .type = type,
@@ -1902,7 +1904,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
             // NOTE: Swallow semicolon;
             auto end = semicolon_index + 1;
 
-            auto value_id = expressions.append(std::move(value));
+            auto value_id = expressions.append(value);
             auto constant
                 = expressions.append(PrivateConstantDeclaration {
                     .name = name,
@@ -1922,7 +1924,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
     auto rvalue_end_index = value.end_token_index;
-    auto value_id = expressions.append(std::move(value));
+    auto value_id = expressions.append(value);
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];

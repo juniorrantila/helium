@@ -373,7 +373,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(FunctionCall value, u32 start_index,
+    constexpr Expression(Id<FunctionCall> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -381,7 +381,7 @@ struct Expression {
     {
     }
 
-    constexpr Expression(Return value, u32 start_index,
+    constexpr Expression(Id<Return> value, u32 start_index,
         u32 end_index)
         : m_storage(value)
         , start_token_index(start_index)
@@ -424,8 +424,7 @@ struct Expression {
     constexpr Id<PrivateVariableDeclaration>
     release_as_private_variable_declaration()
     {
-        return std::get<Id<PrivateVariableDeclaration>>(
-            std::move(m_storage));
+        return std::get<Id<PrivateVariableDeclaration>>(m_storage);
     }
 
     constexpr Id<PublicVariableDeclaration> const&
@@ -437,8 +436,7 @@ struct Expression {
     constexpr Id<PublicVariableDeclaration>
     release_as_public_variable_declaration()
     {
-        return std::get<Id<PublicVariableDeclaration>>(
-            std::move(m_storage));
+        return std::get<Id<PublicVariableDeclaration>>(m_storage);
     }
 
     constexpr Id<PublicConstantDeclaration> const&
@@ -450,8 +448,7 @@ struct Expression {
     constexpr Id<PublicConstantDeclaration>
     release_as_public_constant_declaration()
     {
-        return std::get<Id<PublicConstantDeclaration>>(
-            std::move(m_storage));
+        return std::get<Id<PublicConstantDeclaration>>(m_storage);
     }
 
     constexpr Id<PrivateConstantDeclaration> const&
@@ -463,8 +460,7 @@ struct Expression {
     constexpr Id<PrivateConstantDeclaration>
     release_as_private_constant_declaration()
     {
-        return std::get<Id<PrivateConstantDeclaration>>(
-            std::move(m_storage));
+        return std::get<Id<PrivateConstantDeclaration>>(m_storage);
     }
 
     constexpr Id<StructDeclaration> const&
@@ -491,7 +487,7 @@ struct Expression {
 
     constexpr Id<RValue> release_as_rvalue()
     {
-        return std::get<Id<RValue>>(std::move(m_storage));
+        return std::get<Id<RValue>>(m_storage);
     }
 
     constexpr Id<If> const& as_if() const
@@ -526,9 +522,9 @@ struct Expression {
         return std::get<Id<PublicCFunction>>(m_storage);
     }
 
-    constexpr FunctionCall const& as_function_call() const
+    constexpr Id<FunctionCall> const& as_function_call() const
     {
-        return std::get<FunctionCall>(m_storage);
+        return std::get<Id<FunctionCall>>(m_storage);
     }
 
     constexpr Id<Block> const& as_block() const
@@ -538,12 +534,12 @@ struct Expression {
 
     constexpr Id<Block> release_as_block()
     {
-        return std::get<Id<Block>>(std::move(m_storage));
+        return std::get<Id<Block>>(m_storage);
     }
 
-    constexpr Return const& as_return() const
+    constexpr Id<Return> const& as_return() const
     {
-        return std::get<Return>(m_storage);
+        return std::get<Id<Return>>(m_storage);
     }
 
     constexpr ImportC const& as_import_c() const
@@ -553,7 +549,7 @@ struct Expression {
 
     constexpr ImportC release_as_import_c()
     {
-        auto import_c = std::get<ImportC>(std::move(m_storage));
+        auto import_c = std::get<ImportC>(m_storage);
         auto import_c_copy = import_c;
         import_c_copy.filename.start_index = 0;
         import_c_copy.filename.size = 0;
@@ -568,7 +564,7 @@ struct Expression {
 
     constexpr InlineC release_as_inline_c()
     {
-        auto inline_c = std::get<InlineC>(std::move(m_storage));
+        auto inline_c = std::get<InlineC>(m_storage);
         auto inline_c_copy = inline_c;
         inline_c_copy.literal.start_index = 0;
         inline_c_copy.literal.size = 0;
@@ -604,8 +600,8 @@ private:
         Id<PublicCFunction>,
         Id<PrivateFunction>,
         Id<PublicFunction>,
-        FunctionCall,
-        Return,
+        Id<FunctionCall>,
+        Id<Return>,
         ImportC,
         InlineC,
         Id<CompilerProvidedU64>
@@ -630,6 +626,12 @@ struct ParsedExpressions {
         name.push_back(value);                                   \
         return id;                                               \
     }                                                            \
+    constexpr Id<T> append(T const& value)                       \
+    {                                                            \
+        auto id = Id<T>(name.size());                            \
+        name.push_back(value);                                   \
+        return id;                                               \
+    }                                                            \
     std::vector<T> name { }
 
     SOA_MEMBER(Block, blocks);
@@ -648,6 +650,9 @@ struct ParsedExpressions {
 
     SOA_MEMBER(If, if_statements);
     SOA_MEMBER(While, while_statements);
+
+    SOA_MEMBER(FunctionCall, function_calls);
+    SOA_MEMBER(Return, returns);
 
     SOA_MEMBER(PrivateCFunction, private_c_functions);
     SOA_MEMBER(PrivateFunction, private_functions);
