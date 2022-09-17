@@ -132,13 +132,13 @@ void ArgumentParser::print_usage_and_exit(
     out << std::endl << std::endl;
     out << "FLAGS:" << std::endl;
     for (auto flag : flags) {
-        out << '\t' << flag.long_name << ", " << flag.short_name
+        out << '\t' << flag.short_name << ", " << flag.long_name
             << "\t\t " << flag.explanation << std::endl;
     }
     out << std::endl;
     out << "OPTIONS:" << std::endl;
     for (auto option : options) {
-        out << '\t' << option.long_name << ", " << option.short_name
+        out << '\t' << option.short_name << ", " << option.long_name
             << "\t <" << option.placeholder << ">\t\t "
             << option.explanation << std::endl;
     }
