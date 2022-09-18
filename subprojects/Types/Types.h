@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #ifndef __cplusplus
-#include <stdbool.h>
+#    include <stdbool.h>
 #endif
 
 typedef int8_t i8;
@@ -27,20 +27,20 @@ typedef char const* c_string;
 #define var __auto_type
 #define let __auto_type const
 
-#if __cplusplus
-#define M(name) m_##name
+#ifdef __cplusplus
+#    define M(name) m_##name
 #else
-#define M(name) name
+#    define M(name) name
 #endif
 
-#if __cplusplus
+#ifdef __cplusplus
 #    include <string_view>
 #endif
 typedef struct StringView {
     char const* data;
     u32 size;
 
-#if __cplusplus
+#ifdef __cplusplus
     constexpr StringView(std::string_view other)
         : data(other.data())
         , size(other.size())
@@ -72,7 +72,7 @@ inline std::ostream& operator<<(std::ostream& os, StringView view)
 }
 #endif
 
-#if __cplusplus
+#ifdef __cplusplus
 template <typename T>
 struct Id;
 #endif
@@ -97,10 +97,19 @@ typedef struct GenericId {
 
     constexpr u32 raw() const { return m_raw; }
     constexpr u8 type_id() const { return m_type_id; }
+
+    static constexpr GenericId invalid()
+    {
+        return GenericId { 0xFFFFFF, 0 };
+    }
+    constexpr bool is_valid() const { return m_type_id != 0; }
 #endif
 } GenericId;
+#ifndef __cplusplus
+inline static bool GenericId$is_valid(GenericId id) { return id.type_id != 0; }
+#endif
 
-#if __cplusplus
+#ifdef __cplusplus
 template <typename T>
 struct Id {
     constexpr Id() = default;
@@ -113,11 +122,17 @@ struct Id {
     constexpr Id(GenericId id)
         : m_raw(id.raw())
     {
-        if (id.type_id() != sizeof(T))
+        if (!id.is_valid()) {
+            *this = invalid();
+        } else if (id.type_id() != sizeof(T)) {
             __builtin_abort();
+        }
     }
 
     constexpr u32 raw() const { return m_raw; }
+
+    static constexpr Id<T> invalid() { return Id<T> { 0xFFFFFF }; }
+    constexpr bool is_valid() const { return m_raw != 0xFFFFFF; }
 
 private:
     u32 m_raw { 0 };
