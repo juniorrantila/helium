@@ -19,6 +19,7 @@ types_dep = subproject('Types').get_variable('types_dep')
 core_lib = library('core', [
     'Core/Error.cpp',
     'Core/MappedFile.cpp',
+    'Core/Vector.cpp',
     ], include_directories: '.',
     dependencies: types_dep)
 

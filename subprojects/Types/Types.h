@@ -74,12 +74,47 @@ inline std::ostream& operator<<(std::ostream& os, StringView view)
 
 #if __cplusplus
 template <typename T>
+struct Id;
+#endif
+
+typedef struct GenericId {
+    u32 M(raw) : 24;
+    u8 M(type_id);
+
+#if __cplusplus
+    template <typename T>
+    constexpr GenericId(Id<T> id)
+        : m_raw(id.raw())
+        , m_type_id(sizeof(T))
+    {
+    }
+
+    constexpr explicit GenericId(u32 raw_id, u8 type_id)
+        : m_raw(raw_id)
+        , m_type_id(type_id)
+    {
+    }
+
+    constexpr u32 raw() const { return m_raw; }
+    constexpr u8 type_id() const { return m_type_id; }
+#endif
+} GenericId;
+
+#if __cplusplus
+template <typename T>
 struct Id {
     constexpr Id() = default;
 
     constexpr explicit Id(u32 raw_id)
         : m_raw(raw_id)
     {
+    }
+
+    constexpr Id(GenericId id)
+        : m_raw(id.raw())
+    {
+        if (id.type_id() != sizeof(T))
+            __builtin_abort();
     }
 
     constexpr u32 raw() const { return m_raw; }
