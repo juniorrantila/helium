@@ -217,7 +217,7 @@ void FunctionCall::dump(ParsedExpressions const& expressions,
 {
     std::cerr << "FunctionCall(" << '\'' << name.text(source)
               << '\'' << " [";
-    if (!arguments.empty()) {
+    if (!arguments.is_empty()) {
         for (auto const& argument : arguments) {
             std::cerr << '\n';
             for (u32 i = 0; i < indent + 1; i++)

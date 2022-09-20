@@ -444,7 +444,7 @@ static void codegen_function_call(FileBuffer& out,
     auto source = context.source.text;
 
     out.write(function.name.text(source), "(");
-    if (function.arguments.empty()) {
+    if (function.arguments.is_empty()) {
         out.writeln(')');
         return;
     }

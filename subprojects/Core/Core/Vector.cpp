@@ -17,10 +17,10 @@ ErrorOrVector<All> Vector<All>::generic_create(u8 element_size)
     if (!data)
         return Error::from_string_literal(strerror(errno));
     return Vector<All> {
-        .m_data = data,
-        .m_size = 0,
-        .m_capacity = capacity,
-        .m_element_size = element_size,
+        data,
+        0,
+        capacity,
+        element_size,
     };
 }
 
@@ -67,7 +67,8 @@ u8* slot(Vector<All> vec, u32 index)
 template <>
 GenericId Vector<All>::generic_append(void const* __restrict value)
 {
-    if (m_size + 1 >= m_capacity) {
+    if (m_size >= m_capacity) {
+        fprintf(stderr, "%d %d\n", m_size, m_capacity);
         usize capacity = (usize)m_capacity * 2;
         auto alloc_size = m_element_size * capacity;
         auto* data = (u8*)realloc(m_data, alloc_size);
@@ -75,6 +76,7 @@ GenericId Vector<All>::generic_append(void const* __restrict value)
             // FIXME: Propagate errors.
             __builtin_abort();
         }
+        m_capacity = capacity;
         m_data = data;
     }
 

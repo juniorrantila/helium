@@ -17,6 +17,14 @@ struct ParseError {
     {
     }
 
+    constexpr ParseError(Core::Error error)
+        : message(error.m_message)
+        , hint(error.m_file)
+        , parser_function(error.m_function)
+        , offending_token(TokenType::Invalid, 0, 0)
+    {
+    }
+
     c_string message { nullptr };
     c_string hint { nullptr };
     c_string parser_function { nullptr };

@@ -107,6 +107,9 @@ int main(int argc, c_string argv[])
         return 1;
     }
     auto expressions = parse_result.release_value();
+    Core::Defer destroy_expressions = [&] {
+        expressions.destroy();
+    };
 
     if (dump_expressions) {
         for (auto const& expression : expressions.expressions) {

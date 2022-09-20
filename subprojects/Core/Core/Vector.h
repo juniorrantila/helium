@@ -29,6 +29,17 @@ struct Vector {
     u8 M(element_size);
 
 #if __cplusplus
+private:
+    constexpr Vector() = default;
+    constexpr Vector(u8* data, u32 size, u32 capacity, u8 element_size)
+        : m_data(data)
+        , m_size(size)
+        , m_capacity(capacity)
+        , m_element_size(element_size)
+    {
+    }
+public:
+
     static ErrorOrVector<T> generic_create(u8 element_size) asm(
         "Vector$generic_create");
 
@@ -55,18 +66,14 @@ struct Vector {
     void generic_at_index(void* return_value, u32 index) const
         asm("Vector$generic_at_index");
 
-    T operator[](Id<T> id) const
+    T& operator[](Id<T> id)
     {
-        T value;
-        generic_at(&value, id);
-        return value;
+        return ((T*)m_data)[id.raw()];
     }
 
-    T operator[](u32 index) const
+    T const& operator[](u32 index) const
     {
-        T value;
-        generic_at_index(&value, index);
-        return value;
+        return ((T const*)m_data)[index];
     }
 
     void const* generic_first() const asm("Vector$generic_first");
@@ -78,6 +85,14 @@ struct Vector {
     {
         usize end_index = (usize)m_size * (usize)m_element_size;
         return (T const*)&m_data[end_index];
+    }
+
+    constexpr T* begin() { return (T*)m_data; }
+
+    constexpr T* end()
+    {
+        usize end_index = (usize)m_size * (usize)m_element_size;
+        return (T*)&m_data[end_index];
     }
 #endif
 };
@@ -103,11 +118,11 @@ void Vector$generic_at(Vector const*, void* __restrict, GenericId);
         })
 
 void Vector$generic_at_index(Vector const*, void* __restrict, u32);
-#    define Vector$at(vec, T, index)           \
-        ({                                     \
-            T x;                               \
+#    define Vector$at(vec, T, index)                 \
+        ({                                           \
+            T x;                                     \
             Vector$generic_at_index(vec, &x, index); \
-            x;                                 \
+            x;                                       \
         })
 
 void const* Vector$generic_first(Vector const*);

@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Vector.h>
 #include <He/Token.h>
 #include <stdio.h>
 #include <string_view>
@@ -65,7 +66,7 @@ constexpr std::string_view expression_type_string(
 }
 
 struct Expression;
-using Expressions = std::vector<Expression>;
+using Expressions = Core::Vector<Expression>;
 
 struct Literal {
     Token token {};
@@ -74,6 +75,7 @@ struct Literal {
         u32 indent) const;
 };
 
+// FIXME: Fix memory leak.
 struct [[gnu::packed]] Block {
     Expressions expressions;
 
@@ -315,6 +317,26 @@ private:
 };
 
 struct ParsedExpressions {
+private:
+    constexpr ParsedExpressions(Expressions expressions)
+        : expressions(expressions)
+    {
+    }
+
+public:
+    static Core::ErrorOr<ParsedExpressions> create()
+    {
+        return { (TRY(Expressions::create())) };
+    }
+
+    void destroy() const {
+        for (auto function_call : function_calls)
+            function_call.arguments.destroy();
+        for (auto block : blocks)
+            block.expressions.destroy();
+        expressions.destroy();
+    }
+
 #define SOA_MEMBER(T, name)                                      \
     constexpr T& operator[](Id<T> id) { return name[id.raw()]; } \
     constexpr T const& operator[](Id<T> id) const                \
