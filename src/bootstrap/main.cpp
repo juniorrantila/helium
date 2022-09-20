@@ -30,9 +30,11 @@ int main(int argc, c_string argv[])
             argument_parser.print_usage_and_exit(program_name, 0);
         });
 
+    bool output_path_set = false;
     c_string output_path = "a.out";
     argument_parser.add_option("--output", "-o", "path",
         "output file path", [&](auto path) {
+            output_path_set = true;
             output_path = path;
         });
 
@@ -60,6 +62,8 @@ int main(int argc, c_string argv[])
     });
 
     argument_parser.run(argc, argv);
+    if (export_source && !output_path_set)
+        output_path = "a.c";
 
     auto file_or_error = Core::MappedFile::open(source_file_path);
     if (file_or_error.is_error()) {
@@ -158,29 +162,28 @@ int main(int argc, c_string argv[])
 
 static int move_file(c_string to, c_string from)
 {
-    (void)fflush(nullptr); // ??
-    char* argv[] = {
-        (char*)"mv",
-        (char*)from,
-        (char*)to,
-    };
-    int pid = -1;
-    if (posix_spawnp(&pid, argv[0], 0, 0, argv, environ) != 0) {
-        perror("posix_spawnp");
+    auto from_fd = open(from, O_RDONLY);
+    if (from_fd < 0)
         return -1;
-    }
-    if (pid < 0)
+    auto to_fd = open(to, O_WRONLY | O_CREAT, 0666);
+    if (to_fd < 0)
         return -1;
 
-    int exit_code = 0;
-    waitpid(pid, &exit_code, 0);
-    if (WIFEXITED(exit_code)) {
-        auto status = WEXITSTATUS(exit_code);
-        if (status > 0)
-            status = -status;
-        return status;
+    char c = 0;
+    for (isize rv = 0; rv != 0; rv = read(from_fd, &c, 1)) {
+        if (rv < 0)
+            return -1;
+        if (write(to_fd, &c, 1) < 0)
+            return -1;
     }
-    return -1;
+
+    close(from_fd);
+    close(to_fd);
+
+    if (unlink(from) < 0)
+        return -1;
+
+    return 0;
 }
 
 [[nodiscard]] static int compile_source(c_string destination_path,
