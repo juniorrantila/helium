@@ -1,4 +1,5 @@
 #include <CLI/ArgumentParser.h>
+#include <Core/Defer.h>
 #include <Core/MappedFile.h>
 #include <He/Context.h>
 #include <He/Expression.h>
@@ -83,6 +84,9 @@ int main(int argc, c_string argv[])
         return 1;
     }
     auto tokens = lex_result.release_value();
+    Core::Defer destroy_tokens = [&] {
+        tokens.destroy();
+    };
     if (dump_tokens) {
         for (u32 i = 0; i < tokens.size(); i++) {
             std::cerr << i << ' ';

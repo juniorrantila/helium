@@ -52,6 +52,9 @@ struct Vector {
     void generic_at(void* return_value, GenericId id) const
         asm("Vector$generic_at");
 
+    void generic_at_index(void* return_value, u32 index) const
+        asm("Vector$generic_at_index");
+
     T operator[](Id<T> id) const
     {
         T value;
@@ -59,13 +62,17 @@ struct Vector {
         return value;
     }
 
+    T operator[](u32 index) const
+    {
+        T value;
+        generic_at_index(&value, index);
+        return value;
+    }
+
     void const* generic_first() const asm("Vector$generic_first");
     void const* generic_last() const asm("Vector$generic_last");
 
-    constexpr T const* begin() const
-    {
-        return (T const*)m_data;
-    }
+    constexpr T const* begin() const { return (T const*)m_data; }
 
     constexpr T const* end() const
     {
@@ -93,6 +100,14 @@ void Vector$generic_at(Vector const*, void* __restrict, GenericId);
             T x;                            \
             Vector$generic_at(vec, &x, id); \
             x;                              \
+        })
+
+void Vector$generic_at_index(Vector const*, void* __restrict, u32);
+#    define Vector$at(vec, T, index)           \
+        ({                                     \
+            T x;                               \
+            Vector$generic_at_index(vec, &x, index); \
+            x;                                 \
         })
 
 void const* Vector$generic_first(Vector const*);

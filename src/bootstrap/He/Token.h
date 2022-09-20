@@ -1,7 +1,7 @@
 #pragma once
 #include <Types.h>
 #include <string_view>
-#include <vector>
+#include <Core/Vector.h>
 
 namespace He {
 
@@ -92,6 +92,6 @@ struct [[gnu::packed]] Token {
     u16 size { 0 };
     TokenType type { TokenType::Invalid };
 };
-using Tokens = std::vector<Token>;
+using Tokens = Core::Vector<Token>;
 
 }

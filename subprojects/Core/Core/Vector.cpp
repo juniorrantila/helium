@@ -91,6 +91,14 @@ void Vector<All>::generic_at(void* __restrict return_value,
 }
 
 template <>
+void Vector<All>::generic_at_index(void* __restrict return_value,
+    u32 index) const
+{
+    // FIXME: Verify id is valid
+    memcpy(return_value, slot(*this, index), m_element_size);
+}
+
+template <>
 void const* Vector<All>::generic_first() const
 {
     return m_data;

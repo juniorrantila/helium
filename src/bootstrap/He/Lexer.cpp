@@ -58,7 +58,7 @@ static LexItemResult lex_single_item(std::string_view source,
 
 LexResult lex(std::string_view source)
 {
-    Tokens tokens;
+    auto tokens = TRY(Tokens::create());
 
     for (u32 start = 0; start < source.size();) {
         auto character = source[start];
@@ -74,7 +74,7 @@ LexResult lex(std::string_view source)
         }
 
         auto token = TRY(lex_single_item(source, start));
-        tokens.push_back(token);
+        tokens.append(token);
         start = token.end_index();
     }
 

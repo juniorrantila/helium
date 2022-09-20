@@ -9,8 +9,19 @@
 namespace He {
 
 struct LexError {
-    std::string_view message {};
+    StringView message {};
     u32 source_index { 0 };
+
+    constexpr LexError(Core::Error error)
+        : message(error.message())
+    {
+    }
+
+    constexpr LexError(StringView message, u32 source_index)
+        : message(message)
+        , source_index(source_index)
+    {
+    }
 
     Core::ErrorOr<void> show(SourceFile source) const;
 };
