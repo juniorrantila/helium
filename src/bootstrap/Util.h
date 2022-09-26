@@ -11,8 +11,10 @@ struct LineAndColumn {
 };
 
 constexpr std::optional<LineAndColumn> line_and_column_for(
-    std::string_view source, u32 index)
+    StringView source_view, u32 index)
 {
+    auto source
+        = std::string_view { source_view.data, source_view.size };
     if (index >= source.size())
         return {};
 
@@ -30,9 +32,13 @@ constexpr std::optional<LineAndColumn> line_and_column_for(
     return LineAndColumn { line, column };
 }
 
-constexpr std::string_view fetch_line(std::string_view source,
+constexpr StringView fetch_line(StringView source_view,
     u32 line_to_find)
 {
+    auto source = std::string_view {
+        source_view.data,
+        source_view.size,
+    };
     u32 line = 0;
     u32 start = 0;
     while (start < source.size() && line != line_to_find)

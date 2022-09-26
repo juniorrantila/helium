@@ -6,8 +6,9 @@ namespace He {
 
 static std::string_view token_type_string(TokenType type);
 
-void Token::dump(std::string_view source) const
+void Token::dump(StringView source_view) const
 {
+    auto source = std::string_view(source_view.data, source_view.size);
     auto text = source.substr(start_index, size);
     auto start = *Util::line_and_column_for(source, start_index);
     start.line += 1;

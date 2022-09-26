@@ -22,6 +22,12 @@ constexpr static auto to_string_view(std::string_view data)
 }
 
 [[maybe_unused]]
+constexpr static auto to_string_view(StringView data)
+{
+    return std::string_view { data.data, data.size };
+}
+
+[[maybe_unused]]
 constexpr static auto to_string_view(std::string const& data)
 {
     return std::string_view { data.data(), data.size() };

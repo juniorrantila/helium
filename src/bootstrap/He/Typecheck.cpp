@@ -1,9 +1,9 @@
-#include <He/Expression.h>
 #include <Core/ErrorOr.h>
-#include <He/TypecheckedExpression.h>
 #include <He/Context.h>
+#include <He/Expression.h>
 #include <He/Parser.h>
 #include <He/Typecheck.h>
+#include <He/TypecheckedExpression.h>
 #include <SourceFile.h>
 
 namespace He {

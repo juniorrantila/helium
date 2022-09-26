@@ -5,7 +5,7 @@
 namespace He {
 
 void Expression::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     switch (type()) {
 #define X(type_name, instance_name, ...)                    \
@@ -20,7 +20,7 @@ void Expression::dump(ParsedExpressions const& expressions,
 }
 
 void PrivateVariableDeclaration::dump(
-    ParsedExpressions const& expressions, std::string_view source,
+    ParsedExpressions const& expressions, StringView source,
     u32 indent) const
 {
     std::cerr << "PrivateVariable(" << '\'' << name.text(source)
@@ -30,7 +30,7 @@ void PrivateVariableDeclaration::dump(
 }
 
 void PublicVariableDeclaration::dump(
-    ParsedExpressions const& expressions, std::string_view source,
+    ParsedExpressions const& expressions, StringView source,
     u32 indent) const
 {
     std::cerr << "PublicVariable(" << '\'' << name.text(source)
@@ -40,7 +40,7 @@ void PublicVariableDeclaration::dump(
 }
 
 void PrivateConstantDeclaration::dump(
-    ParsedExpressions const& expressions, std::string_view source,
+    ParsedExpressions const& expressions, StringView source,
     u32 indent) const
 {
     std::cerr << "PrivateConstant(" << '\'' << name.text(source)
@@ -50,7 +50,7 @@ void PrivateConstantDeclaration::dump(
 }
 
 void PublicConstantDeclaration::dump(
-    ParsedExpressions const& expressions, std::string_view source,
+    ParsedExpressions const& expressions, StringView source,
     u32 indent) const
 {
     std::cerr << "PublicConstant(" << '\'' << name.text(source)
@@ -59,8 +59,8 @@ void PublicConstantDeclaration::dump(
     std::cerr << ')';
 }
 
-void StructDeclaration::dump(ParsedExpressions const&,
-    std::string_view source, u32) const
+void StructDeclaration::dump(ParsedExpressions const& expressions,
+    StringView source, u32) const
 {
     std::cerr << "Struct(" << '\'' << name.text(source) << "' "
               << "[ ";
@@ -91,19 +91,19 @@ void StructInitializer::dump(ParsedExpressions const& expressions,
 }
 
 void Literal::dump(ParsedExpressions const&,
-    std::string_view source, u32) const
+    StringView source, u32) const
 {
     std::cerr << "Literal(" << token.text(source) << ")";
 }
 
-void LValue::dump(ParsedExpressions const&, std::string_view source,
+void LValue::dump(ParsedExpressions const&, StringView source,
     u32) const
 {
     std::cerr << "LValue('" << token.text(source) << "')";
 }
 
 void RValue::dump(ParsedExpressions const& parsed_expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "RValue(";
     for (auto const& expression : expressions) {
@@ -115,7 +115,7 @@ void RValue::dump(ParsedExpressions const& parsed_expressions,
 }
 
 void If::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "If(\n";
     for (u32 i = 0; i < indent + 1; i++)
@@ -132,7 +132,7 @@ void If::dump(ParsedExpressions const& expressions,
 }
 
 void While::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "While(\n";
     for (u32 i = 0; i < indent + 1; i++)
@@ -247,7 +247,7 @@ void Block::dump(ParsedExpressions const& parsed_expressions,
 }
 
 void Return::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "Return(";
     expressions[value].dump(expressions, source, indent);
@@ -255,24 +255,24 @@ void Return::dump(ParsedExpressions const& expressions,
 }
 
 void ImportC::dump(ParsedExpressions const&,
-    std::string_view source, u32) const
+    StringView source, u32) const
 {
     std::cerr << "ImportC(" << filename.text(source) << ")";
 }
 
 void InlineC::dump(ParsedExpressions const&,
-    std::string_view source, u32) const
+    StringView source, u32) const
 {
     std::cerr << "InlineC('" << literal.text(source) << "')";
 }
 
 void CompilerProvidedU64::dump(ParsedExpressions const&,
-    std::string_view, u32) const
+    StringView, u32) const
 {
     std::cerr << "CompilerProvidedU64('" << number << "')";
 }
 
-void Invalid::dump(ParsedExpressions const&, std::string_view, u32)
+void Invalid::dump(ParsedExpressions const&, StringView, u32)
 {
     std::cerr << "Trying to dump ExpressionType::Invalid\n";
     __builtin_abort();

@@ -15,8 +15,9 @@
 
 namespace He {
 
-#define FORWARD_DECLARE_CODEGEN(T, name) \
-    static void codegen_##name(FileBuffer&, Context const&, T const&)
+#define FORWARD_DECLARE_CODEGEN(T, name)                    \
+    static void codegen_##name(FileBuffer&, Context const&, \
+        T const&)
 
 #define X(T, name, ...) FORWARD_DECLARE_CODEGEN(T, name);
 EXPRESSIONS
@@ -475,7 +476,7 @@ static void codegen_import_c(FileBuffer& out,
 {
     auto source = context.source.text;
     auto filename = import_c.filename.text(source);
-    if (!filename.empty())
+    if (!filename.is_empty())
         out.writeln("#include ", import_c.filename.text(source));
 }
 

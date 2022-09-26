@@ -60,6 +60,24 @@ typedef struct StringView {
         , size(size)
     {
     }
+
+    constexpr bool operator == (StringView other) const
+    {
+        if (size != other.size)
+            return false;
+        if (data == other.data)
+            return true;
+        return __builtin_strncmp(data, other.data, size) == 0;
+    }
+
+    constexpr bool operator == (char const* other) const
+    {
+        return *this == StringView(other);
+    }
+
+    constexpr bool is_empty() const { return size == 0; }
+
+    constexpr char const& operator[](u32 index) const { return data[index]; }
 #endif
 } StringView;
 

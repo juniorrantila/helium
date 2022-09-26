@@ -54,7 +54,7 @@ EXPRESSIONS
 #undef FORWARD_DECLARE
 #undef X
 
-constexpr std::string_view expression_type_string(
+constexpr StringView expression_type_string(
     ExpressionType type)
 {
     switch (type) {
@@ -71,7 +71,7 @@ using Expressions = Core::Vector<Expression>;
 struct Literal {
     Token token {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -79,14 +79,14 @@ struct Literal {
 struct [[gnu::packed]] Block {
     Expressions expressions;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct CompilerProvidedU64 {
     u64 number;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -103,7 +103,7 @@ struct [[gnu::packed]] StructDeclaration {
     Token name {};
     Members members {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -117,7 +117,7 @@ struct [[gnu::packed]] StructInitializer {
     Initializers initializers {};
     Token type {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -127,7 +127,7 @@ struct [[gnu::packed]] PrivateFunction {
     Token return_type {};
     Id<Block> block;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -137,7 +137,7 @@ struct [[gnu::packed]] PublicFunction {
     Token return_type {};
     Id<Block> block;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -147,7 +147,7 @@ struct [[gnu::packed]] PrivateCFunction {
     Token return_type {};
     Id<Block> block;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -157,21 +157,21 @@ struct [[gnu::packed]] PublicCFunction {
     Token return_type {};
     Id<Block> block;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct [[gnu::packed]] LValue {
     Token token {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct [[gnu::packed]] RValue {
     std::vector<Expression> expressions;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -180,7 +180,7 @@ struct [[gnu::packed]] PrivateVariableDeclaration {
     Token type {};
     Id<Expression> value;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -189,7 +189,7 @@ struct [[gnu::packed]] PublicVariableDeclaration {
     Token type {};
     Id<Expression> value;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -198,7 +198,7 @@ struct [[gnu::packed]] PrivateConstantDeclaration {
     Token type {};
     Id<Expression> value;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -207,7 +207,7 @@ struct [[gnu::packed]] PublicConstantDeclaration {
     Token type {};
     Id<Expression> value;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -215,7 +215,7 @@ struct [[gnu::packed]] If {
     Id<RValue> condition;
     Id<Block> block;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -223,14 +223,14 @@ struct [[gnu::packed]] While {
     Id<RValue> condition;
     Id<Block> block;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct [[gnu::packed]] Return {
     Id<Expression> value;
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
@@ -238,33 +238,33 @@ struct [[gnu::packed]] FunctionCall {
     Expressions arguments;
     Token name {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct [[gnu::packed]] ImportC {
     Token filename {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct [[gnu::packed]] InlineC {
     Token literal {};
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
 struct Moved {
-    static void dump(ParsedExpressions const&, std::string_view,
+    static void dump(ParsedExpressions const&, StringView,
         u32)
     {
     }
 };
 
 struct Invalid {
-    static void dump(ParsedExpressions const&, std::string_view,
+    static void dump(ParsedExpressions const&, StringView,
         u32);
 };
 
@@ -291,7 +291,7 @@ struct Expression {
 #undef X
 #undef VARIANT
 
-    void dump(ParsedExpressions const&, std::string_view source,
+    void dump(ParsedExpressions const&, StringView source,
         u32 indent = 0) const;
 
 private:

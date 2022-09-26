@@ -8,8 +8,13 @@
 namespace He {
 
 struct TypecheckError {
-    std::string_view message {};
+    StringView message {};
     u32 offending_expression_index { 0 };
+
+    TypecheckError(Core::Error error)
+        : message(error.message())
+    {
+    }
 
     Core::ErrorOr<void> show(Context const& context) const;
 };

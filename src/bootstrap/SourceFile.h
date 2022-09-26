@@ -1,7 +1,7 @@
 #pragma once
-#include <string_view>
+#include <Types.h>
 
 struct SourceFile {
-    std::string_view file_name {};
-    std::string_view text {};
+    StringView file_name {};
+    StringView text {};
 };

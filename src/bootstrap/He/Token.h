@@ -76,10 +76,10 @@ struct [[gnu::packed]] Token {
 
     constexpr Token() = default;
 
-    void dump(std::string_view source) const;
-    std::string_view text(std::string_view source) const
+    void dump(StringView source) const;
+    StringView text(StringView source) const
     {
-        return source.substr(start_index, size);
+        return { &source.data[start_index], size };
     }
 
     constexpr void set_end_index(u32 index)
