@@ -32,8 +32,9 @@ struct [[nodiscard]] ErrorOr {
     {
     }
 
-    constexpr ErrorOr(Error error)
-        requires(!std::is_same_v<E, Error> && std::is_constructible_v<E, Error>)
+    template <typename EE>
+    constexpr ErrorOr(EE error)
+        requires(!std::is_same_v<E, Error> && std::is_constructible_v<E, EE>)
         : m_storage(E(error))
     {
     }
@@ -59,7 +60,7 @@ private:
 };
 
 template <typename E>
-struct ErrorOr<void, E> {
+struct [[nodiscard]] ErrorOr<void, E> {
     constexpr ErrorOr() = default;
 
     constexpr ErrorOr(E error)
@@ -67,11 +68,18 @@ struct ErrorOr<void, E> {
     {
     }
 
+    template <typename EE>
+    constexpr ErrorOr(EE error)
+        requires(!std::is_same_v<E, Error> && std::is_constructible_v<E, EE>)
+        : m_error(EE(error))
+    {
+    }
+
     constexpr bool is_error() const { return m_error.has_value(); }
 
     void release_value() const { }
 
-    Error release_error() const { return std::move(*m_error); }
+    E release_error() const { return std::move(*m_error); }
 
     E const& error() const { return *m_error; }
 

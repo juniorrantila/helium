@@ -1,175 +1,163 @@
 #pragma once
-#include <Core/Error.h>
+#include <Core/ErrorOr.h>
+#include <Core/Try.h>
 #include <Types.h>
-#include <string.h>
-#if __cplusplus
-#    include <Core/ErrorOr.h>
-#    include <Core/Try.h>
-#endif
+#include <type_traits>
 
-#ifdef __cplusplus
 namespace Core {
-#endif
 
-#if __cplusplus
-template <typename T = u8>
-struct ErrorOrVector;
-#else
-typedef struct Vector Vector;
-typedef struct ErrorOrVector ErrorOrVector;
-#endif
-
-#if __cplusplus
 template <typename T>
-#endif
 struct Vector {
-    u8* M(data);
-    u32 M(size);
-    u32 M(capacity) : 24;
-    u8 M(element_size);
-
-#if __cplusplus
-private:
-    constexpr Vector() = default;
-    constexpr Vector(u8* data, u32 size, u32 capacity, u8 element_size)
-        : m_data(data)
-        , m_size(size)
-        , m_capacity(capacity)
-        , m_element_size(element_size)
+    static constexpr ErrorOr<Vector<T>> create(
+        u32 starting_capacity = 32)
     {
+        auto* data
+            = (T*)__builtin_malloc(sizeof(T) * starting_capacity);
+        if (!data)
+            return Error::from_errno();
+        return Vector { data, starting_capacity };
     }
-public:
 
-    static ErrorOrVector<T> generic_create(u8 element_size) asm(
-        "Vector$generic_create");
-
-    static ErrorOr<Vector<T>> create()
+    constexpr Vector(Vector&& other)
+        : m_data(other.m_data)
+        , m_size(other.m_size)
+        , m_capacity(other.m_capacity)
     {
-        return TRY(generic_create(sizeof(T)));
+        other.invalidate();
     }
-    void destroy() const asm("Vector$destroy");
 
-    bool is_valid() const asm("Vector$is_valid");
-    void invalidate() asm("Vector$invalidate");
+    constexpr ~Vector()
+    {
+        if (is_valid()) {
+            destroy_elements();
+            __builtin_free(m_data);
+            invalidate();
+        }
+    }
 
+    constexpr Id<T> unchecked_append(T&& value)
+        requires (!std::is_trivially_copyable_v<T>)
+    {
+        new (current_slot()) T(std::move(value));
+        return Id<T>(m_size++);
+    }
+
+    constexpr Id<T> unchecked_append(T value)
+        requires (std::is_trivially_copyable_v<T>)
+    {
+        new (current_slot()) T(value);
+        return Id<T>(m_size++);
+    }
+
+    constexpr ErrorOr<Id<T>> append(T&& value)
+        requires (!std::is_trivially_copyable_v<T>)
+    {
+        TRY(expand_if_needed());
+        return unchecked_append(std::move(value));
+    }
+
+    constexpr ErrorOr<Id<T>> append(T value)
+        requires (std::is_trivially_copyable_v<T>)
+    {
+        TRY(expand_if_needed());
+        return unchecked_append(value);
+    }
+
+    constexpr ErrorOr<void> ensure_capacity(u32 capacity)
+    {
+        if (m_capacity < capacity)
+            TRY(expand(capacity));
+        return {};
+    }
+
+    constexpr ErrorOr<void> reserve(u32 elements)
+    {
+        if (elements > 0)
+            TRY(expand(m_capacity + elements));
+        return {};
+    }
+
+    constexpr T const& at(u32 index) const { return m_data[index]; }
+
+    constexpr T const& at(Id<T> id) const { return at(id.raw()); }
+
+    constexpr T const& operator[](u32 index) const
+    {
+        return at(index);
+    }
+
+    constexpr T const& operator[](Id<T> id) const { return at(id); }
+
+    constexpr T& operator[](u32 index) { return m_data[index]; }
+
+    constexpr T& operator[](Id<T> id) { return m_data[id.raw()]; }
+
+    constexpr T* begin() { return m_data; }
+    constexpr T* end() { return &m_data[m_size]; }
+
+    constexpr T const* begin() const { return m_data; }
+    constexpr T const* end() const { return &m_data[m_size]; }
+
+    constexpr T* data() { return m_data; }
+    constexpr T const* data() const { return m_data; }
     constexpr u32 size() const { return m_size; }
+
     constexpr bool is_empty() const { return m_size == 0; }
 
-    GenericId generic_append(void const* __restrict value) asm(
-        "Vector$generic_append");
-
-    Id<T> append(T const& value) { return generic_append(&value); }
-
-    void generic_at(void* return_value, GenericId id) const
-        asm("Vector$generic_at");
-
-    void generic_at_index(void* return_value, u32 index) const
-        asm("Vector$generic_at_index");
-
-    T& operator[](Id<T> id)
+private:
+    constexpr ErrorOr<void> expand(u32 capacity)
     {
-        return ((T*)m_data)[id.raw()];
+        auto* data
+            = (T*)__builtin_realloc(m_data, capacity * sizeof(T));
+        if (!data)
+            return Error::from_errno();
+        m_capacity = capacity;
+        m_data = data;
+
+        return {};
     }
 
-    T const& operator[](u32 index) const
+    constexpr void destroy_elements() const
+        requires (!std::is_trivially_destructible_v<T>)
     {
-        return ((T const*)m_data)[index];
+        for (u32 i = 0; i < m_size; i++) 
+            data()[i].~T();
     }
 
-    void const* generic_first() const asm("Vector$generic_first");
-    void const* generic_last() const asm("Vector$generic_last");
-
-    constexpr T const* begin() const { return (T const*)m_data; }
-
-    constexpr T const* end() const
+    constexpr void destroy_elements() const
+        requires (std::is_trivially_destructible_v<T>)
     {
-        usize end_index = (usize)m_size * (usize)m_element_size;
-        return (T const*)&m_data[end_index];
     }
 
-    constexpr T* begin() { return (T*)m_data; }
+    constexpr bool is_valid() const { return m_data != nullptr; }
 
-    constexpr T* end()
+    constexpr void invalidate() { m_data = nullptr; }
+
+    constexpr T* current_slot() { return &m_data[m_size]; }
+
+    constexpr ErrorOr<void> expand_if_needed()
     {
-        usize end_index = (usize)m_size * (usize)m_element_size;
-        return (T*)&m_data[end_index];
+        if (m_size >= m_capacity)
+            TRY(expand());
+        return {};
     }
-#endif
+
+    constexpr ErrorOr<void> expand()
+    {
+        TRY(expand(m_capacity * 1.5));
+        return {};
+    }
+
+    constexpr Vector(T* data, u32 capacity)
+        : m_data(data)
+        , m_size(0)
+        , m_capacity(capacity)
+    {
+    }
+
+    T* m_data { nullptr };
+    u32 m_size { 0 };
+    u32 m_capacity { 0 };
 };
 
-#ifndef __cplusplus
-ErrorOrVector Vector$generic_create(u8 element_size);
-#    define Vector$create(T) Vector$generic_create(sizeof(T))
-
-void Vector$destroy(Vector const*);
-GenericId Vector$generic_append(Vector*, void const* __restrict);
-#    define Vector$append(vec, T, value)    \
-        ({                                  \
-            T x = (T)(value);               \
-            Vector$generic_append(vec, &x); \
-        })
-
-void Vector$generic_at(Vector const*, void* __restrict, GenericId);
-#    define Vector$at(vec, T, id)           \
-        ({                                  \
-            T x;                            \
-            Vector$generic_at(vec, &x, id); \
-            x;                              \
-        })
-
-void Vector$generic_at_index(Vector const*, void* __restrict, u32);
-#    define Vector$at(vec, T, index)                 \
-        ({                                           \
-            T x;                                     \
-            Vector$generic_at_index(vec, &x, index); \
-            x;                                       \
-        })
-
-void const* Vector$generic_first(Vector const*);
-#    define Vector$first(vec, T) ((T*)Vector$generic_first(vec))
-
-void const* Vector$generic_last(Vector const*);
-#    define Vector$last(vec, T) ((T*)Vector$generic_last(vec))
-#endif
-
-#if __cplusplus
-template <typename T>
-#endif
-struct ErrorOrVector {
-#if __cplusplus
-    union {
-        Vector<T> M(value);
-        Error M(error);
-    };
-#else
-    union {
-        Vector M(value);
-        Error M(error);
-    };
-#endif
-    bool M(is_error);
-
-#ifdef __cplusplus
-    ErrorOrVector(Error error)
-        : m_error(error)
-        , m_is_error(true)
-    {
-    }
-
-    template <typename U>
-    ErrorOrVector(Vector<U>&& value)
-        : m_value(*(Vector<T>*)(&value))
-        , m_is_error(false)
-    {
-    }
-
-    constexpr Error const& error() const { return m_error; }
-    constexpr Error release_error() const { return m_error; }
-    Vector<T> release_value() const { return m_value; }
-    constexpr bool is_error() const { return m_is_error; }
-#endif
-};
-
-#ifdef __cplusplus
 }
-#endif
