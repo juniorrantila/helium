@@ -78,7 +78,7 @@ LexResult lex(StringView source_view)
         }
 
         auto token = TRY(lex_single_item(source, start));
-        tokens.append(token);
+        TRY(tokens.append(token));
         start = token.end_index();
     }
 

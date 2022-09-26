@@ -1,42 +1,56 @@
 #pragma once
+#include <Core/Vector.h>
 #include <He/Context.h>
 #include <He/Lexer.h>
 #include <He/Parser.h>
-#include <vector>
 
 namespace He {
 
 struct FunctionForwardDeclaration {
     Token name {};
     Token return_type {};
-    Parameters const& parameters {};
+    Parameters const& parameters;
 };
 using FunctionForwardDeclarations
-    = std::vector<FunctionForwardDeclaration>;
+    = Core::Vector<FunctionForwardDeclaration>;
 
 struct StructForwardDeclaration {
     Token name {};
 };
 using StructForwardDeclarations
-    = std::vector<StructForwardDeclaration>;
+    = Core::Vector<StructForwardDeclaration>;
 
 struct TypecheckedExpressions {
-    std::vector<Token> import_c_filenames {};
-    std::vector<Token> inline_c_expressions {};
+
+    static Core::ErrorOr<TypecheckedExpressions> create()
+    {
+        return TypecheckedExpressions {
+            TRY(Tokens::create()),
+            TRY(Tokens::create()),
+            TRY(FunctionForwardDeclarations::create()),
+            TRY(FunctionForwardDeclarations::create()),
+            TRY(FunctionForwardDeclarations::create()),
+            TRY(FunctionForwardDeclarations::create()),
+            TRY(StructForwardDeclarations::create()),
+        };
+    }
+
+    Tokens import_cs;
+    Tokens inline_cs;
 
     FunctionForwardDeclarations
-        private_function_forward_declarations {};
+        private_function_forwards;
 
     FunctionForwardDeclarations
-        private_c_function_forward_declarations {};
+        private_c_function_forwards;
 
     FunctionForwardDeclarations
-        public_function_forward_declarations {};
+        public_function_forwards;
 
     FunctionForwardDeclarations
-        public_c_function_forward_declarations {};
+        public_c_function_forwards;
 
-    StructForwardDeclarations struct_forward_declarations {};
+    StructForwardDeclarations struct_forwards;
 
     void codegen(int out_fd, Context const&) const;
 };

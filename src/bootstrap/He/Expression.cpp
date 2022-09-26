@@ -64,7 +64,7 @@ void StructDeclaration::dump(ParsedExpressions const& expressions,
 {
     std::cerr << "Struct(" << '\'' << name.text(source) << "' "
               << "[ ";
-    for (auto member : members) {
+    for (auto member : expressions[members]) {
         auto type = member.type;
         auto name = member.name;
         std::cerr << '\'' << name.text(source) << "' '"
@@ -75,12 +75,12 @@ void StructDeclaration::dump(ParsedExpressions const& expressions,
 }
 
 void StructInitializer::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "StructInitializer(" << '\'' << type.text(source)
               << "' "
               << "{ ";
-    for (auto member : initializers) {
+    for (auto member : expressions[initializers]) {
         auto name = member.name;
         std::cerr << '\'' << name.text(source) << "' = ";
         expressions[member.value].dump(expressions, source, indent);
@@ -106,7 +106,7 @@ void RValue::dump(ParsedExpressions const& parsed_expressions,
     StringView source, u32 indent) const
 {
     std::cerr << "RValue(";
-    for (auto const& expression : expressions) {
+    for (auto const& expression : parsed_expressions[expressions]) {
         expression.dump(parsed_expressions, source, indent);
         std::cerr << ' ';
     }
@@ -149,13 +149,13 @@ void While::dump(ParsedExpressions const& expressions,
 }
 
 void PrivateFunction::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "PrivateFunction('";
     std::cerr << name.text(source) << "' "
               << return_type.text(source) << ' ';
     std::cerr << "[ ";
-    for (auto parameter : parameters) {
+    for (auto parameter : expressions[parameters]) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
@@ -165,13 +165,13 @@ void PrivateFunction::dump(ParsedExpressions const& expressions,
 }
 
 void PublicFunction::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "PublicFunction(";
     std::cerr << '\'' << name.text(source) << "' " << '\''
               << return_type.text(source) << "' ";
     std::cerr << "[ ";
-    for (auto parameter : parameters) {
+    for (auto parameter : expressions[parameters]) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
@@ -181,13 +181,13 @@ void PublicFunction::dump(ParsedExpressions const& expressions,
 }
 
 void PrivateCFunction::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "PrivateCFunction(";
     std::cerr << '\'' << name.text(source) << "' " << '\''
               << return_type.text(source) << "' ";
     std::cerr << "[ ";
-    for (auto parameter : parameters) {
+    for (auto parameter : expressions[parameters]) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
@@ -197,13 +197,13 @@ void PrivateCFunction::dump(ParsedExpressions const& expressions,
 }
 
 void PublicCFunction::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "PublicCFunction(";
     std::cerr << '\'' << name.text(source) << "' " << '\''
               << return_type.text(source) << "' ";
     std::cerr << "[ ";
-    for (auto parameter : parameters) {
+    for (auto parameter : expressions[parameters]) {
         std::cerr << '\'' << parameter.name.text(source) << "': ";
         std::cerr << '\'' << parameter.type.text(source) << "' ";
     }
@@ -213,12 +213,12 @@ void PublicCFunction::dump(ParsedExpressions const& expressions,
 }
 
 void FunctionCall::dump(ParsedExpressions const& expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "FunctionCall(" << '\'' << name.text(source)
               << '\'' << " [";
-    if (!arguments.is_empty()) {
-        for (auto const& argument : arguments) {
+    if (!expressions[arguments].is_empty()) {
+        for (auto const& argument : expressions[arguments]) {
             std::cerr << '\n';
             for (u32 i = 0; i < indent + 1; i++)
                 std::cerr << ' ';
@@ -232,10 +232,10 @@ void FunctionCall::dump(ParsedExpressions const& expressions,
 }
 
 void Block::dump(ParsedExpressions const& parsed_expressions,
-    std::string_view source, u32 indent) const
+    StringView source, u32 indent) const
 {
     std::cerr << "{\n";
-    for (auto const& expression : expressions) {
+    for (auto const& expression : parsed_expressions[expressions]) {
         for (u32 i = 0; i < indent + 1; i++)
             std::cerr << ' ';
         expression.dump(parsed_expressions, source, indent + 1);

@@ -125,21 +125,20 @@ typedef char const* c_string;
 )c";
     out.write(prelude);
 
-    for (auto filename : import_c_filenames) {
+    for (auto filename : import_cs) {
         out.writeln("#include ",
             filename.text(context.source.text));
     }
 
-    for (auto inline_c_expression : inline_c_expressions)
+    for (auto inline_c_expression : inline_cs)
         out.write(inline_c_expression.text(context.source.text));
 
-    for (auto declaration : struct_forward_declarations) {
+    for (auto declaration : struct_forwards) {
         auto name = declaration.name.text(context.source.text);
         out.writeln("typedef struct ", name, ' ', name, ';');
     }
 
-    for (auto const& function :
-        public_function_forward_declarations) {
+    for (auto const& function : public_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write(type, ' ', name);
@@ -147,8 +146,7 @@ typedef char const* c_string;
         out.writeln(';');
     }
 
-    for (auto const& function :
-        private_function_forward_declarations) {
+    for (auto const& function : private_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write("static ", type, ' ', name);
@@ -156,8 +154,7 @@ typedef char const* c_string;
         out.writeln(';');
     }
 
-    for (auto const& function :
-        public_c_function_forward_declarations) {
+    for (auto const& function : public_c_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write(type, ' ', name);
@@ -165,8 +162,7 @@ typedef char const* c_string;
         out.writeln(';');
     }
 
-    for (auto const& function :
-        private_c_function_forward_declarations) {
+    for (auto const& function : private_c_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         out.write("static ", type, ' ', name);
@@ -195,7 +191,7 @@ static void codegen_parameters(FileBuffer& out,
     Context const& context, Parameters const& parameters)
 {
     auto source = context.source.text;
-    if (parameters.empty()) {
+    if (parameters.is_empty()) {
         out.write("(void)");
         return;
     }
@@ -320,7 +316,7 @@ static void codegen_struct_declaration(FileBuffer& out,
 {
     auto source = context.source.text;
     out.writeln("struct ", struct_.name.text(source), "{");
-    for (auto member : struct_.members) {
+    for (auto member : context.expressions[struct_.members]) {
         auto type = member.type.text(source);
         auto name = member.name.text(source);
         out.writeln(type, ' ', name, ';');
@@ -332,8 +328,9 @@ static void codegen_struct_initializer(FileBuffer& out,
     Context const& context, StructInitializer const& initializer)
 {
     auto source = context.source.text;
+    auto const& expressions = context.expressions;
     out.write('(', initializer.type.text(source), ") {");
-    for (auto member : initializer.initializers) {
+    for (auto member : expressions[initializer.initializers]) {
         auto name = member.name.text(source);
         out.writeln('.', name, '=');
         auto const& irvalue = context.expressions[member.value];
@@ -360,7 +357,9 @@ static void codegen_lvalue(FileBuffer& out, Context const& context,
 static void codegen_rvalue(FileBuffer& out, Context const& context,
     RValue const& rvalue)
 {
-    for (auto const& expression : rvalue.expressions)
+    auto const& expressions = context.expressions;
+
+    for (auto const& expression : expressions[rvalue.expressions])
         codegen_expression_in_rvalue(out, context, expression);
 }
 
@@ -390,7 +389,9 @@ static void codegen_block(FileBuffer& out, Context const& context,
     Block const& block)
 {
     out.writeln('{');
-    for (auto const& expression : block.expressions)
+    auto const& expressions
+        = context.expressions[block.expressions];
+    for (auto const& expression : expressions)
         codegen_expression(out, context, expression);
     out.writeln('}');
 }
@@ -399,9 +400,11 @@ static void codegen_private_function(FileBuffer& out,
     Context const& context, PrivateFunction const& function)
 {
     auto source = context.source.text;
+    auto const& expressions = context.expressions;
     out.write("static ", function.return_type.text(source), " ",
         function.name.text(source));
-    codegen_parameters(out, context, function.parameters);
+    codegen_parameters(out, context,
+        expressions[function.parameters]);
     codegen_block(out, context,
         context.expressions[function.block]);
 }
@@ -410,9 +413,12 @@ static void codegen_public_function(FileBuffer& out,
     Context const& context, PublicFunction const& function)
 {
     auto source = context.source.text;
+    auto const& expressions = context.expressions;
+
     out.write(function.return_type.text(source), " ",
         function.name.text(source));
-    codegen_parameters(out, context, function.parameters);
+    codegen_parameters(out, context,
+        expressions[function.parameters]);
     codegen_block(out, context,
         context.expressions[function.block]);
 }
@@ -421,9 +427,12 @@ static void codegen_private_c_function(FileBuffer& out,
     Context const& context, PrivateCFunction const& function)
 {
     auto source = context.source.text;
+    auto const& expressions = context.expressions;
+
     out.write("static ", function.return_type.text(source), " ",
         function.name.text(source));
-    codegen_parameters(out, context, function.parameters);
+    codegen_parameters(out, context,
+        expressions[function.parameters]);
     codegen_block(out, context,
         context.expressions[function.block]);
 }
@@ -432,9 +441,12 @@ static void codegen_public_c_function(FileBuffer& out,
     Context const& context, PublicCFunction const& function)
 {
     auto source = context.source.text;
+    auto const& expressions = context.expressions;
+
     out.write(function.return_type.text(source), " ",
         function.name.text(source));
-    codegen_parameters(out, context, function.parameters);
+    codegen_parameters(out, context,
+        expressions[function.parameters]);
     codegen_block(out, context,
         context.expressions[function.block]);
 }
@@ -443,21 +455,23 @@ static void codegen_function_call(FileBuffer& out,
     Context const& context, FunctionCall const& function)
 {
     auto source = context.source.text;
+    auto const& expressions = context.expressions;
+    auto const& arguments = expressions[function.arguments];
 
     out.write(function.name.text(source), "(");
-    if (function.arguments.is_empty()) {
+    if (arguments.is_empty()) {
         out.writeln(')');
         return;
     }
-    for (u32 i = 0; i < function.arguments.size() - 1; i++) {
-        auto const& argument = function.arguments[i].as_rvalue();
-        codegen_rvalue(out, context, context.expressions[argument]);
+    for (u32 i = 0; i < arguments.size() - 1; i++) {
+        auto const& argument = arguments[i].as_rvalue();
+        codegen_rvalue(out, context, expressions[argument]);
         out.write(", ");
     }
-    auto last_index = function.arguments.size() - 1;
-    auto const& last_argument = function.arguments[last_index];
+    auto last_index = arguments.size() - 1;
+    auto const& last_argument = arguments[last_index];
     codegen_rvalue(out, context,
-        context.expressions[last_argument.as_rvalue()]);
+        expressions[last_argument.as_rvalue()]);
     out.writeln(')');
 }
 

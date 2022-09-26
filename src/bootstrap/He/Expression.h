@@ -2,8 +2,6 @@
 #include <Core/Vector.h>
 #include <He/Token.h>
 #include <stdio.h>
-#include <string_view>
-#include <vector>
 
 namespace He {
 
@@ -75,9 +73,8 @@ struct Literal {
         u32 indent) const;
 };
 
-// FIXME: Fix memory leak.
-struct [[gnu::packed]] Block {
-    Expressions expressions;
+struct Block {
+    Id<Expressions> expressions;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
@@ -90,18 +87,26 @@ struct CompilerProvidedU64 {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] Variable {
+struct Variable {
     Token name {};
     Token type {};
 };
-using Parameters = std::vector<Variable>;
-using Variables = std::vector<Variable>;
-using Members = std::vector<Variable>;
-using Member = Variable;
 
-struct [[gnu::packed]] StructDeclaration {
+struct Parameter {
     Token name {};
-    Members members {};
+    Token type {};
+};
+using Parameters = Core::Vector<Parameter>;
+
+struct Member {
+    Token name {};
+    Token type {};
+};
+using Members = Core::Vector<Member>;
+
+struct StructDeclaration {
+    Token name {};
+    Id<Members> members;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
@@ -111,71 +116,71 @@ struct Initializer {
     Token name {};
     Id<RValue> value {};
 };
-using Initializers = std::vector<Initializer>;
+using Initializers = Core::Vector<Initializer>;
 
-struct [[gnu::packed]] StructInitializer {
-    Initializers initializers {};
+struct StructInitializer {
     Token type {};
+    Id<Initializers> initializers;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PrivateFunction {
-    Parameters parameters {};
+struct PrivateFunction {
     Token name {};
     Token return_type {};
+    Id<Parameters> parameters;
     Id<Block> block;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PublicFunction {
-    Parameters parameters {};
+struct PublicFunction {
     Token name {};
     Token return_type {};
+    Id<Parameters> parameters;
     Id<Block> block;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PrivateCFunction {
-    Parameters parameters {};
+struct PrivateCFunction {
     Token name {};
     Token return_type {};
+    Id<Parameters> parameters;
     Id<Block> block;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PublicCFunction {
-    Parameters parameters {};
+struct PublicCFunction {
     Token name {};
     Token return_type {};
+    Id<Parameters> parameters;
     Id<Block> block;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] LValue {
+struct LValue {
     Token token {};
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] RValue {
-    std::vector<Expression> expressions;
+struct RValue {
+    Id<Expressions> expressions;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PrivateVariableDeclaration {
+struct PrivateVariableDeclaration {
     Token name {};
     Token type {};
     Id<Expression> value;
@@ -184,7 +189,7 @@ struct [[gnu::packed]] PrivateVariableDeclaration {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PublicVariableDeclaration {
+struct PublicVariableDeclaration {
     Token name {};
     Token type {};
     Id<Expression> value;
@@ -193,7 +198,7 @@ struct [[gnu::packed]] PublicVariableDeclaration {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PrivateConstantDeclaration {
+struct PrivateConstantDeclaration {
     Token name {};
     Token type {};
     Id<Expression> value;
@@ -202,7 +207,7 @@ struct [[gnu::packed]] PrivateConstantDeclaration {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] PublicConstantDeclaration {
+struct PublicConstantDeclaration {
     Token name {};
     Token type {};
     Id<Expression> value;
@@ -211,7 +216,7 @@ struct [[gnu::packed]] PublicConstantDeclaration {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] If {
+struct If {
     Id<RValue> condition;
     Id<Block> block;
 
@@ -219,7 +224,7 @@ struct [[gnu::packed]] If {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] While {
+struct While {
     Id<RValue> condition;
     Id<Block> block;
 
@@ -227,29 +232,29 @@ struct [[gnu::packed]] While {
         u32 indent) const;
 };
 
-struct [[gnu::packed]] Return {
+struct Return {
     Id<Expression> value;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] FunctionCall {
-    Expressions arguments;
+struct FunctionCall {
     Token name {};
+    Id<Expressions> arguments;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] ImportC {
+struct ImportC {
     Token filename {};
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
 };
 
-struct [[gnu::packed]] InlineC {
+struct InlineC {
     Token literal {};
 
     void dump(ParsedExpressions const&, StringView source,
@@ -317,51 +322,61 @@ private:
 };
 
 struct ParsedExpressions {
-private:
-    constexpr ParsedExpressions(Expressions expressions)
-        : expressions(expressions)
-    {
-    }
-
 public:
     static Core::ErrorOr<ParsedExpressions> create()
     {
-        return { (TRY(Expressions::create())) };
+#define X(T, name, ...) .name##s = TRY(Core::Vector<T>::create()),
+        // clang-format off
+        return ParsedExpressions {
+            EXPRESSIONS
+            .late_expressions = TRY(Expressions::create()),
+            .block_data = TRY(Core::Vector<Expressions>::create()),
+            .memberss = TRY(Core::Vector<Members>::create()),
+            .initializerss = TRY(Core::Vector<Initializers>::create()),
+            .parameterss = TRY(Core::Vector<Parameters>::create()),
+            .expressions = TRY(Expressions::create()),
+        };
+        // clang-format on
+#undef X
     }
 
-    void destroy() const {
-        for (auto function_call : function_calls)
-            function_call.arguments.destroy();
-        for (auto block : blocks)
-            block.expressions.destroy();
-        expressions.destroy();
-    }
-
-#define SOA_MEMBER(T, name)                                      \
-    constexpr T& operator[](Id<T> id) { return name[id.raw()]; } \
-    constexpr T const& operator[](Id<T> id) const                \
-    {                                                            \
-        return name[id.raw()];                                   \
-    }                                                            \
-    constexpr Id<T> append(T&& value)                            \
-    {                                                            \
-        auto id = Id<T>(name.size());                            \
-        name.push_back(value);                                   \
-        return id;                                               \
-    }                                                            \
-    constexpr Id<T> append(T const& value)                       \
-    {                                                            \
-        auto id = Id<T>(name.size());                            \
-        name.push_back(value);                                   \
-        return id;                                               \
-    }                                                            \
-    std::vector<T> name { }
+#define SOA_MEMBER(T, name)                                    \
+    constexpr T& operator[](Id<T> id) { return name[id]; }     \
+    constexpr T const& operator[](Id<T> id) const              \
+    {                                                          \
+        return name[id];                                       \
+    }                                                          \
+    constexpr Core::ErrorOr<Id<T>> append(T&& value) requires( \
+        !std::is_trivially_copyable_v<T>)                      \
+    {                                                          \
+        return name.append(std::move(value));                  \
+    }                                                          \
+    constexpr Core::ErrorOr<Id<T>> append(T value) requires(   \
+        std::is_trivially_copyable_v<T>)                       \
+    {                                                          \
+        return name.append(std::move(value));                  \
+    }                                                          \
+    Core::Vector<T> name
 
 #define X(T, name, ...) SOA_MEMBER(T, name##s);
     EXPRESSIONS
 #undef X
 
     SOA_MEMBER(Expression, late_expressions);
+    SOA_MEMBER(Expressions, block_data);
+    SOA_MEMBER(Members, memberss);
+    SOA_MEMBER(Initializers, initializerss);
+    SOA_MEMBER(Parameters, parameterss);
+
+    Core::ErrorOr<Block> create_block()
+    {
+        return Block { TRY(append(TRY(Expressions::create(8)))) };
+    }
+
+    Core::ErrorOr<RValue> create_rvalue()
+    {
+        return RValue { TRY(append(TRY(Expressions::create(8)))) };
+    }
 
 #undef SOA_MEMBER
     Expressions expressions;

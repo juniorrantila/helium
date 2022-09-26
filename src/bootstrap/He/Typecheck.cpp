@@ -15,72 +15,67 @@ Core::ErrorOr<void> TypecheckError::show(Context const&) const
 
 TypecheckResult typecheck(Context& context)
 {
-    auto output = TypecheckedExpressions();
+    auto output = TRY(TypecheckedExpressions::create());
     auto& expressions = context.expressions;
     for (auto& expression : expressions.expressions) {
         if (expression.type() == ExpressionType::ImportC) {
             auto import_c_id = expression.release_as_import_c();
             auto import_c = expressions[import_c_id];
-            output.import_c_filenames.push_back(import_c.filename);
+            TRY(output.import_cs.append(import_c.filename));
         }
 
         if (expression.type() == ExpressionType::InlineC) {
             auto inline_c_id = expression.release_as_inline_c();
             auto inline_c = expressions[inline_c_id];
-            output.inline_c_expressions.push_back(inline_c.literal);
+            TRY(output.inline_cs.append(inline_c.literal));
         }
     }
 
+    TRY(output.struct_forwards.reserve(
+        expressions.struct_declarations.size()));
     for (auto const& struct_ : expressions.struct_declarations) {
         auto name = struct_.name;
-        output.struct_forward_declarations.push_back({ name });
+        output.struct_forwards.unchecked_append({ name });
     }
 
+    TRY(output.private_function_forwards.reserve(
+        expressions.private_functions.size()));
     for (auto const& function : expressions.private_functions) {
-        auto name = function.name;
-        auto return_type = function.return_type;
-        auto decl = FunctionForwardDeclaration {
-            name,
-            return_type,
-            function.parameters,
-        };
-        output.private_function_forward_declarations.push_back(
-            decl);
+        output.private_function_forwards.unchecked_append({
+            function.name,
+            function.return_type,
+            expressions[function.parameters],
+        });
     }
 
+    TRY(output.private_c_function_forwards.reserve(
+        expressions.private_c_functions.size()));
     for (auto const& function : expressions.private_c_functions) {
-        auto name = function.name;
-        auto return_type = function.return_type;
-        auto decl = FunctionForwardDeclaration {
-            name,
-            return_type,
-            function.parameters,
-        };
-        output.private_c_function_forward_declarations.push_back(
-            decl);
+        output.private_c_function_forwards.unchecked_append({
+            function.name,
+            function.return_type,
+            expressions[function.parameters],
+        });
     }
 
+    TRY(output.public_function_forwards.reserve(
+        expressions.public_functions.size()));
     for (auto const& function : expressions.public_functions) {
-        auto name = function.name;
-        auto return_type = function.return_type;
-        auto decl = FunctionForwardDeclaration {
-            name,
-            return_type,
-            function.parameters,
-        };
-        output.public_function_forward_declarations.push_back(decl);
+        output.public_function_forwards.unchecked_append({
+            function.name,
+            function.return_type,
+            expressions[function.parameters],
+        });
     }
 
+    TRY(output.public_c_function_forwards.reserve(
+        expressions.public_c_functions.size()));
     for (auto const& function : expressions.public_c_functions) {
-        auto name = function.name;
-        auto return_type = function.return_type;
-        auto decl = FunctionForwardDeclaration {
-            name,
-            return_type,
-            function.parameters,
-        };
-        output.public_c_function_forward_declarations.push_back(
-            decl);
+        output.public_c_function_forwards.unchecked_append({
+            function.name,
+            function.return_type,
+            expressions[function.parameters],
+        });
     }
     return output;
 }
