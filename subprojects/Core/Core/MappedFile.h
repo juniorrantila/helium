@@ -71,12 +71,12 @@ typedef struct MappedFileOrError {
 } MappedFileOrError;
 
 #ifndef __cplusplus
-MappedFileOrError MappedFile$open(StringView path);
-void MappedFile$move(MappedFile* dest, MappedFile* src);
-void MappedFile$destroy(MappedFile const*);
-StringView MappedFile$view(MappedFile const*);
-bool MappedFile$is_valid(MappedFile const*);
-void MappedFile$invalidate(MappedFile*);
+MappedFileOrError MappedFile$open(StringView path) asm("MappedFile$open");
+void MappedFile$move(MappedFile* dest, MappedFile* src) asm("MappedFile$move");
+void MappedFile$destroy(MappedFile const*) asm("MappedFile$destroy");
+StringView MappedFile$view(MappedFile const*) asm("MappedFile$view");
+bool MappedFile$is_valid(MappedFile const*) asm("MappedFile$is_valid");
+void MappedFile$invalidate(MappedFile*) asm("MappedFile$invalidate");
 #endif
 
 #if __cplusplus

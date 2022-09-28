@@ -15,6 +15,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+extern char** environ;
+
 [[nodiscard]] static Core::ErrorOr<void> move_file(c_string to,
     c_string from);
 

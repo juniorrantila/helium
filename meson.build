@@ -1,7 +1,7 @@
 project('helium', ['cpp', 'c'],
   default_options: [
     'cpp_std=c++20',
-    'c_std=c2x',
+    'c_std=gnu2x',
     'warning_level=3',
     'default_library=static',
     'buildtype=release',
@@ -51,12 +51,13 @@ stage_1_exe = executable('stage-1', [
     stage_0_c_gen.process('src/selfhost/main.he'),
   ],
   c_args: [
-    '-std=c2x',
+    '-std=gnu2x',
     '-Wno-gnu-auto-type',
     '-Wno-fixed-enum-extension',
     '-Wno-gnu-empty-initializer',
     '-Wno-dollar-in-identifier-extension',
     '-Wno-duplicate-decl-specifier',
+    '-Wno-language-extension-token'
   ],
   include_directories: 'src/selfhost',
   dependencies: [

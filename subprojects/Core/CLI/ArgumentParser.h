@@ -3,6 +3,7 @@
 #include <functional>
 #include <iostream>
 #include <string_view>
+#include <vector>
 #include <map>
 
 namespace CLI {

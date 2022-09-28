@@ -53,7 +53,7 @@ private:
 } Error;
 
 #ifndef __cplusplus
-void Error$show(Error const*);
+void Error$show(Error const*) asm("Error$show");
 #endif
 
 #ifdef __cplusplus
