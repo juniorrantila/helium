@@ -1089,6 +1089,16 @@ static ParseSingleItemResult parse_rvalue(
             continue;
         }
 
+        if (tokens[end].type == TokenType::LessThan) {
+            // FIXME: Make this a unary operation.
+            auto literal = TRY(expressions.append(Literal {
+                tokens[end],
+            }));
+            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            end = end + 1;
+            continue;
+        }
+
         if (tokens[end].type == TokenType::LessThanOrEqual) {
             // FIXME: Make this a unary operation.
             auto literal = TRY(expressions.append(Literal {
@@ -1100,6 +1110,16 @@ static ParseSingleItemResult parse_rvalue(
         }
 
         if (tokens[end].type == TokenType::GreaterThan) {
+            // FIXME: Make this a unary operation.
+            auto literal = TRY(expressions.append(Literal {
+                tokens[end],
+            }));
+            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            end = end + 1;
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::GreaterThanOrEqual) {
             // FIXME: Make this a unary operation.
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],

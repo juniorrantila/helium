@@ -18,7 +18,6 @@ enum class TokenType : u8 {
     Ampersand,
     Comma,
     Assign,
-    Equals,
     NewLine,
     Number,
     Colon,
@@ -33,8 +32,11 @@ enum class TokenType : u8 {
     Slash,
     Star,
 
-    LessThanOrEqual,
+    Equals,
     GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
 
     Dot,
     Arrow,

@@ -35,43 +35,37 @@ static constexpr bool is_number(char character);
 static constexpr bool is_letter(char character);
 static constexpr bool is_delimiter(char character);
 static constexpr bool is_identifier_character(char character);
-static constexpr Token lex_string(std::string_view source,
-    u32 start);
-static constexpr Token lex_quoted(std::string_view source,
-    u32 start);
-static constexpr Token lex_identifier(std::string_view source,
-    u32 start);
-static constexpr Token lex_number(std::string_view source,
-    u32 start);
-static constexpr Token lex_minus_or_arrow(std::string_view source,
+static constexpr Token lex_string(StringView source, u32 start);
+static constexpr Token lex_quoted(StringView source, u32 start);
+static constexpr Token lex_identifier(StringView source, u32 start);
+static constexpr Token lex_number(StringView source, u32 start);
+static constexpr Token lex_minus_or_arrow(StringView source,
     u32 start);
 static constexpr Token lex_less_or_less_than_equal(
-    std::string_view source, u32 start);
-static constexpr Token lex_assign_or_equals(std::string_view source,
+    StringView source, u32 start);
+static constexpr Token lex_greater_or_greater_than_equal(
+    StringView source, u32 start);
+static constexpr Token lex_assign_or_equals(StringView source,
     u32 start);
-static constexpr Token lex_ampersand_or_ref_mut(
-    std::string_view source, u32 start);
+static constexpr Token lex_ampersand_or_ref_mut(StringView source,
+    u32 start);
 
 using LexItemResult = Core::ErrorOr<Token, LexError>;
-static LexItemResult lex_single_item(std::string_view source,
-    u32 start);
+static LexItemResult lex_single_item(StringView source, u32 start);
 
-LexResult lex(StringView source_view)
+LexResult lex(StringView source)
 {
     auto tokens = TRY(Tokens::create());
-    auto source = std::string_view {
-        source_view.data,
-        source_view.size,
-    };
 
-    for (u32 start = 0; start < source.size();) {
+    for (u32 start = 0; start < source.size;) {
         auto character = source[start];
         if (is_whitespace(character)) {
             start++;
             continue;
         }
-        if (source.substr(start, 2) == "//") {
-            for (; start < source.size(); start++)
+        if (start + 1 < source.size && source[start] == '/'
+            && source[start + 1] == '/') {
+            for (; start < source.size; start++)
                 if (source[start] == '\n')
                     break;
             continue;
@@ -85,8 +79,7 @@ LexResult lex(StringView source_view)
     return tokens;
 }
 
-static LexItemResult lex_single_item(std::string_view source,
-    u32 start)
+static LexItemResult lex_single_item(StringView source, u32 start)
 {
     auto character = source[start];
 
@@ -135,9 +128,6 @@ static LexItemResult lex_single_item(std::string_view source,
     if (character == ';')
         return Token { TokenType::Semicolon, start, start + 1 };
 
-    if (character == '>')
-        return Token { TokenType::GreaterThan, start, start + 1 };
-
     if (character == '?')
         return Token { TokenType::QuestionMark, start, start + 1 };
 
@@ -146,6 +136,9 @@ static LexItemResult lex_single_item(std::string_view source,
 
     if (character == '-')
         return lex_minus_or_arrow(source, start);
+
+    if (character == '>')
+        return lex_greater_or_greater_than_equal(source, start);
 
     if (character == '<')
         return lex_less_or_less_than_equal(source, start);
@@ -241,10 +234,10 @@ static LexItemResult lex_single_item(std::string_view source,
     return LexError { "unknown token", start };
 }
 
-static constexpr Token lex_minus_or_arrow(std::string_view source,
+static constexpr Token lex_minus_or_arrow(StringView source,
     u32 start)
 {
-    if (start + 1 > source.size())
+    if (start + 1 > source.size)
         return { TokenType::Minus, start, start + 1 };
     char character = source[start + 1];
     if (character == '>')
@@ -252,27 +245,42 @@ static constexpr Token lex_minus_or_arrow(std::string_view source,
     return { TokenType::Minus, start, start + 1 };
 }
 
-static constexpr Token lex_ampersand_or_ref_mut(
-    std::string_view source, u32 start)
+static constexpr Token lex_ampersand_or_ref_mut(StringView source,
+    u32 start)
 {
-    if (start + 1 < source.size()) {
-        if (source.substr(start + 1, 3) == "mut")
+    std::string_view source_view = { source.data, source.size };
+    if (start + 1 < source_view.size()) {
+        if (source_view.substr(start + 1, 3) == "mut")
             return { TokenType::RefMut, start, start + 4 };
     }
     return { TokenType::Ampersand, start, start + 1 };
 }
 
 static constexpr Token lex_less_or_less_than_equal(
-    std::string_view source, u32 start)
+    StringView source, u32 start)
 {
-    (void)source;
-    return { TokenType::LessThanOrEqual, start, start + 2 };
+    if (start + 1 < source.size) {
+        if (source[start + 1] == '=')
+            return { TokenType::LessThanOrEqual, start, start + 2 };
+    }
+    return { TokenType::LessThan, start, start + 1 };
 }
 
-static constexpr Token lex_assign_or_equals(std::string_view source,
+static constexpr Token lex_greater_or_greater_than_equal(
+    StringView source, u32 start)
+{
+    if (start + 1 < source.size) {
+        if (source[start + 1] == '=')
+            return { TokenType::GreaterThanOrEqual, start,
+                start + 2 };
+    }
+    return { TokenType::GreaterThan, start, start + 1 };
+}
+
+static constexpr Token lex_assign_or_equals(StringView source,
     u32 start)
 {
-    if (start + 1 > source.size())
+    if (start + 1 > source.size)
         return { TokenType::Assign, start, start + 1 };
     char character = source[start + 1];
     if (character == '=')
@@ -280,11 +288,10 @@ static constexpr Token lex_assign_or_equals(std::string_view source,
     return { TokenType::Assign, start, start + 1 };
 }
 
-static constexpr Token lex_string(std::string_view source,
-    u32 start)
+static constexpr Token lex_string(StringView source, u32 start)
 {
     u32 end = start;
-    for (; end < source.size(); end++) {
+    for (; end < source.size; end++) {
         if (!is_delimiter(source[end]))
             continue;
         break;
@@ -292,12 +299,11 @@ static constexpr Token lex_string(std::string_view source,
     return { TokenType::Identifier, start, end };
 }
 
-static constexpr Token lex_quoted(std::string_view source,
-    u32 start)
+static constexpr Token lex_quoted(StringView source, u32 start)
 {
     auto quote = source[start];
     u32 end = start + 1;
-    for (; end < source.size(); end++) {
+    for (; end < source.size; end++) {
         char character = source[end];
         if (character != quote)
             continue;
@@ -306,11 +312,10 @@ static constexpr Token lex_quoted(std::string_view source,
     return { TokenType::Quoted, start, end + 1 };
 }
 
-static constexpr Token lex_identifier(std::string_view source,
-    u32 start)
+static constexpr Token lex_identifier(StringView source, u32 start)
 {
     u32 end = start + 1;
-    for (; end < source.size(); end++) {
+    for (; end < source.size; end++) {
         char character = source[end];
         if (is_letter(character))
             continue;
@@ -321,11 +326,10 @@ static constexpr Token lex_identifier(std::string_view source,
     return { TokenType::Identifier, start, end };
 }
 
-static constexpr Token lex_number(std::string_view source,
-    u32 start)
+static constexpr Token lex_number(StringView source, u32 start)
 {
     u32 end = start;
-    for (; end < source.size(); end++) {
+    for (; end < source.size; end++) {
         char character = source[end];
         if (character == '.')
             continue;

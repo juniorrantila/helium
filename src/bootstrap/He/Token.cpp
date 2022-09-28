@@ -64,7 +64,6 @@ static std::string_view token_type_string(TokenType type)
         CASE_RETURN(Ampersand);
         CASE_RETURN(Comma);
         CASE_RETURN(Assign);
-        CASE_RETURN(Equals);
         CASE_RETURN(NewLine);
         CASE_RETURN(Number);
         CASE_RETURN(Colon);
@@ -79,8 +78,11 @@ static std::string_view token_type_string(TokenType type)
         CASE_RETURN(Slash);
         CASE_RETURN(Star);
 
-        CASE_RETURN(LessThanOrEqual);
+        CASE_RETURN(Equals);
         CASE_RETURN(GreaterThan);
+        CASE_RETURN(GreaterThanOrEqual);
+        CASE_RETURN(LessThan);
+        CASE_RETURN(LessThanOrEqual);
 
         CASE_RETURN(Dot);
         CASE_RETURN(Arrow);
