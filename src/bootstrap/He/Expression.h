@@ -52,8 +52,7 @@ EXPRESSIONS
 #undef FORWARD_DECLARE
 #undef X
 
-constexpr StringView expression_type_string(
-    ExpressionType type)
+constexpr StringView expression_type_string(ExpressionType type)
 {
     switch (type) {
 #define X(T, ...) \
@@ -262,15 +261,11 @@ struct InlineC {
 };
 
 struct Moved {
-    static void dump(ParsedExpressions const&, StringView,
-        u32)
-    {
-    }
+    static void dump(ParsedExpressions const&, StringView, u32) { }
 };
 
 struct Invalid {
-    static void dump(ParsedExpressions const&, StringView,
-        u32);
+    static void dump(ParsedExpressions const&, StringView, u32);
 };
 
 struct Expression {
@@ -327,35 +322,47 @@ public:
     {
 #define X(T, name, ...) .name##s = TRY(Core::Vector<T>::create()),
         // clang-format off
+        using BlockData = Core::Vector<Expressions>;
+        using Memberss = Core::Vector<Members>;
+        using Initializerss = Core::Vector<Initializers>;
+        using Parameterss = Core::Vector<Parameters>;
         return ParsedExpressions {
             EXPRESSIONS
             .late_expressions = TRY(Expressions::create()),
-            .block_data = TRY(Core::Vector<Expressions>::create()),
-            .memberss = TRY(Core::Vector<Members>::create()),
-            .initializerss = TRY(Core::Vector<Initializers>::create()),
-            .parameterss = TRY(Core::Vector<Parameters>::create()),
+            .block_data = TRY(BlockData::create()),
+            .memberss = TRY(Memberss::create()),
+            .initializerss = TRY(Initializerss::create()),
+            .parameterss = TRY(Parameterss::create()),
             .expressions = TRY(Expressions::create()),
         };
         // clang-format on
 #undef X
     }
 
-#define SOA_MEMBER(T, name)                                    \
-    constexpr T& operator[](Id<T> id) { return name[id]; }     \
-    constexpr T const& operator[](Id<T> id) const              \
-    {                                                          \
-        return name[id];                                       \
-    }                                                          \
-    constexpr Core::ErrorOr<Id<T>> append(T&& value) requires( \
-        !std::is_trivially_copyable_v<T>)                      \
-    {                                                          \
-        return name.append(std::move(value));                  \
-    }                                                          \
-    constexpr Core::ErrorOr<Id<T>> append(T value) requires(   \
-        std::is_trivially_copyable_v<T>)                       \
-    {                                                          \
-        return name.append(std::move(value));                  \
-    }                                                          \
+#define SOA_MEMBER(T, name)                                \
+    constexpr T& operator[](Id<T> id) { return name[id]; } \
+    constexpr T const& operator[](Id<T> id) const          \
+    {                                                      \
+        return name[id];                                   \
+    }                                                      \
+    constexpr Core::ErrorOr<Id<T>> append(T value)         \
+    {                                                      \
+        static_assert(std::is_trivially_copyable_v<T>);    \
+        return name.append(value);                         \
+    }                                                      \
+    Core::Vector<T> name
+
+#define NONTRIVIAL_SOA_MEMBER(T, name)                     \
+    constexpr T& operator[](Id<T> id) { return name[id]; } \
+    constexpr T const& operator[](Id<T> id) const          \
+    {                                                      \
+        return name[id];                                   \
+    }                                                      \
+    constexpr Core::ErrorOr<Id<T>> append(T&& value)       \
+    {                                                      \
+        static_assert(!std::is_trivially_copyable_v<T>);   \
+        return name.append(std::move(value));              \
+    }                                                      \
     Core::Vector<T> name
 
 #define X(T, name, ...) SOA_MEMBER(T, name##s);
@@ -363,10 +370,10 @@ public:
 #undef X
 
     SOA_MEMBER(Expression, late_expressions);
-    SOA_MEMBER(Expressions, block_data);
-    SOA_MEMBER(Members, memberss);
-    SOA_MEMBER(Initializers, initializerss);
-    SOA_MEMBER(Parameters, parameterss);
+    NONTRIVIAL_SOA_MEMBER(Expressions, block_data);
+    NONTRIVIAL_SOA_MEMBER(Members, memberss);
+    NONTRIVIAL_SOA_MEMBER(Initializers, initializerss);
+    NONTRIVIAL_SOA_MEMBER(Parameters, parameterss);
 
     Core::ErrorOr<Block> create_block()
     {
@@ -378,6 +385,7 @@ public:
         return RValue { TRY(append(TRY(Expressions::create(8)))) };
     }
 
+#undef NONTRIVIAL_SOA_MEMBER
 #undef SOA_MEMBER
     Expressions expressions;
 };
