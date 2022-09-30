@@ -1,0 +1,22 @@
+@import_c("stdio.h");
+
+let Foo = variant {
+    a: i32,
+    b: i32,  
+};
+
+pub c_fn main() -> i32 {
+    let foo = Foo {
+        .a = 10,
+        .type = Foo$Type$a,
+    };
+
+    inline_c let type = foo.type;
+    if type == Foo$Type$a {
+        inline_c let a = foo.a;
+        printf("a: %d\n", a);
+        return 0;
+    }
+
+    printf("foo.type != Foo$Type$a\n");
+}

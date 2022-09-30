@@ -1,0 +1,15 @@
+@import_c("stdio.h");
+
+let Foo = union {
+    as_u32: u32,
+    as_f32: f32,
+};
+
+pub c_fn main() -> c_int {
+    let foo = Foo {
+        .as_f32 = 1.0,
+    };
+    inline_c let as_u32 = foo.as_u32;
+
+    printf("Foo: %d\n", as_u32);
+}

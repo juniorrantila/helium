@@ -1,0 +1,11 @@
+@import_c("stdio.h");
+
+let Foo = enum {
+    A,
+    B,
+};
+
+pub c_fn main() -> i32 {
+    let b = Foo$B;
+    printf("%d\n", b);
+}
