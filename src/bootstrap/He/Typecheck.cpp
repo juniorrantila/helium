@@ -31,11 +31,32 @@ TypecheckResult typecheck(Context& context)
         }
     }
 
+    TRY(output.enum_forwards.reserve(
+        expressions.enum_declarations.size()));
+    for (auto const& enum_ : expressions.enum_declarations) {
+        auto name = enum_.name;
+        output.enum_forwards.unchecked_append({ name });
+    }
+
     TRY(output.struct_forwards.reserve(
         expressions.struct_declarations.size()));
     for (auto const& struct_ : expressions.struct_declarations) {
         auto name = struct_.name;
         output.struct_forwards.unchecked_append({ name });
+    }
+
+    TRY(output.union_forwards.reserve(
+        expressions.union_declarations.size()));
+    for (auto const& union_ : expressions.union_declarations) {
+        auto name = union_.name;
+        output.union_forwards.unchecked_append({ name });
+    }
+
+    TRY(output.variant_forwards.reserve(
+        expressions.variant_declarations.size()));
+    for (auto const& variant : expressions.variant_declarations) {
+        auto name = variant.name;
+        output.variant_forwards.unchecked_append({ name });
     }
 
     TRY(output.private_function_forwards.reserve(

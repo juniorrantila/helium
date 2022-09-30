@@ -20,6 +20,24 @@ struct StructForwardDeclaration {
 using StructForwardDeclarations
     = Core::Vector<StructForwardDeclaration>;
 
+struct EnumForwardDeclaration {
+    Token name {};
+};
+using EnumForwardDeclarations
+    = Core::Vector<EnumForwardDeclaration>;
+
+struct UnionForwardDeclaration {
+    Token name {};
+};
+using UnionForwardDeclarations
+    = Core::Vector<UnionForwardDeclaration>;
+
+struct VariantForwardDeclaration {
+    Token name {};
+};
+using VariantForwardDeclarations
+    = Core::Vector<VariantForwardDeclaration>;
+
 struct TypecheckedExpressions {
 
     static Core::ErrorOr<TypecheckedExpressions> create()
@@ -31,7 +49,10 @@ struct TypecheckedExpressions {
             TRY(FunctionForwardDeclarations::create()),
             TRY(FunctionForwardDeclarations::create()),
             TRY(FunctionForwardDeclarations::create()),
+            TRY(EnumForwardDeclarations::create()),
             TRY(StructForwardDeclarations::create()),
+            TRY(UnionForwardDeclarations::create()),
+            TRY(VariantForwardDeclarations::create()),
         };
     }
 
@@ -50,7 +71,10 @@ struct TypecheckedExpressions {
     FunctionForwardDeclarations
         public_c_function_forwards;
 
+    EnumForwardDeclarations enum_forwards;
     StructForwardDeclarations struct_forwards;
+    UnionForwardDeclarations union_forwards;
+    VariantForwardDeclarations variant_forwards;
 
     void codegen(int out_fd, Context const&) const;
 };

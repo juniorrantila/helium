@@ -133,7 +133,22 @@ typedef char const* c_string;
     for (auto inline_c_expression : inline_cs)
         out.write(inline_c_expression.text(context.source.text));
 
+    for (auto declaration : enum_forwards) {
+        auto name = declaration.name.text(context.source.text);
+        out.writeln("typedef enum ", name, ' ', name, ';');
+    }
+
     for (auto declaration : struct_forwards) {
+        auto name = declaration.name.text(context.source.text);
+        out.writeln("typedef struct ", name, ' ', name, ';');
+    }
+
+    for (auto declaration : union_forwards) {
+        auto name = declaration.name.text(context.source.text);
+        out.writeln("typedef union ", name, ' ', name, ';');
+    }
+
+    for (auto declaration : variant_forwards) {
         auto name = declaration.name.text(context.source.text);
         out.writeln("typedef struct ", name, ' ', name, ';');
     }
@@ -321,6 +336,61 @@ static void codegen_struct_declaration(FileBuffer& out,
         auto name = member.name.text(source);
         out.writeln(type, ' ', name, ';');
     }
+    out.writeln("};");
+}
+
+static void codegen_enum_declaration(FileBuffer& out,
+    Context const& context, EnumDeclaration const& enum_)
+{
+    auto source = context.source.text;
+    auto enum_name = enum_.name.text(source);
+    out.writeln("enum ", enum_name);
+    if (enum_.underlying_type.type != TokenType::Invalid) {
+        out.write(" :", enum_.underlying_type.text(source), " ");
+    }
+    out.write("{");
+    for (auto member : context.expressions[enum_.members]) {
+        auto name = member.name.text(source);
+        out.writeln(enum_name, '$', name, ',');
+    }
+    out.writeln("};");
+}
+
+static void codegen_union_declaration(FileBuffer& out,
+    Context const& context, UnionDeclaration const& union_)
+{
+    auto source = context.source.text;
+    out.writeln("union ", union_.name.text(source), "{");
+    for (auto member : context.expressions[union_.members]) {
+        auto type = member.type.text(source);
+        auto name = member.name.text(source);
+        out.writeln(type, ' ', name, ';');
+    }
+    out.writeln("};");
+}
+
+static void codegen_variant_declaration(FileBuffer& out,
+    Context const& context, VariantDeclaration const& variant)
+{
+    auto source = context.source.text;
+    auto variant_name = variant.name.text(source);
+    out.writeln("struct ", variant_name, "{");
+
+    out.writeln("union {");
+    for (auto member : context.expressions[variant.members]) {
+        auto type = member.type.text(source);
+        auto name = member.name.text(source);
+        out.writeln(type, ' ', name, ';');
+    }
+    out.writeln("};");
+
+    out.writeln("enum {");
+    for (auto member : context.expressions[variant.members]) {
+        auto name = member.name.text(source);
+        out.writeln(variant_name, "$Type$", name, ',');
+    }
+    out.writeln("} type;");
+
     out.writeln("};");
 }
 

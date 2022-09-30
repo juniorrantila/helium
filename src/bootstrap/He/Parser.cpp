@@ -33,6 +33,15 @@ static ParseSingleItemResult parse_private_variable(
 static ParseSingleItemResult parse_struct(ParsedExpressions&,
     Tokens const&, u32 start);
 
+static ParseSingleItemResult parse_enum(ParsedExpressions&,
+    Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_union(ParsedExpressions&,
+    Tokens const&, u32 start);
+
+static ParseSingleItemResult parse_variant(ParsedExpressions&,
+    Tokens const&, u32 start);
+
 static ParseSingleItemResult parse_rvalue(ParsedExpressions&,
     Tokens const&, u32 start);
 
@@ -1443,6 +1452,365 @@ static ParseSingleItemResult parse_struct(
     return Expression(struct_id, start, end);
 }
 
+static ParseSingleItemResult parse_enum(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto name = tokens[start];
+
+    auto assign_index = start + 1;
+    auto assign = tokens[assign_index];
+    if (assign.type != TokenType::Assign) {
+        auto const* hint = "struct declarations can't have colon "
+                           "in this position";
+        if (assign.type != TokenType::Colon)
+            hint = nullptr;
+        return ParseError {
+            "expected '='",
+            hint,
+            assign,
+        };
+    }
+
+    auto enum_token_index = assign_index + 1;
+    auto enum_token = tokens[enum_token_index];
+    if (enum_token.type != TokenType::Enum) {
+        return ParseError {
+            "expected 'enum'",
+            nullptr,
+            enum_token,
+        };
+    }
+
+    auto block_start_index = enum_token_index + 1;
+    auto block_start = tokens[block_start_index];
+    if (block_start.type != TokenType::OpenCurly) {
+        return ParseError {
+            "expected '{'",
+            nullptr,
+            block_start,
+        };
+    }
+
+    auto members_id
+        = TRY(expressions.append(TRY(Members::create(8))));
+    auto& members = expressions[members_id];
+
+    auto block_end_index = block_start_index + 1;
+    while (block_end_index < tokens.size()) {
+        auto block_end = tokens[block_end_index];
+        if (block_end.type == TokenType::CloseCurly)
+            break;
+
+        auto member_name_index = block_end_index;
+        auto member_name = tokens[member_name_index];
+        if (member_name.type != TokenType::Identifier) {
+            return ParseError {
+                "expected name of member",
+                nullptr,
+                member_name,
+            };
+        }
+
+        auto comma_index = member_name_index + 1;
+        auto comma = tokens[comma_index];
+        if (comma.type != TokenType::Comma) {
+            return ParseError {
+                "expected ','",
+                "did you forget a comma?",
+                comma,
+            };
+        }
+
+        auto member = Member {
+            .name = member_name,
+            .type = Token(), // FIXME
+        };
+        TRY(members.append(member));
+        block_end_index = comma_index + 1;
+    }
+
+    auto block_end = tokens[block_end_index];
+    if (block_end.type != TokenType::CloseCurly) {
+        return ParseError {
+            "expected '}'",
+            nullptr,
+            block_end,
+        };
+    }
+
+    auto semicolon_index = block_end_index + 1;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        return ParseError {
+            "expected ';'",
+            "did you forget a semicolon?",
+            semicolon,
+        };
+    }
+
+    auto enum_declaration = EnumDeclaration {
+        .name = name,
+        .underlying_type = Token(), // FIXME
+        .members = members_id,
+    };
+    // NOTE: Swallow semicolon.
+    auto end = semicolon_index + 1;
+    auto enum_id = TRY(expressions.append(enum_declaration));
+    return Expression(enum_id, start, end);
+}
+
+static ParseSingleItemResult parse_union(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto name = tokens[start];
+
+    auto assign_index = start + 1;
+    auto assign = tokens[assign_index];
+    if (assign.type != TokenType::Assign) {
+        auto const* hint = "struct declarations can't have colon "
+                           "in this position";
+        if (assign.type != TokenType::Colon)
+            hint = nullptr;
+        return ParseError {
+            "expected '='",
+            hint,
+            assign,
+        };
+    }
+
+    auto union_token_index = assign_index + 1;
+    auto union_token = tokens[union_token_index];
+    if (union_token.type != TokenType::Union) {
+        return ParseError {
+            "expected 'union'",
+            nullptr,
+            union_token,
+        };
+    }
+
+    auto block_start_index = union_token_index + 1;
+    auto block_start = tokens[block_start_index];
+    if (block_start.type != TokenType::OpenCurly) {
+        return ParseError {
+            "expected '{'",
+            nullptr,
+            block_start,
+        };
+    }
+
+    auto members_id
+        = TRY(expressions.append(TRY(Members::create(8))));
+    auto& members = expressions[members_id];
+
+    auto block_end_index = block_start_index + 1;
+    while (block_end_index < tokens.size()) {
+        auto block_end = tokens[block_end_index];
+        if (block_end.type == TokenType::CloseCurly)
+            break;
+
+        auto member_name_index = block_end_index;
+        auto member_name = tokens[member_name_index];
+        if (member_name.type != TokenType::Identifier) {
+            return ParseError {
+                "expected name of member",
+                nullptr,
+                member_name,
+            };
+        }
+
+        auto colon_index = member_name_index + 1;
+        auto colon = tokens[colon_index];
+        if (colon.type != TokenType::Colon) {
+            return ParseError {
+                "expected ':'",
+                nullptr,
+                colon,
+            };
+        }
+
+        auto type_index = colon_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+
+        auto comma_index = type_index + 1;
+        auto comma = tokens[comma_index];
+        if (comma.type != TokenType::Comma) {
+            return ParseError {
+                "expected ','",
+                "did you forget a comma?",
+                comma,
+            };
+        }
+
+        auto member = Member {
+            .name = member_name,
+            .type = type_token,
+        };
+        TRY(members.append(member));
+        block_end_index = comma_index + 1;
+    }
+
+    auto block_end = tokens[block_end_index];
+    if (block_end.type != TokenType::CloseCurly) {
+        return ParseError {
+            "expected '}'",
+            nullptr,
+            block_end,
+        };
+    }
+
+    auto semicolon_index = block_end_index + 1;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        return ParseError {
+            "expected ';'",
+            "did you forget a semicolon?",
+            semicolon,
+        };
+    }
+
+    auto union_declaration = UnionDeclaration {
+        .name = name,
+        .members = members_id,
+    };
+    // NOTE: Swallow semicolon.
+    auto end = semicolon_index + 1;
+    auto union_id = TRY(expressions.append(union_declaration));
+    return Expression(union_id, start, end);
+}
+
+static ParseSingleItemResult parse_variant(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto name = tokens[start];
+
+    auto assign_index = start + 1;
+    auto assign = tokens[assign_index];
+    if (assign.type != TokenType::Assign) {
+        auto const* hint = "struct declarations can't have colon "
+                           "in this position";
+        if (assign.type != TokenType::Colon)
+            hint = nullptr;
+        return ParseError {
+            "expected '='",
+            hint,
+            assign,
+        };
+    }
+
+    auto variant_token_index = assign_index + 1;
+    auto variant_token = tokens[variant_token_index];
+    if (variant_token.type != TokenType::Variant) {
+        return ParseError {
+            "expected 'variant'",
+            nullptr,
+            variant_token,
+        };
+    }
+
+    auto block_start_index = variant_token_index + 1;
+    auto block_start = tokens[block_start_index];
+    if (block_start.type != TokenType::OpenCurly) {
+        return ParseError {
+            "expected '{'",
+            nullptr,
+            block_start,
+        };
+    }
+
+    auto members_id
+        = TRY(expressions.append(TRY(Members::create(8))));
+    auto& members = expressions[members_id];
+
+    auto block_end_index = block_start_index + 1;
+    while (block_end_index < tokens.size()) {
+        auto block_end = tokens[block_end_index];
+        if (block_end.type == TokenType::CloseCurly)
+            break;
+
+        auto member_name_index = block_end_index;
+        auto member_name = tokens[member_name_index];
+        if (member_name.type != TokenType::Identifier) {
+            return ParseError {
+                "expected name of member",
+                nullptr,
+                member_name,
+            };
+        }
+
+        auto colon_index = member_name_index + 1;
+        auto colon = tokens[colon_index];
+        if (colon.type != TokenType::Colon) {
+            return ParseError {
+                "expected ':'",
+                nullptr,
+                colon,
+            };
+        }
+
+        auto type_index = colon_index + 1;
+        auto type_token = tokens[type_index];
+        if (type_token.type != TokenType::Identifier) {
+            return ParseError {
+                "expected type name",
+                nullptr,
+                type_token,
+            };
+        }
+
+        auto comma_index = type_index + 1;
+        auto comma = tokens[comma_index];
+        if (comma.type != TokenType::Comma) {
+            return ParseError {
+                "expected ','",
+                "did you forget a comma?",
+                comma,
+            };
+        }
+
+        auto member = Member {
+            .name = member_name,
+            .type = type_token,
+        };
+        TRY(members.append(member));
+        block_end_index = comma_index + 1;
+    }
+
+    auto block_end = tokens[block_end_index];
+    if (block_end.type != TokenType::CloseCurly) {
+        return ParseError {
+            "expected '}'",
+            nullptr,
+            block_end,
+        };
+    }
+
+    auto semicolon_index = block_end_index + 1;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.type != TokenType::Semicolon) {
+        return ParseError {
+            "expected ';'",
+            "did you forget a semicolon?",
+            semicolon,
+        };
+    }
+
+    auto variant_declaration = VariantDeclaration {
+        .name = name,
+        .members = members_id,
+    };
+    // NOTE: Swallow semicolon.
+    auto end = semicolon_index + 1;
+    auto variant_id = TRY(expressions.append(variant_declaration));
+    return Expression(variant_id, start, end);
+}
+
 static ParseSingleItemResult parse_private_variable(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
@@ -1955,6 +2323,21 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto struct_token = tokens[struct_token_index];
     if (struct_token.type == TokenType::Struct)
         return TRY(parse_struct(expressions, tokens, name_index));
+
+    auto enum_token_index = struct_token_index;
+    auto enum_token = tokens[enum_token_index];
+    if (enum_token.type == TokenType::Enum)
+        return TRY(parse_enum(expressions, tokens, name_index));
+
+    auto union_token_index = struct_token_index;
+    auto union_token = tokens[union_token_index];
+    if (union_token.type == TokenType::Union)
+        return TRY(parse_union(expressions, tokens, name_index));
+
+    auto variant_token_index = union_token_index;
+    auto variant_token = tokens[variant_token_index];
+    if (variant_token.type == TokenType::Variant)
+        return TRY(parse_variant(expressions, tokens, name_index));
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));

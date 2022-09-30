@@ -54,9 +54,13 @@ enum class TokenType : u8 {
     Pub,
     RefMut,
     Return,
-    Struct,
     Var,
     While,
+
+    Enum,
+    Struct,
+    Union,
+    Variant,
 
     // Builtin functions
     Embed,

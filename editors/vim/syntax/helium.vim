@@ -53,10 +53,11 @@ let s:helium_syntax_keywords = {
     \ ,              "c_double"
     \ ,              "c_void"
     \ ,             ]
-    \ , 'heliumStructure' :["struct"
-    \ ,                   "enum"
-    \ ,                   "union"
-    \ ,                  ]
+    \ , 'heliumStructure' :["enum"
+    \ ,                     "struct"
+    \ ,                     "union"
+    \ ,                     "variant"
+    \ ,                   ]
     \ , 'heliumVisModifier': ["pub"
     \ ,                    ]
     \ , }

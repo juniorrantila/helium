@@ -19,6 +19,10 @@ struct ParsedExpressions;
     X(StructDeclaration, struct_declaration)                    \
     X(StructInitializer, struct_initializer)                    \
                                                                 \
+    X(EnumDeclaration, enum_declaration)                        \
+    X(UnionDeclaration, union_declaration)                      \
+    X(VariantDeclaration, variant_declaration)                  \
+                                                                \
     X(LValue, lvalue)                                           \
     X(RValue, rvalue)                                           \
                                                                 \
@@ -105,6 +109,32 @@ using Members = Core::Vector<Member>;
 
 struct StructDeclaration {
     Token name {};
+    Id<Members> members;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct EnumDeclaration {
+    Token name {};
+    Token underlying_type {};
+    Id<Members> members;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct UnionDeclaration {
+    Token name {};
+    Id<Members> members;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct VariantDeclaration {
+    Token name {};
+    Token tag_underlying_type {};
     Id<Members> members;
 
     void dump(ParsedExpressions const&, StringView source,

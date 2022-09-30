@@ -74,6 +74,51 @@ void StructDeclaration::dump(ParsedExpressions const& expressions,
     std::cerr << "])";
 }
 
+void EnumDeclaration::dump(ParsedExpressions const& expressions,
+    StringView source, u32) const
+{
+    std::cerr << "Enum(" << '\'' << name.text(source) << "' "
+              << "[ ";
+    for (auto member : expressions[members]) {
+        auto type = member.type;
+        auto name = member.name;
+        std::cerr << '\'' << name.text(source) << "' '"
+                  << type.text(source) << "', ";
+    }
+    std::cerr << "\b\b ";
+    std::cerr << "])";
+}
+
+void UnionDeclaration::dump(ParsedExpressions const& expressions,
+    StringView source, u32) const
+{
+    std::cerr << "Union(" << '\'' << name.text(source) << "' "
+              << "[ ";
+    for (auto member : expressions[members]) {
+        auto type = member.type;
+        auto name = member.name;
+        std::cerr << '\'' << name.text(source) << "' '"
+                  << type.text(source) << "', ";
+    }
+    std::cerr << "\b\b ";
+    std::cerr << "])";
+}
+
+void VariantDeclaration::dump(ParsedExpressions const& expressions,
+    StringView source, u32) const
+{
+    std::cerr << "Variant(" << '\'' << name.text(source) << "' "
+              << "[ ";
+    for (auto member : expressions[members]) {
+        auto type = member.type;
+        auto name = member.name;
+        std::cerr << '\'' << name.text(source) << "' '"
+                  << type.text(source) << "', ";
+    }
+    std::cerr << "\b\b ";
+    std::cerr << "])";
+}
+
 void StructInitializer::dump(ParsedExpressions const& expressions,
     StringView source, u32 indent) const
 {

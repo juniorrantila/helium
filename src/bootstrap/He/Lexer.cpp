@@ -225,6 +225,18 @@ static LexItemResult lex_single_item(StringView source, u32 start)
             token.type = TokenType::Struct;
             return token;
         }
+        if (value == "union") {
+            token.type = TokenType::Union;
+            return token;
+        }
+        if (value == "variant") {
+            token.type = TokenType::Variant;
+            return token;
+        }
+        if (value == "enum") {
+            token.type = TokenType::Enum;
+            return token;
+        }
         return token;
     }
 

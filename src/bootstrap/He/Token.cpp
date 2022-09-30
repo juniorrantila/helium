@@ -98,9 +98,13 @@ static std::string_view token_type_string(TokenType type)
         CASE_RETURN(Pub);
         CASE_RETURN(RefMut);
         CASE_RETURN(Return);
-        CASE_RETURN(Struct);
         CASE_RETURN(Var);
         CASE_RETURN(While);
+
+        CASE_RETURN(Enum);
+        CASE_RETURN(Struct);
+        CASE_RETURN(Union);
+        CASE_RETURN(Variant);
 
         CASE_RETURN(Embed);
         CASE_RETURN(ImportC);
