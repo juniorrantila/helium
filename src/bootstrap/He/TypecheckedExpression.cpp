@@ -326,6 +326,18 @@ static void codegen_private_constant_declaration(FileBuffer& out,
     out.writeln(';');
 }
 
+static void codegen_variable_assignment(FileBuffer& out,
+    Context const& context,
+    VariableAssignment const& variable)
+{
+    auto source = context.source.text;
+    out.write(variable.name.text(source), " = ");
+    auto const& expressions = context.expressions;
+    auto const& value = expressions[variable.value];
+    codegen_rvalue(out, context, value);
+    out.writeln(';');
+}
+
 static void codegen_struct_declaration(FileBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {

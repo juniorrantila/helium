@@ -59,6 +59,14 @@ void PublicConstantDeclaration::dump(
     std::cerr << ')';
 }
 
+void VariableAssignment::dump(ParsedExpressions const& expressions, StringView source, u32 indent) const
+{
+    std::cerr << "VariableAssignment(" << '\'' << name.text(source)
+              << "' ";
+    expressions[value].dump(expressions, source, indent);
+    std::cerr << ')';
+}
+
 void StructDeclaration::dump(ParsedExpressions const& expressions,
     StringView source, u32) const
 {

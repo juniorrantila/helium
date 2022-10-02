@@ -16,6 +16,8 @@ struct ParsedExpressions;
     X(PublicConstantDeclaration, public_constant_declaration)   \
     X(PublicVariableDeclaration, public_variable_declaration)   \
                                                                 \
+    X(VariableAssignment, variable_assignment)                  \
+                                                                \
     X(StructDeclaration, struct_declaration)                    \
     X(StructInitializer, struct_initializer)                    \
                                                                 \
@@ -240,6 +242,14 @@ struct PublicConstantDeclaration {
     Token name {};
     Token type {};
     Id<Expression> value;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct VariableAssignment {
+    Token name {};
+    Id<RValue> value;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
