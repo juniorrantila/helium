@@ -21,6 +21,8 @@ struct ParsedExpressions;
     X(StructDeclaration, struct_declaration)                    \
     X(StructInitializer, struct_initializer)                    \
                                                                 \
+    X(MemberAccess, member_access)                              \
+                                                                \
     X(EnumDeclaration, enum_declaration)                        \
     X(UnionDeclaration, union_declaration)                      \
     X(VariantDeclaration, variant_declaration)                  \
@@ -152,6 +154,13 @@ using Initializers = Core::Vector<Initializer>;
 struct StructInitializer {
     Token type {};
     Id<Initializers> initializers;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct MemberAccess {
+    Id<Tokens> members;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;
@@ -363,16 +372,18 @@ public:
 #define X(T, name, ...) .name##s = TRY(Core::Vector<T>::create()),
         // clang-format off
         using BlockData = Core::Vector<Expressions>;
-        using Memberss = Core::Vector<Members>;
         using Initializerss = Core::Vector<Initializers>;
+        using Memberss = Core::Vector<Members>;
         using Parameterss = Core::Vector<Parameters>;
+        using MemberAccessData = Core::Vector<Tokens>;
         return ParsedExpressions {
             EXPRESSIONS
             .late_expressions = TRY(Expressions::create()),
             .block_data = TRY(BlockData::create()),
-            .memberss = TRY(Memberss::create()),
             .initializerss = TRY(Initializerss::create()),
+            .memberss = TRY(Memberss::create()),
             .parameterss = TRY(Parameterss::create()),
+            .member_access_data = TRY(MemberAccessData::create()),
             .expressions = TRY(Expressions::create()),
         };
         // clang-format on
@@ -411,9 +422,10 @@ public:
 
     SOA_MEMBER(Expression, late_expressions);
     NONTRIVIAL_SOA_MEMBER(Expressions, block_data);
-    NONTRIVIAL_SOA_MEMBER(Members, memberss);
     NONTRIVIAL_SOA_MEMBER(Initializers, initializerss);
+    NONTRIVIAL_SOA_MEMBER(Members, memberss);
     NONTRIVIAL_SOA_MEMBER(Parameters, parameterss);
+    NONTRIVIAL_SOA_MEMBER(Tokens, member_access_data);
 
     Core::ErrorOr<Block> create_block()
     {
@@ -423,6 +435,11 @@ public:
     Core::ErrorOr<RValue> create_rvalue()
     {
         return RValue { TRY(append(TRY(Expressions::create(8)))) };
+    }
+
+    Core::ErrorOr<MemberAccess> create_member_access()
+    {
+        return MemberAccess { TRY(append(TRY(Tokens::create(8)))) };
     }
 
 #undef NONTRIVIAL_SOA_MEMBER

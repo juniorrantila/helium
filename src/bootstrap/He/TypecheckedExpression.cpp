@@ -223,6 +223,19 @@ static void codegen_parameters(FileBuffer& out,
     out.write(')');
 }
 
+static void codegen_member_access(FileBuffer& out,
+    Context const& context, MemberAccess const& access)
+{
+    auto source = context.source.text;
+    auto const& members = context.expressions[access.members];
+
+    for (u32 i = 0; i < members.size() - 1; i++) {
+        auto member = members[i];
+        out.write(member.text(source), '.');
+    }
+    out.write(members[members.size() - 1].text(source));
+}
+
 static void codegen_moved_value(FileBuffer&, Context const&,
     Moved const&)
 {

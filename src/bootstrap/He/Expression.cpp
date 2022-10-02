@@ -143,6 +143,16 @@ void StructInitializer::dump(ParsedExpressions const& expressions,
     std::cerr << "})";
 }
 
+void MemberAccess::dump(ParsedExpressions const& expressions,
+    StringView source, u32) const
+{
+    std::cerr << "MemberAccess(";
+    for (auto member : expressions[members]) {
+        std::cerr << "'" << member.text(source) << "' ";
+    }
+    std::cerr << "\b)";
+}
+
 void Literal::dump(ParsedExpressions const&,
     StringView source, u32) const
 {

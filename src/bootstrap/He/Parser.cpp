@@ -33,6 +33,9 @@ static ParseSingleItemResult parse_private_variable(
 static ParseSingleItemResult parse_variable_assignment(
     ParsedExpressions&, Tokens const&, u32 start);
 
+static ParseSingleItemResult parse_member_access(ParsedExpressions&,
+    Tokens const&, u32 start);
+
 static ParseSingleItemResult parse_struct(ParsedExpressions&,
     Tokens const&, u32 start);
 
@@ -587,7 +590,8 @@ static ParseSingleItemResult parse_function_call(
         };
     }
 
-    auto arguments_id = TRY(expressions.append(TRY(Expressions::create(8))));
+    auto arguments_id
+        = TRY(expressions.append(TRY(Expressions::create(8))));
     auto call_id = TRY(expressions.append(FunctionCall {
         .name = function_name,
         .arguments = arguments_id,
@@ -775,8 +779,10 @@ static ParseSingleItemResult parse_block(
 
         if (tokens[end].type == TokenType::Identifier) {
             if (tokens[end + 1].type == TokenType::Assign) {
-                auto assignment = TRY(parse_variable_assignment(expressions, tokens, end));
-                TRY(expressions[block.expressions].append(assignment));
+                auto assignment = TRY(parse_variable_assignment(
+                    expressions, tokens, end));
+                TRY(expressions[block.expressions].append(
+                    assignment));
                 end = assignment.end_token_index();
                 continue;
             }
@@ -840,7 +846,8 @@ static ParseSingleItemResult parse_irvalue(
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, end));
                 end = initializer.end_token_index() + 1;
-                TRY(expressions[rvalue.expressions].append(initializer));
+                TRY(expressions[rvalue.expressions].append(
+                    initializer));
                 continue;
             }
         }
@@ -850,8 +857,7 @@ static ParseSingleItemResult parse_irvalue(
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
             TRY(expressions[rvalue.expressions].append(inline_c));
-            auto rvalue_id
-                = TRY(expressions.append(rvalue));
+            auto rvalue_id = TRY(expressions.append(rvalue));
             // NOTE: Unconsume ';'
             return Expression {
                 rvalue_id,
@@ -889,7 +895,11 @@ static ParseSingleItemResult parse_irvalue(
             TRY(expressions[block.expressions].append(
                 { number_id, 0, 0 }));
             auto block_id = TRY(expressions.append(block));
-            TRY(expressions[rvalue.expressions].append({block_id, end, end + 1}));
+            TRY(expressions[rvalue.expressions].append({
+                block_id,
+                end,
+                end + 1,
+            }));
             end = close_paren_index + 1;
             continue;
         }
@@ -898,7 +908,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -908,7 +922,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -918,7 +936,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -928,7 +950,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -938,7 +964,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -948,7 +978,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -957,7 +991,11 @@ static ParseSingleItemResult parse_irvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -974,7 +1012,8 @@ static ParseSingleItemResult parse_irvalue(
                 }));
                 auto expression = Expression(value, end, end + 1);
                 end = expression.end_token_index();
-                TRY(expressions[rvalue.expressions].append(expression));
+                TRY(expressions[rvalue.expressions].append(
+                    expression));
             }
             continue;
         }
@@ -1028,8 +1067,7 @@ static ParseSingleItemResult parse_if_rvalue(
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
             TRY(expressions[rvalue.expressions].append(inline_c));
-            auto rvalue_id
-                = TRY(expressions.append(rvalue));
+            auto rvalue_id = TRY(expressions.append(rvalue));
             // NOTE: Unconsume ';'
             return Expression {
                 rvalue_id,
@@ -1066,9 +1104,16 @@ static ParseSingleItemResult parse_if_rvalue(
             auto block_id = TRY(expressions.append(
                 TRY(expressions.create_block())));
             auto& block = expressions[block_id];
-            TRY(expressions[block.expressions].append(
-                { number_id, 0, 0 }));
-            TRY(expressions[rvalue.expressions].append({ block_id, end, end + 1}));
+            TRY(expressions[block.expressions].append({
+                number_id,
+                0,
+                0,
+            }));
+            TRY(expressions[rvalue.expressions].append({
+                block_id,
+                end,
+                end + 1,
+            }));
             end = close_paren_index + 1;
             continue;
         }
@@ -1077,7 +1122,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1087,7 +1136,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1097,7 +1150,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1107,7 +1164,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1117,7 +1178,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1127,7 +1192,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1137,7 +1206,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1147,7 +1220,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1156,7 +1233,11 @@ static ParseSingleItemResult parse_if_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1167,6 +1248,14 @@ static ParseSingleItemResult parse_if_rvalue(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index();
                 TRY(expressions[rvalue.expressions].append(call));
+                continue;
+            }
+            if (tokens[end + 1].type == TokenType::Dot) {
+                auto member_access = TRY(
+                    parse_member_access(expressions, tokens, end));
+                end = member_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    member_access));
                 continue;
             }
             auto value = TRY(expressions.append(LValue {
@@ -1227,8 +1316,7 @@ static ParseSingleItemResult parse_rvalue(
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
             TRY(expressions[rvalue.expressions].append(inline_c));
-            auto rvalue_id
-                = TRY(expressions.append(rvalue));
+            auto rvalue_id = TRY(expressions.append(rvalue));
             // NOTE: Unconsume ';'
             return Expression {
                 rvalue_id,
@@ -1265,9 +1353,16 @@ static ParseSingleItemResult parse_rvalue(
             auto block_id = TRY(expressions.append(
                 TRY(expressions.create_block())));
             auto& block = expressions[block_id];
-            TRY(expressions[block.expressions].append(
-                { number_id, 0, 0 }));
-            TRY(expressions[rvalue.expressions].append({ block_id, end, end + 1}));
+            TRY(expressions[block.expressions].append({
+                number_id,
+                0,
+                0,
+            }));
+            TRY(expressions[rvalue.expressions].append({
+                block_id,
+                end,
+                end + 1,
+            }));
             end = close_paren_index + 1;
             continue;
         }
@@ -1276,7 +1371,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1286,7 +1385,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1296,7 +1399,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1306,7 +1413,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1316,7 +1427,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1326,7 +1441,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1336,7 +1455,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1346,7 +1469,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1355,7 +1482,11 @@ static ParseSingleItemResult parse_rvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1369,9 +1500,19 @@ static ParseSingleItemResult parse_rvalue(
                 continue;
             }
             if (tokens[end + 1].type == TokenType::OpenCurly) {
-                auto initializer = TRY(parse_struct_initializer(expressions, tokens, end));
+                auto initializer = TRY(parse_struct_initializer(
+                    expressions, tokens, end));
                 end = initializer.end_token_index();
-                TRY(expressions[rvalue.expressions].append(initializer));
+                TRY(expressions[rvalue.expressions].append(
+                    initializer));
+                continue;
+            }
+            if (tokens[end + 1].type == TokenType::Dot) {
+                auto member_access = TRY(
+                    parse_member_access(expressions, tokens, end));
+                end = member_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    member_access));
                 continue;
             }
 
@@ -1432,7 +1573,11 @@ static ParseSingleItemResult parse_prvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1443,7 +1588,11 @@ static ParseSingleItemResult parse_prvalue(
             auto literal = TRY(expressions.append(Literal {
                 token,
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1454,7 +1603,11 @@ static ParseSingleItemResult parse_prvalue(
             auto literal = TRY(expressions.append(Literal {
                 token,
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1464,7 +1617,11 @@ static ParseSingleItemResult parse_prvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1474,7 +1631,11 @@ static ParseSingleItemResult parse_prvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1483,7 +1644,11 @@ static ParseSingleItemResult parse_prvalue(
             auto literal = TRY(expressions.append(Literal {
                 tokens[end],
             }));
-            TRY(expressions[rvalue.expressions].append({ literal, end, end + 1 }));
+            TRY(expressions[rvalue.expressions].append({
+                literal,
+                end,
+                end + 1,
+            }));
             end = end + 1;
             continue;
         }
@@ -1493,15 +1658,25 @@ static ParseSingleItemResult parse_prvalue(
                 auto function_call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = function_call.end_token_index();
-                TRY(expressions[rvalue.expressions].append(function_call));
-            } else {
-                auto value = TRY(expressions.append(LValue {
-                    tokens[end],
-                }));
-                auto expression = Expression(value, end, end + 1);
-                end = expression.end_token_index();
-                TRY(expressions[rvalue.expressions].append(expression));
+                TRY(expressions[rvalue.expressions].append(
+                    function_call));
+                continue;
             }
+            if (tokens[end + 1].type == TokenType::Dot) {
+                auto member_access = TRY(
+                    parse_member_access(expressions, tokens, end));
+                end = member_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    member_access));
+                continue;
+            }
+
+            auto value = TRY(expressions.append(LValue {
+                tokens[end],
+            }));
+            auto expression = Expression(value, end, end + 1);
+            end = expression.end_token_index();
+            TRY(expressions[rvalue.expressions].append(expression));
             continue;
         }
 
@@ -2128,7 +2303,8 @@ static ParseSingleItemResult parse_private_variable(
     return Expression(variable, start, end);
 }
 
-static ParseSingleItemResult parse_variable_assignment(ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+static ParseSingleItemResult parse_variable_assignment(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start;
     auto name = tokens[name_index];
@@ -2144,7 +2320,8 @@ static ParseSingleItemResult parse_variable_assignment(ParsedExpressions& expres
     }
 
     auto rvalue_index = assign_index + 1;
-    auto rvalue = TRY(parse_rvalue(expressions, tokens, rvalue_index));
+    auto rvalue
+        = TRY(parse_rvalue(expressions, tokens, rvalue_index));
 
     auto semicolon_index = rvalue.end_token_index();
     auto semicolon = tokens[semicolon_index];
@@ -2157,13 +2334,50 @@ static ParseSingleItemResult parse_variable_assignment(ParsedExpressions& expres
     }
     auto end = semicolon_index;
 
-    auto variable_assignment = TRY(expressions.append(VariableAssignment {
-        .name = name,
-        .value = rvalue.as_rvalue(),
-    }));
+    auto variable_assignment
+        = TRY(expressions.append(VariableAssignment {
+            .name = name,
+            .value = rvalue.as_rvalue(),
+        }));
 
     return Expression {
         variable_assignment,
+        start,
+        end + 1,
+    };
+}
+
+static ParseSingleItemResult parse_member_access(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto member_access = TRY(expressions.create_member_access());
+    auto& access_expressions = expressions[member_access.members];
+
+    auto end = start;
+    while (end < tokens.size()) {
+        auto name_index = end;
+        auto name = tokens[name_index];
+        if (name.type != TokenType::Identifier) {
+            return ParseError {
+                "expected member name",
+                nullptr,
+                name,
+            };
+        }
+
+        TRY(access_expressions.append(name));
+
+        auto dot_index = name_index + 1;
+        auto dot = tokens[dot_index];
+        if (dot.type != TokenType::Dot)
+            break;
+
+        end = dot_index + 1;
+    }
+
+    auto member_access_id = TRY(expressions.append(member_access));
+    return Expression {
+        member_access_id,
         start,
         end + 1,
     };
