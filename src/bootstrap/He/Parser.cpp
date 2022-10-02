@@ -9,92 +9,58 @@
 namespace He {
 
 using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
-static ParseSingleItemResult parse_root_item(ParsedExpressions&,
-    Tokens const&, u32 start);
 
-static ParseSingleItemResult parse_struct_initializer(
-    ParsedExpressions&, Tokens const&, u32 start);
+#define FORWARD_DECLARE_PARSER(name)                          \
+    static ParseSingleItemResult parse_##name(                \
+        ParsedExpressions& expressions, Tokens const& tokens, \
+        u32 start)
 
-static ParseSingleItemResult parse_top_level_constant_or_struct(
-    ParsedExpressions&, Tokens const&, u32 start);
+#define X(T, name, ...) FORWARD_DECLARE_PARSER(name);
+EXPRESSIONS
+#undef X
 
-static ParseSingleItemResult parse_public_constant(
-    ParsedExpressions&, Tokens const&, u32 start);
+FORWARD_DECLARE_PARSER(root_item);
+FORWARD_DECLARE_PARSER(top_level_constant_or_struct);
+FORWARD_DECLARE_PARSER(if_rvalue);
+FORWARD_DECLARE_PARSER(irvalue);
+FORWARD_DECLARE_PARSER(prvalue);
+FORWARD_DECLARE_PARSER(pub_specifier);
 
-static ParseSingleItemResult parse_public_variable(
-    ParsedExpressions&, Tokens const&, u32 start);
+#undef FORWARD_DECLARE_PARSER
 
-static ParseSingleItemResult parse_private_constant(
-    ParsedExpressions&, Tokens const&, u32 start);
+[[deprecated("unimplemented, do manually for now but FIXME")]] //
+[[maybe_unused]] static ParseSingleItemResult
+parse_lvalue(ParsedExpressions&, Tokens const& tokens, u32 start)
+{
+    return ParseError {
+        "trying to parse lvalue",
+        nullptr,
+        tokens[start],
+    };
+}
 
-static ParseSingleItemResult parse_private_variable(
-    ParsedExpressions&, Tokens const&, u32 start);
+[[deprecated("unimplemented, do manually for now but FIXME")]] //
+[[maybe_unused]] static ParseSingleItemResult
+parse_literal(ParsedExpressions&, Tokens const& tokens, u32 start)
+{
+    return ParseError {
+        "trying to parse literal",
+        nullptr,
+        tokens[start],
+    };
+}
 
-static ParseSingleItemResult parse_variable_assignment(
-    ParsedExpressions&, Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_member_access(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_struct(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_enum(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_union(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_variant(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_rvalue(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_if_rvalue(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_irvalue(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_return(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_public_function(
-    ParsedExpressions&, Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_public_c_function(
-    ParsedExpressions&, Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_private_function(
-    ParsedExpressions&, Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_private_c_function(
-    ParsedExpressions&, Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_import_c(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_inline_c(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_block(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_function_call(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_prvalue(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_if(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_while(ParsedExpressions&,
-    Tokens const&, u32 start);
-
-static ParseSingleItemResult parse_pub_specifier(ParsedExpressions&,
-    Tokens const& tokens, u32 start);
+[[deprecated("unimplemented, do manually for now but FIXME")]] //
+[[maybe_unused]] static ParseSingleItemResult
+parse_compiler_provided_u64(ParsedExpressions&,
+    Tokens const& tokens, u32 start)
+{
+    return ParseError {
+        "trying to parse compiler provided u64",
+        nullptr,
+        tokens[start],
+    };
+}
 
 ParseResult parse(Tokens const& tokens)
 {
@@ -206,7 +172,7 @@ ParseSingleItemResult parse_struct_initializer(
     };
 }
 
-static ParseSingleItemResult parse_if(
+static ParseSingleItemResult parse_if_statement(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto condition
@@ -231,7 +197,7 @@ static ParseSingleItemResult parse_if(
     return Expression(if_statement, start, end);
 }
 
-static ParseSingleItemResult parse_while(
+static ParseSingleItemResult parse_while_statement(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto condition
@@ -321,10 +287,12 @@ static ParseSingleItemResult parse_pub_specifier(
             fn_index);
     }
     if (fn.type == TokenType::Let) {
-        return parse_public_constant(expressions, tokens, fn_index);
+        return parse_public_constant_declaration(expressions,
+            tokens, fn_index);
     }
     if (fn.type == TokenType::Var) {
-        return parse_public_variable(expressions, tokens, fn_index);
+        return parse_public_variable_declaration(expressions,
+            tokens, fn_index);
     }
     return ParseError {
         "expected one of ['fn', 'c_fn', 'let', 'var']",
@@ -359,7 +327,8 @@ static ParseSingleItemResult parse_root_item(
     }
 
     if (token.type == TokenType::Var) {
-        return parse_private_variable(expressions, tokens, start);
+        return parse_private_variable_declaration(expressions,
+            tokens, start);
     }
 
     return ParseError {
@@ -627,7 +596,7 @@ static ParseSingleItemResult parse_function_call(
     return Expression(call_id, start, right_paren_index + 1);
 }
 
-static ParseSingleItemResult parse_return(
+static ParseSingleItemResult parse_return_statement(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start + 1;
@@ -743,24 +712,24 @@ static ParseSingleItemResult parse_block(
         }
 
         if (tokens[end].type == TokenType::Let) {
-            auto variable = TRY(
-                parse_public_constant(expressions, tokens, end));
+            auto variable = TRY(parse_public_constant_declaration(
+                expressions, tokens, end));
             end = variable.end_token_index();
             TRY(expressions[block.expressions].append(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Var) {
-            auto variable = TRY(
-                parse_public_variable(expressions, tokens, end));
+            auto variable = TRY(parse_public_variable_declaration(
+                expressions, tokens, end));
             end = variable.end_token_index();
             TRY(expressions[block.expressions].append(variable));
             continue;
         }
 
         if (tokens[end].type == TokenType::Return) {
-            auto return_expression
-                = TRY(parse_return(expressions, tokens, end));
+            auto return_expression = TRY(
+                parse_return_statement(expressions, tokens, end));
             end = return_expression.end_token_index();
 
             if (tokens[end].type != TokenType::Semicolon) {
@@ -804,15 +773,16 @@ static ParseSingleItemResult parse_block(
         }
 
         if (tokens[end].type == TokenType::If) {
-            auto if_ = TRY(parse_if(expressions, tokens, end));
+            auto if_
+                = TRY(parse_if_statement(expressions, tokens, end));
             end = if_.end_token_index();
             TRY(expressions[block.expressions].append(if_));
             continue;
         }
 
         if (tokens[end].type == TokenType::While) {
-            auto while_
-                = TRY(parse_while(expressions, tokens, end));
+            auto while_ = TRY(
+                parse_while_statement(expressions, tokens, end));
             end = while_.end_token_index();
             TRY(expressions[block.expressions].append(while_));
             continue;
@@ -1258,6 +1228,7 @@ static ParseSingleItemResult parse_if_rvalue(
                     member_access));
                 continue;
             }
+
             auto value = TRY(expressions.append(LValue {
                 tokens[end],
             }));
@@ -1711,7 +1682,7 @@ static ParseSingleItemResult parse_prvalue(
     };
 }
 
-static ParseSingleItemResult parse_struct(
+static ParseSingleItemResult parse_struct_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -1837,7 +1808,7 @@ static ParseSingleItemResult parse_struct(
     return Expression(struct_id, start, end);
 }
 
-static ParseSingleItemResult parse_enum(
+static ParseSingleItemResult parse_enum_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -1944,7 +1915,7 @@ static ParseSingleItemResult parse_enum(
     return Expression(enum_id, start, end);
 }
 
-static ParseSingleItemResult parse_union(
+static ParseSingleItemResult parse_union_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -2070,7 +2041,7 @@ static ParseSingleItemResult parse_union(
     return Expression(union_id, start, end);
 }
 
-static ParseSingleItemResult parse_variant(
+static ParseSingleItemResult parse_variant_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -2196,7 +2167,7 @@ static ParseSingleItemResult parse_variant(
     return Expression(variant_id, start, end);
 }
 
-static ParseSingleItemResult parse_private_variable(
+static ParseSingleItemResult parse_private_variable_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2383,7 +2354,7 @@ static ParseSingleItemResult parse_member_access(
     };
 }
 
-static ParseSingleItemResult parse_public_variable(
+static ParseSingleItemResult parse_public_variable_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2490,7 +2461,7 @@ static ParseSingleItemResult parse_public_variable(
     return Expression(variable, start, end);
 }
 
-static ParseSingleItemResult parse_private_constant(
+static ParseSingleItemResult parse_private_constant_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2597,7 +2568,7 @@ static ParseSingleItemResult parse_private_constant(
     return Expression(constant, start, end);
 }
 
-static ParseSingleItemResult parse_public_constant(
+static ParseSingleItemResult parse_public_constant_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2787,22 +2758,26 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto struct_token_index = colon_or_assign_index + 1;
     auto struct_token = tokens[struct_token_index];
     if (struct_token.type == TokenType::Struct)
-        return TRY(parse_struct(expressions, tokens, name_index));
+        return TRY(parse_struct_declaration(expressions, tokens,
+            name_index));
 
     auto enum_token_index = struct_token_index;
     auto enum_token = tokens[enum_token_index];
     if (enum_token.type == TokenType::Enum)
-        return TRY(parse_enum(expressions, tokens, name_index));
+        return TRY(parse_enum_declaration(expressions, tokens,
+            name_index));
 
     auto union_token_index = struct_token_index;
     auto union_token = tokens[union_token_index];
     if (union_token.type == TokenType::Union)
-        return TRY(parse_union(expressions, tokens, name_index));
+        return TRY(parse_union_declaration(expressions, tokens,
+            name_index));
 
     auto variant_token_index = union_token_index;
     auto variant_token = tokens[variant_token_index];
     if (variant_token.type == TokenType::Variant)
-        return TRY(parse_variant(expressions, tokens, name_index));
+        return TRY(parse_variant_declaration(expressions, tokens,
+            name_index));
 
     auto value = TRY(
         parse_rvalue(expressions, tokens, rvalue_start_index));
@@ -2829,6 +2804,29 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
             .value = value_id,
         }));
     return Expression(constant, start, end);
+}
+
+[[deprecated("can't parse invalid")]] //
+[[maybe_unused]] static ParseSingleItemResult
+parse_invalid(ParsedExpressions&, Tokens const& tokens, u32 start)
+{
+    return ParseError {
+        "trying to parse invalid",
+        nullptr,
+        tokens[start],
+    };
+}
+
+[[deprecated("can't moved value")]] //
+[[maybe_unused]] static ParseSingleItemResult
+parse_moved_value(ParsedExpressions&, Tokens const& tokens,
+    u32 start)
+{
+    return ParseError {
+        "trying to parse moved",
+        nullptr,
+        tokens[start],
+    };
 }
 
 Core::ErrorOr<void> ParseError::show(SourceFile source) const
