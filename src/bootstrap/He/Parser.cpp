@@ -24,6 +24,7 @@ FORWARD_DECLARE_PARSER(top_level_constant_or_struct);
 FORWARD_DECLARE_PARSER(if_rvalue);
 FORWARD_DECLARE_PARSER(irvalue);
 FORWARD_DECLARE_PARSER(prvalue);
+FORWARD_DECLARE_PARSER(array_access_rvalue);
 FORWARD_DECLARE_PARSER(pub_specifier);
 
 #undef FORWARD_DECLARE_PARSER
@@ -1380,6 +1381,15 @@ static ParseSingleItemResult parse_rvalue(
                 continue;
             }
 
+            if (tokens[end + 1].type == TokenType::OpenBracket) {
+                auto array_access = TRY(
+                    parse_array_access(expressions, tokens, end));
+                end = array_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    array_access));
+                continue;
+            }
+
             auto lvalue
                 = TRY(parse_lvalue(expressions, tokens, end));
             end = lvalue.end_token_index();
@@ -1416,6 +1426,157 @@ static ParseSingleItemResult parse_rvalue(
         "expected ';' or '{'",
         "did you forget a semicolon?",
         tokens[end],
+    };
+}
+
+static ParseSingleItemResult parse_array_access_rvalue(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto rvalue = TRY(expressions.create_rvalue());
+
+    auto end = start;
+    for (; end < tokens.size();) {
+        if (tokens[end].type == TokenType::CloseBracket)
+            break;
+
+        if (tokens[end].type == TokenType::Number) {
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Plus) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Minus) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::LessThan) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::LessThanOrEqual) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::GreaterThan) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::GreaterThanOrEqual) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Equals) {
+            // FIXME: Make this a unary operation.
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Quoted) {
+            auto literal
+                = TRY(parse_literal(expressions, tokens, end));
+            TRY(expressions[rvalue.expressions].append(literal));
+            end = literal.end_token_index();
+            continue;
+        }
+
+        if (tokens[end].type == TokenType::Identifier) {
+            if (tokens[end + 1].type == TokenType::OpenParen) {
+                auto call = TRY(
+                    parse_function_call(expressions, tokens, end));
+                end = call.end_token_index();
+                TRY(expressions[rvalue.expressions].append(call));
+                continue;
+            }
+            if (tokens[end + 1].type == TokenType::OpenCurly) {
+                auto initializer = TRY(parse_struct_initializer(
+                    expressions, tokens, end));
+                end = initializer.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    initializer));
+                continue;
+            }
+            if (tokens[end + 1].type == TokenType::Dot) {
+                auto member_access = TRY(
+                    parse_member_access(expressions, tokens, end));
+                end = member_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    member_access));
+                continue;
+            }
+
+            if (tokens[end + 1].type == TokenType::OpenBracket) {
+                auto array_access = TRY(parse_array_access(expressions, tokens, start));
+                end = array_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(array_access));
+                continue;
+            }
+
+            auto lvalue
+                = TRY(parse_lvalue(expressions, tokens, end));
+            end = lvalue.end_token_index();
+            TRY(expressions[rvalue.expressions].append(lvalue));
+            continue;
+        }
+
+        return ParseError {
+            "expected ']'",
+            nullptr,
+            tokens[end],
+        };
+    }
+
+    if (tokens[end].type != TokenType::CloseBracket) {
+        return ParseError {
+            "expected ']'",
+            nullptr,
+            tokens[end],
+        };
+    }
+
+    auto rvalue_id = TRY(expressions.append(rvalue));
+    return Expression {
+        rvalue_id,
+        start,
+        end,
     };
 }
 
@@ -2218,6 +2379,55 @@ static ParseSingleItemResult parse_member_access(
     auto member_access_id = TRY(expressions.append(member_access));
     return Expression {
         member_access_id,
+        start,
+        end + 1,
+    };
+}
+
+static ParseSingleItemResult parse_array_access(
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto name_index = start;
+    auto name = tokens[name_index];
+    if (name.type != TokenType::Identifier) {
+        return ParseError {
+            "expected array name",
+             nullptr,
+             name,
+        };
+    }
+
+    auto open_bracket_index = name_index + 1;
+    auto open_bracket = tokens[open_bracket_index];
+    if (open_bracket.type != TokenType::OpenBracket) {
+        return ParseError {
+            "expected '['",
+            nullptr,
+            open_bracket,
+        };
+    }
+
+    auto index_start = open_bracket_index + 1;
+    auto index = TRY(parse_array_access_rvalue(expressions, tokens, index_start));
+    
+    auto close_bracket_index = index.end_token_index();
+    auto close_bracket = tokens[close_bracket_index];
+    if (close_bracket.type != TokenType::CloseBracket) {
+        return ParseError {
+            "expected ']'",
+            nullptr,
+            close_bracket,
+        };
+    }
+
+    auto array_access = TRY(expressions.append(ArrayAccess {
+        .name = name,
+        .index = index.as_rvalue(),
+    }));
+
+    auto end = close_bracket_index;
+    return Expression {
+        array_access,
         start,
         end + 1,
     };

@@ -236,6 +236,17 @@ static void codegen_member_access(FileBuffer& out,
     out.write(members[members.size() - 1].text(source));
 }
 
+static void codegen_array_access(FileBuffer& out,
+    Context const& context, ArrayAccess const& access)
+{
+    auto source = context.source.text;
+    auto name = access.name.text(source);
+    out.write(name, '[');
+    auto const& index = context.expressions[access.index];
+    codegen_rvalue(out, context, index);
+    out.write(']');
+}
+
 static void codegen_moved_value(FileBuffer&, Context const&,
     Moved const&)
 {

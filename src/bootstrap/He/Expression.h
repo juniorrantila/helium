@@ -22,6 +22,7 @@ struct ParsedExpressions;
     X(StructInitializer, struct_initializer)                    \
                                                                 \
     X(MemberAccess, member_access)                              \
+    X(ArrayAccess, array_access)                                \
                                                                 \
     X(EnumDeclaration, enum_declaration)                        \
     X(UnionDeclaration, union_declaration)                      \
@@ -161,6 +162,14 @@ struct StructInitializer {
 
 struct MemberAccess {
     Id<Tokens> members;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct ArrayAccess {
+    Token name;
+    Id<RValue> index;
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;

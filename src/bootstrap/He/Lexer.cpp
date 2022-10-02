@@ -367,6 +367,8 @@ static constexpr bool is_delimiter(char character)
     case '/': return true;
     case '(': return true;
     case ')': return true;
+    case '[': return true;
+    case ']': return true;
     }
     return false;
 }

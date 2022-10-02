@@ -153,6 +153,14 @@ void MemberAccess::dump(ParsedExpressions const& expressions,
     std::cerr << "\b)";
 }
 
+void ArrayAccess::dump(ParsedExpressions const& expressions,
+    StringView source, u32 indent) const
+{
+    std::cerr << "ArrayAccess('" << name.text(source) << "' ";
+    expressions[index].dump(expressions, source, indent);
+    std::cerr << ")";
+}
+
 void Literal::dump(ParsedExpressions const&,
     StringView source, u32) const
 {
