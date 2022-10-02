@@ -957,6 +957,14 @@ static ParseSingleItemResult parse_irvalue(
                 TRY(expressions[rvalue.expressions].append(initializer));
                 continue;
             }
+            if (tokens[end + 1].type == TokenType::Dot) {
+                auto member_access = TRY(
+                    parse_member_access(expressions, tokens, end));
+                end = member_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    member_access));
+                continue;
+            }
 
             auto lvalue
                 = TRY(parse_lvalue(expressions, tokens, end));
