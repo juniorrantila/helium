@@ -820,7 +820,7 @@ static ParseSingleItemResult parse_irvalue(
             if (tokens[end + 1].type == TokenType::OpenCurly) {
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, end));
-                end = initializer.end_token_index() + 1;
+                end = initializer.end_token_index();
                 TRY(expressions[rvalue.expressions].append(
                     initializer));
                 continue;
@@ -949,12 +949,19 @@ static ParseSingleItemResult parse_irvalue(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index();
                 TRY(expressions[rvalue.expressions].append(call));
-            } else {
-                auto lvalue
-                    = TRY(parse_lvalue(expressions, tokens, end));
-                end = lvalue.end_token_index();
-                TRY(expressions[rvalue.expressions].append(lvalue));
+                continue;
             }
+            if (tokens[end + 1].type == TokenType::OpenCurly) {
+                auto initializer = TRY(parse_struct_initializer(expressions, tokens, start));
+                end = initializer.end_token_index() + 1;
+                TRY(expressions[rvalue.expressions].append(initializer));
+                continue;
+            }
+
+            auto lvalue
+                = TRY(parse_lvalue(expressions, tokens, end));
+            end = lvalue.end_token_index();
+            TRY(expressions[rvalue.expressions].append(lvalue));
             continue;
         }
 

@@ -432,7 +432,7 @@ static void codegen_struct_initializer(FileBuffer& out,
         codegen_rvalue(out, context, irvalue);
         out.writeln(',');
     }
-    out.writeln("};");
+    out.writeln('}');
 }
 
 static void codegen_literal(FileBuffer& out, Context const& context,
