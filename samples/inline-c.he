@@ -11,12 +11,12 @@
 inline_c typedef c_string* c_string_array;
 pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
     if argc < 2 {
-        let program_name = inline_c argv[0];
+        let program_name = argv[0];
         printf("USAGE: %s file\n", program_name);
         return 1;
     }
 
-    let file_path = inline_c argv[1];
+    let file_path = argv[1];
     let file = open_file(file_path);
     let size = inline_c sizeof(file);
     if memcmp(&file, &file_invalid, size) == 0 {
@@ -38,15 +38,15 @@ fn open_file(path: c_string) -> File {
     if fstat(fd, &mut st) < 0 {
         let last_errno = errno;
         close(fd);
-        inline_c errno = last_errno;
+        errno = last_errno;
         return file_invalid;
     }
-    inline_c u32 size = st.st_size;
+    let size: u32 = st.st_size;
     let data = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
     if data == MAP_FAILED {
         let last_errno = errno;
         close(fd);
-        inline_c errno = last_errno;
+        errno = last_errno;
         return file_invalid;
     }
 

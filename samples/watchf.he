@@ -11,7 +11,7 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
         help(1);
     }
 
-    let watch_file = inline_c argv[1];
+    let watch_file = argv[1];
     var command_argv = inline_c &argv[2];
     let notify_fd = inotify_init();
     if notify_fd < 0 {
@@ -59,7 +59,7 @@ fn try_is_folder(path: c_string) -> i32 {
 fn run_command(argv: c_string_array) -> i32 {
     let pid = fork();
     if pid == 0 {
-        let program_name = inline_c argv[0];
+        let program_name = argv[0];
         if execvp(program_name, argv) < 0 {
             perror("execvp");
             exit(1);
