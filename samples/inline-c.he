@@ -50,7 +50,7 @@ fn open_file(path: c_string) -> File {
         return file_invalid;
     }
 
-    return inline_c (File) {
+    return File {
         .data = data,
         .size = size,
         .fd = fd,
@@ -59,16 +59,12 @@ fn open_file(path: c_string) -> File {
 
 fn close_file(file: File) -> void {
     let data = inline_c (void*)file.data;
-    let size = inline_c file.size;
-    let fd = inline_c file.fd;
-    munmap(data, size);
-    close(fd);
+    munmap(data, file.size);
+    close(file.fd);
 }
 
 fn dump_file(file: File) -> void {
-    let data = inline_c file.data;
-    let size = inline_c file.size;
-    printf("%.*s\n", size, data);
+    printf("%.*s\n", file.size, file.data);
 }
 
 inline_c {

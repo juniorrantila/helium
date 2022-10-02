@@ -10,8 +10,5 @@ pub c_fn main() -> c_int {
         .a = 10,
         .b = 20,
     };
-    inline_c let a = foo.a;
-    inline_c let b = foo.b;
-
-    printf("Foo: %d %d\n", a, b);
+    printf("Foo: %d %d\n", foo.a, foo.b);
 }

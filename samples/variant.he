@@ -11,10 +11,8 @@ pub c_fn main() -> i32 {
         .type = Foo$Type$a,
     };
 
-    inline_c let type = foo.type;
-    if type == Foo$Type$a {
-        inline_c let a = foo.a;
-        printf("a: %d\n", a);
+    if foo.type == Foo$Type$a {
+        printf("a: %d\n", foo.a);
         return 0;
     }
 

@@ -38,7 +38,7 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
         if pid > 0 {
             kill(pid, SIGKILL);
         }
-        inline_c pid = run_command(command_argv);
+        pid = run_command(command_argv);
         if pid < 0 {
             perror("run_command");
             return 1;
