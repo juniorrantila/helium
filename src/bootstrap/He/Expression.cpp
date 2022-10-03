@@ -59,7 +59,8 @@ void PublicConstantDeclaration::dump(
     std::cerr << ')';
 }
 
-void VariableAssignment::dump(ParsedExpressions const& expressions, StringView source, u32 indent) const
+void VariableAssignment::dump(ParsedExpressions const& expressions,
+    StringView source, u32 indent) const
 {
     std::cerr << "VariableAssignment(" << '\'' << name.text(source)
               << "' ";
@@ -161,8 +162,8 @@ void ArrayAccess::dump(ParsedExpressions const& expressions,
     std::cerr << ")";
 }
 
-void Literal::dump(ParsedExpressions const&,
-    StringView source, u32) const
+void Literal::dump(ParsedExpressions const&, StringView source,
+    u32) const
 {
     std::cerr << "Literal(" << token.text(source) << ")";
 }
@@ -325,22 +326,21 @@ void Return::dump(ParsedExpressions const& expressions,
     std::cerr << ')';
 }
 
-void ImportC::dump(ParsedExpressions const&,
-    StringView source, u32) const
+void ImportC::dump(ParsedExpressions const&, StringView source,
+    u32) const
 {
     std::cerr << "ImportC(" << filename.text(source) << ")";
 }
 
-void InlineC::dump(ParsedExpressions const&,
-    StringView source, u32) const
+void InlineC::dump(ParsedExpressions const&, StringView source,
+    u32) const
 {
     std::cerr << "InlineC('" << literal.text(source) << "')";
 }
 
-void CompilerProvidedU64::dump(ParsedExpressions const&,
-    StringView, u32) const
+void Uninitialized::dump(ParsedExpressions const&, StringView, u32)
 {
-    std::cerr << "CompilerProvidedU64('" << number << "')";
+    std::cerr << "Uninitialized()";
 }
 
 void Invalid::dump(ParsedExpressions const&, StringView, u32)

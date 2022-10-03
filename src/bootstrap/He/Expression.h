@@ -8,7 +8,7 @@ namespace He {
 struct ParsedExpressions;
 
 #define EXPRESSIONS                                             \
-    X(CompilerProvidedU64, compiler_provided_u64)               \
+    X(Uninitialized, uninitialized)                             \
     X(Literal, literal)                                         \
                                                                 \
     X(PrivateConstantDeclaration, private_constant_declaration) \
@@ -88,11 +88,9 @@ struct Block {
         u32 indent) const;
 };
 
-struct CompilerProvidedU64 {
-    u64 number;
-
-    void dump(ParsedExpressions const&, StringView source,
-        u32 indent) const;
+struct Uninitialized {
+    static void dump(ParsedExpressions const&, StringView source,
+        u32 indent);
 };
 
 struct Variable {
@@ -449,6 +447,11 @@ public:
     Core::ErrorOr<MemberAccess> create_member_access()
     {
         return MemberAccess { TRY(append(TRY(Tokens::create(8)))) };
+    }
+
+    static constexpr Id<Uninitialized> uninitialized_expression()
+    {
+        return Id<Uninitialized> { 0 };
     }
 
 #undef NONTRIVIAL_SOA_MEMBER

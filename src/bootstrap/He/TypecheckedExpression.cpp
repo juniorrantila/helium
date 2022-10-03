@@ -607,11 +607,10 @@ static void codegen_inline_c(FileBuffer& out,
     out.write(inline_c.literal.text(source));
 }
 
-static void codegen_compiler_provided_u64(FileBuffer& out,
+static void codegen_uninitialized(FileBuffer& out,
     Context const&,
-    CompilerProvidedU64 const& compiler_provided_u64)
+    Uninitialized const&)
 {
-    auto number = std::to_string(compiler_provided_u64.number);
-    out.write(std::move(number));
+    out.write("{ 0 }");
 }
 }

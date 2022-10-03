@@ -29,15 +29,44 @@ FORWARD_DECLARE_PARSER(pub_specifier);
 
 #undef FORWARD_DECLARE_PARSER
 
-[[deprecated("unimplemented, do manually for now but FIXME")]] //
-[[maybe_unused]] static ParseSingleItemResult
-parse_compiler_provided_u64(ParsedExpressions&,
-    Tokens const& tokens, u32 start)
+[[maybe_unused]] static ParseSingleItemResult parse_uninitialized(
+    ParsedExpressions&, Tokens const& tokens, u32 start)
 {
-    return ParseError {
-        "trying to parse compiler provided u64",
-        nullptr,
-        tokens[start],
+    auto uninitialized_index = start;
+    auto uninitialized = tokens[uninitialized_index];
+    if (uninitialized.type != TokenType::Uninitialized) {
+        return ParseError {
+            "expected @uninitialized()",
+            "this is probably a parser error",
+            tokens[start],
+        };
+    }
+
+    auto open_paren_index = uninitialized_index + 1;
+    auto open_paren = tokens[open_paren_index];
+    if (open_paren.type != TokenType::OpenParen) {
+        return ParseError {
+            "expected '('",
+            "function call need parenthesis",
+            open_paren,
+        };
+    }
+
+    auto close_paren_index = open_paren_index + 1;
+    auto close_paren = tokens[close_paren_index];
+    if (close_paren.type != TokenType::CloseParen) {
+        return ParseError {
+            "expected ')'",
+            "did you forget a parenthesis?",
+            close_paren,
+        };
+    }
+
+    auto end = close_paren_index;
+    return Expression {
+        ParsedExpressions::uninitialized_expression(),
+        start,
+        end + 1,
     };
 }
 
@@ -843,43 +872,15 @@ static ParseSingleItemResult parse_irvalue(
         }
 
         if (tokens[end].type == TokenType::Uninitialized) {
-            auto open_paren_index = end + 1;
-            auto open_paren = tokens[open_paren_index];
-            if (open_paren.type != TokenType::OpenParen) {
-                return ParseError {
-                    "expected '('",
-                    nullptr,
-                    open_paren,
-                };
-            }
-
-            auto close_paren_index = open_paren_index + 1;
-            auto close_paren = tokens[close_paren_index];
-            if (close_paren.type != TokenType::CloseParen) {
-                return ParseError {
-                    "expected ')'",
-                    nullptr,
-                    close_paren,
-                };
-            }
-            end = close_paren_index;
-            auto number_id
-                = TRY(expressions.append(CompilerProvidedU64 {
-                    .number = 0,
-                }));
-            auto block = TRY(expressions.create_block());
-            TRY(expressions[block.expressions].append({
-                number_id,
-                0,
-                0,
-            }));
-            auto block_id = TRY(expressions.append(block));
+            auto uninitialized = TRY(
+                parse_uninitialized(expressions, tokens, end));
+            auto start = end;
+            end = uninitialized.end_token_index();
             TRY(expressions[rvalue.expressions].append({
-                block_id,
+                uninitialized.as_uninitialized(),
+                start,
                 end,
-                end + 1,
             }));
-            end = close_paren_index + 1;
             continue;
         }
 
@@ -953,9 +954,11 @@ static ParseSingleItemResult parse_irvalue(
                 continue;
             }
             if (tokens[end + 1].type == TokenType::OpenCurly) {
-                auto initializer = TRY(parse_struct_initializer(expressions, tokens, start));
+                auto initializer = TRY(parse_struct_initializer(
+                    expressions, tokens, start));
                 end = initializer.end_token_index() + 1;
-                TRY(expressions[rvalue.expressions].append(initializer));
+                TRY(expressions[rvalue.expressions].append(
+                    initializer));
                 continue;
             }
             if (tokens[end + 1].type == TokenType::Dot) {
@@ -1033,44 +1036,15 @@ static ParseSingleItemResult parse_if_rvalue(
         }
 
         if (tokens[end].type == TokenType::Uninitialized) {
-            auto open_paren_index = end + 1;
-            auto open_paren = tokens[open_paren_index];
-            if (open_paren.type != TokenType::OpenParen) {
-                return ParseError {
-                    "expected '('",
-                    nullptr,
-                    open_paren,
-                };
-            }
-
-            auto close_paren_index = open_paren_index + 1;
-            auto close_paren = tokens[close_paren_index];
-            if (close_paren.type != TokenType::CloseParen) {
-                return ParseError {
-                    "expected ')'",
-                    nullptr,
-                    close_paren,
-                };
-            }
-            end = close_paren_index;
-            auto number_id
-                = TRY(expressions.append(CompilerProvidedU64 {
-                    .number = 0,
-                }));
-            auto block_id = TRY(expressions.append(
-                TRY(expressions.create_block())));
-            auto& block = expressions[block_id];
-            TRY(expressions[block.expressions].append({
-                number_id,
-                0,
-                0,
-            }));
+            auto uninitialized = TRY(
+                parse_uninitialized(expressions, tokens, end));
+            auto start = end;
+            end = uninitialized.end_token_index();
             TRY(expressions[rvalue.expressions].append({
-                block_id,
+                uninitialized.as_uninitialized(),
+                start,
                 end,
-                end + 1,
             }));
-            end = close_paren_index + 1;
             continue;
         }
 
@@ -1236,44 +1210,15 @@ static ParseSingleItemResult parse_rvalue(
         }
 
         if (tokens[end].type == TokenType::Uninitialized) {
-            auto open_paren_index = end + 1;
-            auto open_paren = tokens[open_paren_index];
-            if (open_paren.type != TokenType::OpenParen) {
-                return ParseError {
-                    "expected '('",
-                    nullptr,
-                    open_paren,
-                };
-            }
-
-            auto close_paren_index = open_paren_index + 1;
-            auto close_paren = tokens[close_paren_index];
-            if (close_paren.type != TokenType::CloseParen) {
-                return ParseError {
-                    "expected ')'",
-                    nullptr,
-                    close_paren,
-                };
-            }
-            end = close_paren_index;
-            auto number_id
-                = TRY(expressions.append(CompilerProvidedU64 {
-                    .number = 0,
-                }));
-            auto block_id = TRY(expressions.append(
-                TRY(expressions.create_block())));
-            auto& block = expressions[block_id];
-            TRY(expressions[block.expressions].append({
-                number_id,
-                0,
-                0,
-            }));
+            auto uninitialized = TRY(
+                parse_uninitialized(expressions, tokens, end));
+            auto start = end;
+            end = uninitialized.end_token_index();
             TRY(expressions[rvalue.expressions].append({
-                block_id,
+                uninitialized.as_uninitialized(),
+                start,
                 end,
-                end + 1,
             }));
-            end = close_paren_index + 1;
             continue;
         }
 
@@ -1544,9 +1489,11 @@ static ParseSingleItemResult parse_array_access_rvalue(
             }
 
             if (tokens[end + 1].type == TokenType::OpenBracket) {
-                auto array_access = TRY(parse_array_access(expressions, tokens, start));
+                auto array_access = TRY(
+                    parse_array_access(expressions, tokens, start));
                 end = array_access.end_token_index();
-                TRY(expressions[rvalue.expressions].append(array_access));
+                TRY(expressions[rvalue.expressions].append(
+                    array_access));
                 continue;
             }
 
@@ -2392,8 +2339,8 @@ static ParseSingleItemResult parse_array_access(
     if (name.type != TokenType::Identifier) {
         return ParseError {
             "expected array name",
-             nullptr,
-             name,
+            nullptr,
+            name,
         };
     }
 
@@ -2408,8 +2355,9 @@ static ParseSingleItemResult parse_array_access(
     }
 
     auto index_start = open_bracket_index + 1;
-    auto index = TRY(parse_array_access_rvalue(expressions, tokens, index_start));
-    
+    auto index = TRY(parse_array_access_rvalue(expressions, tokens,
+        index_start));
+
     auto close_bracket_index = index.end_token_index();
     auto close_bracket = tokens[close_bracket_index];
     if (close_bracket.type != TokenType::CloseBracket) {
