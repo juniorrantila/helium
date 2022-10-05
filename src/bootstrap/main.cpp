@@ -77,7 +77,7 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
     };
     auto lex_result = He::lex(source_file.text);
     if (lex_result.is_error())
-        TRY(lex_result.error().show(source_file));
+        return lex_result.error().show(source_file);
     auto tokens = lex_result.release_value();
     if (dump_tokens) {
         for (u32 i = 0; i < tokens.size(); i++) {
@@ -89,7 +89,7 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
 
     auto parse_result = He::parse(tokens);
     if (parse_result.is_error())
-        TRY(parse_result.error().show(source_file));
+        return parse_result.error().show(source_file);
     auto expressions = parse_result.release_value();
     if (dump_expressions) {
         for (auto const& expression : expressions.expressions) {
