@@ -2864,10 +2864,11 @@ Core::ErrorOr<void> ParseError::show(SourceFile source) const
         offending_token.end_index());
     auto line = Util::fetch_line(source.text, start.line);
 
-    std::cerr << "Parse error @ " << parser_function << ": "
+    std::cerr << parser_function << " @ [" << parser_file << ":"
+              << line_in_parser_file << "]:\n\n"
               << message << " "
               << "[" << source.file_name << ':' << start.line << ':'
-              << start.column << "]" << '\n';
+              << start.column << "]\n";
     std::cerr << line << '\n';
 
     for (u32 i = 0; i < start.column; i++)
