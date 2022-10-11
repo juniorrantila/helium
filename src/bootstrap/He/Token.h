@@ -1,7 +1,7 @@
 #pragma once
+#include <Core/Vector.h>
 #include <Types.h>
 #include <string_view>
-#include <Core/Vector.h>
 
 namespace He {
 
@@ -83,6 +83,7 @@ struct [[gnu::packed]] Token {
     constexpr Token() = default;
 
     void dump(StringView source) const;
+
     StringView text(StringView source) const
     {
         return { &source.data[start_index], size };
@@ -93,6 +94,26 @@ struct [[gnu::packed]] Token {
         size = index - start_index;
     }
     constexpr u32 end_index() const { return start_index + size; }
+
+    constexpr bool is(TokenType type) const
+    {
+        return this->type == type;
+    }
+
+    constexpr bool is_not(TokenType type) const
+    {
+        return this->type != type;
+    }
+
+    template <u32 size>
+    constexpr bool is_any_of(TokenType const (& types)[size]) const
+    {
+        for (auto type : types) {
+            if (is(type))
+                return true;
+        }
+        return false;
+    }
 
     u32 start_index { 0 };
     u16 size { 0 };

@@ -34,7 +34,7 @@ FORWARD_DECLARE_PARSER(pub_specifier);
 {
     auto uninitialized_index = start;
     auto uninitialized = tokens[uninitialized_index];
-    if (uninitialized.type != TokenType::Uninitialized) {
+    if (uninitialized.is_not(TokenType::Uninitialized)) {
         return ParseError {
             "expected @uninitialized()",
             "this is probably a parser error",
@@ -44,7 +44,7 @@ FORWARD_DECLARE_PARSER(pub_specifier);
 
     auto open_paren_index = uninitialized_index + 1;
     auto open_paren = tokens[open_paren_index];
-    if (open_paren.type != TokenType::OpenParen) {
+    if (open_paren.is_not(TokenType::OpenParen)) {
         return ParseError {
             "expected '('",
             "function call need parenthesis",
@@ -54,7 +54,7 @@ FORWARD_DECLARE_PARSER(pub_specifier);
 
     auto close_paren_index = open_paren_index + 1;
     auto close_paren = tokens[close_paren_index];
-    if (close_paren.type != TokenType::CloseParen) {
+    if (close_paren.is_not(TokenType::CloseParen)) {
         return ParseError {
             "expected ')'",
             "did you forget a parenthesis?",
@@ -74,7 +74,7 @@ ParseResult parse(Tokens const& tokens)
 {
     auto expressions = TRY(ParsedExpressions::create());
     for (u32 start = 0; start < tokens.size();) {
-        if (tokens[start].type == TokenType::NewLine)
+        if (tokens[start].is(TokenType::NewLine))
             continue; // Ignore leading and trailing new lines.
         auto item
             = TRY(parse_root_item(expressions, tokens, start));
@@ -118,7 +118,7 @@ ParseSingleItemResult parse_struct_initializer(
 
     auto open_curly_index = start + 1;
     auto open_curly = tokens[open_curly_index];
-    if (open_curly.type != TokenType::OpenCurly) {
+    if (open_curly.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             nullptr,
@@ -131,12 +131,12 @@ ParseSingleItemResult parse_struct_initializer(
     auto& initializers = expressions[initializers_id];
     u32 end = open_curly_index + 1;
     while (end < tokens.size()) {
-        if (tokens[end].type == TokenType::CloseCurly)
+        if (tokens[end].is(TokenType::CloseCurly))
             break;
 
         auto dot_index = end;
         auto dot = tokens[dot_index];
-        if (dot.type != TokenType::Dot) {
+        if (dot.is_not(TokenType::Dot)) {
             return ParseError {
                 "expected '.'",
                 "did you forget a dot before member name?",
@@ -146,7 +146,7 @@ ParseSingleItemResult parse_struct_initializer(
 
         auto name_index = dot_index + 1;
         auto name = tokens[name_index];
-        if (name.type != TokenType::Identifier) {
+        if (name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected member name",
                 nullptr,
@@ -156,7 +156,7 @@ ParseSingleItemResult parse_struct_initializer(
 
         auto assign_index = name_index + 1;
         auto assign = tokens[assign_index];
-        if (assign.type != TokenType::Assign) {
+        if (assign.is_not(TokenType::Assign)) {
             return ParseError {
                 "expected '='",
                 nullptr,
@@ -170,7 +170,7 @@ ParseSingleItemResult parse_struct_initializer(
 
         auto comma_index = value.end_token_index();
         auto comma = tokens[comma_index];
-        if (comma.type != TokenType::Comma) {
+        if (comma.is_not(TokenType::Comma)) {
             return ParseError {
                 "expected ','",
                 nullptr,
@@ -185,7 +185,7 @@ ParseSingleItemResult parse_struct_initializer(
         }));
     }
 
-    if (tokens[end].type != TokenType::CloseCurly) {
+    if (tokens[end].is_not(TokenType::CloseCurly)) {
         return ParseError {
             "expected '}'",
             nullptr,
@@ -214,7 +214,7 @@ static ParseSingleItemResult parse_if_statement(
         = TRY(parse_if_rvalue(expressions, tokens, start + 1));
     auto block_start_index = condition.end_token_index();
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             "helium requires '{' after condition for if statements",
@@ -239,7 +239,7 @@ static ParseSingleItemResult parse_while_statement(
         = TRY(parse_rvalue(expressions, tokens, start + 1));
     auto block_start_index = condition.end_token_index();
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             "helium requires '{' after condition for loops",
@@ -263,7 +263,7 @@ static ParseSingleItemResult parse_import_c(
 {
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
-    if (left_paren.type != TokenType::OpenParen) {
+    if (left_paren.is_not(TokenType::OpenParen)) {
         return ParseError {
             "expected '('",
             "did you forget a parenthesis?",
@@ -273,7 +273,7 @@ static ParseSingleItemResult parse_import_c(
 
     auto header_index = left_paren_index + 1;
     auto header = tokens[header_index];
-    if (header.type != TokenType::Quoted) {
+    if (header.is_not(TokenType::Quoted)) {
         return ParseError {
             "expected quoted string",
             "system headers are also imported with '\"'"
@@ -284,7 +284,7 @@ static ParseSingleItemResult parse_import_c(
 
     auto right_paren_index = header_index + 1;
     auto right_paren = tokens[right_paren_index];
-    if (right_paren.type != TokenType::CloseParen) {
+    if (right_paren.is_not(TokenType::CloseParen)) {
         return ParseError {
             "expected ')'",
             "did you forget a parenthesis?",
@@ -294,7 +294,7 @@ static ParseSingleItemResult parse_import_c(
 
     auto semicolon_index = right_paren_index + 1;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         return ParseError {
             "expected ';'",
             "did you forget a semicolon?",
@@ -315,17 +315,17 @@ static ParseSingleItemResult parse_pub_specifier(
 {
     auto fn_index = start + 1;
     auto fn = tokens[fn_index];
-    if (fn.type == TokenType::Fn)
+    if (fn.is(TokenType::Fn))
         return parse_public_function(expressions, tokens, fn_index);
-    if (fn.type == TokenType::CFn) {
+    if (fn.is(TokenType::CFn)) {
         return parse_public_c_function(expressions, tokens,
             fn_index);
     }
-    if (fn.type == TokenType::Let) {
+    if (fn.is(TokenType::Let)) {
         return parse_public_constant_declaration(expressions,
             tokens, fn_index);
     }
-    if (fn.type == TokenType::Var) {
+    if (fn.is(TokenType::Var)) {
         return parse_public_variable_declaration(expressions,
             tokens, fn_index);
     }
@@ -341,27 +341,27 @@ static ParseSingleItemResult parse_root_item(
 {
     auto token = tokens[start];
 
-    if (token.type == TokenType::ImportC)
+    if (token.is(TokenType::ImportC))
         return parse_import_c(expressions, tokens, start);
 
-    if (token.type == TokenType::InlineC)
+    if (token.is(TokenType::InlineC))
         return parse_inline_c(expressions, tokens, start);
 
-    if (token.type == TokenType::Fn)
+    if (token.is(TokenType::Fn))
         return parse_private_function(expressions, tokens, start);
 
-    if (token.type == TokenType::CFn)
+    if (token.is(TokenType::CFn))
         return parse_private_c_function(expressions, tokens, start);
 
-    if (token.type == TokenType::Pub)
+    if (token.is(TokenType::Pub))
         return parse_pub_specifier(expressions, tokens, start);
 
-    if (token.type == TokenType::Let) {
+    if (token.is(TokenType::Let)) {
         return parse_top_level_constant_or_struct(expressions,
             tokens, start);
     }
 
-    if (token.type == TokenType::Var) {
+    if (token.is(TokenType::Var)) {
         return parse_private_variable_declaration(expressions,
             tokens, start);
     }
@@ -387,7 +387,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 {
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "unexpected token",
             "expected function name",
@@ -397,7 +397,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
     auto parameters_start = name_index + 1;
     auto starting_paren = tokens[parameters_start];
-    if (starting_paren.type != TokenType::OpenParen) {
+    if (starting_paren.is_not(TokenType::OpenParen)) {
         return ParseError {
             "unexpected token",
             "expected '('",
@@ -411,12 +411,12 @@ static Core::ErrorOr<Function, ParseError> parse_function(
     u32 parameters_end = parameters_start + 1;
     while (parameters_end < tokens.size()) {
         auto token = tokens[parameters_end];
-        if (token.type == TokenType::CloseParen)
+        if (token.is(TokenType::CloseParen))
             break;
 
         auto name_index = parameters_end;
         auto name = tokens[name_index];
-        if (name.type != TokenType::Identifier) {
+        if (name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected parameter name",
                 nullptr,
@@ -426,7 +426,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
         auto colon_index = name_index + 1;
         auto colon = tokens[colon_index];
-        if (colon.type != TokenType::Colon) {
+        if (colon.is_not(TokenType::Colon)) {
             return ParseError {
                 "expected ':'",
                 nullptr,
@@ -436,7 +436,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
         auto type_index = colon_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -447,13 +447,13 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
         auto comma_or_paren_index = type_index + 1;
         auto comma_or_paren = tokens[comma_or_paren_index];
-        if (comma_or_paren.type == TokenType::Comma) {
+        if (comma_or_paren.is(TokenType::Comma)) {
             // NOTE: Swallow comma.
             parameters_end = comma_or_paren_index + 1;
             continue;
         }
 
-        if (comma_or_paren.type == TokenType::CloseParen) {
+        if (comma_or_paren.is(TokenType::CloseParen)) {
             parameters_end = comma_or_paren_index;
             break;
         }
@@ -469,7 +469,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
     auto arrow_index = parameters_end;
     auto arrow = tokens[arrow_index];
-    if (arrow.type != TokenType::Arrow) {
+    if (arrow.is_not(TokenType::Arrow)) {
         return ParseError {
             "unexpected token",
             "expected '->'",
@@ -479,7 +479,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
     auto return_type_index = arrow_index + 1;
     auto return_type = tokens[return_type_index];
-    if (return_type.type != TokenType::Identifier) {
+    if (return_type.is_not(TokenType::Identifier)) {
         return ParseError {
             "unexpected token",
             "expected return type",
@@ -489,7 +489,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
 
     auto block_start_index = return_type_index + 1;
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "unexpected token",
             "expected '{'",
@@ -586,7 +586,7 @@ static ParseSingleItemResult parse_function_call(
 
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
-    if (left_paren.type != TokenType::OpenParen) {
+    if (left_paren.is_not(TokenType::OpenParen)) {
         return ParseError {
             "expected left parenthesis",
             "did you mean to do a function call?",
@@ -602,14 +602,14 @@ static ParseSingleItemResult parse_function_call(
     }));
     auto& call = expressions[call_id];
     auto right_paren_index = left_paren_index + 1;
-    if (tokens[right_paren_index].type == TokenType::CloseParen) {
+    if (tokens[right_paren_index].is(TokenType::CloseParen)) {
         // NOTE: Swallow right parenthesis
         return Expression(call_id, start, right_paren_index + 1);
     }
 
     right_paren_index = left_paren_index;
     for (; right_paren_index < tokens.size();) {
-        if (tokens[right_paren_index].type == TokenType::CloseParen)
+        if (tokens[right_paren_index].is(TokenType::CloseParen))
             break;
         auto argument_index = right_paren_index + 1;
         auto argument = TRY(
@@ -619,7 +619,7 @@ static ParseSingleItemResult parse_function_call(
     }
 
     auto right_paren = tokens[right_paren_index];
-    if (right_paren.type != TokenType::CloseParen) {
+    if (right_paren.is_not(TokenType::CloseParen)) {
         return ParseError {
             "expected right parenthesis",
             "did you mean to do a function call?",
@@ -636,10 +636,10 @@ static ParseSingleItemResult parse_return_statement(
 {
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type == TokenType::Identifier) {
+    if (name.is(TokenType::Identifier)) {
         auto open_curly_index = name_index + 1;
         auto open_curly = tokens[open_curly_index];
-        if (open_curly.type == TokenType::OpenCurly) {
+        if (open_curly.is(TokenType::OpenCurly)) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, name_index));
             auto value_id = TRY(expressions.append(value));
@@ -674,12 +674,12 @@ static ParseSingleItemResult parse_inline_c(
     i32 level = 0;
     auto block_start_index = start + 1;
     auto end = block_start_index;
-    if (tokens[block_start_index].type == TokenType::OpenCurly) {
+    if (tokens[block_start_index].is(TokenType::OpenCurly)) {
         for (; end < tokens.size(); end++) {
             auto token = tokens[end];
-            if (token.type == TokenType::OpenCurly)
+            if (token.is(TokenType::OpenCurly))
                 level++;
-            if (token.type == TokenType::CloseCurly)
+            if (token.is(TokenType::CloseCurly))
                 level--;
             if (level == 0)
                 break;
@@ -696,11 +696,11 @@ static ParseSingleItemResult parse_inline_c(
 
     for (; end < tokens.size(); end++) {
         auto token = tokens[end];
-        if (token.type == TokenType::OpenCurly)
+        if (token.is(TokenType::OpenCurly))
             level++;
-        if (token.type == TokenType::CloseCurly)
+        if (token.is(TokenType::CloseCurly))
             level--;
-        if (level == 0 && token.type == TokenType::Semicolon)
+        if (level == 0 && token.is(TokenType::Semicolon))
             break;
         if (level < 0) {
             return ParseError {
@@ -727,10 +727,10 @@ static ParseSingleItemResult parse_block(
     auto block = TRY(expressions.create_block());
     auto end = start + 1;
     for (; end < tokens.size();) {
-        if (tokens[end].type == TokenType::CloseCurly)
+        if (tokens[end].is(TokenType::CloseCurly))
             break;
 
-        if (tokens[end].type == TokenType::InlineC) {
+        if (tokens[end].is(TokenType::InlineC)) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
@@ -738,7 +738,7 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::OpenCurly) {
+        if (tokens[end].is(TokenType::OpenCurly)) {
             auto sub_block
                 = TRY(parse_block(expressions, tokens, end));
             end = sub_block.end_token_index();
@@ -746,7 +746,7 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Let) {
+        if (tokens[end].is(TokenType::Let)) {
             auto variable = TRY(parse_public_constant_declaration(
                 expressions, tokens, end));
             end = variable.end_token_index();
@@ -754,7 +754,7 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Var) {
+        if (tokens[end].is(TokenType::Var)) {
             auto variable = TRY(parse_public_variable_declaration(
                 expressions, tokens, end));
             end = variable.end_token_index();
@@ -762,12 +762,12 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Return) {
+        if (tokens[end].is(TokenType::Return)) {
             auto return_expression = TRY(
                 parse_return_statement(expressions, tokens, end));
             end = return_expression.end_token_index();
 
-            if (tokens[end].type != TokenType::Semicolon) {
+            if (tokens[end].is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';'",
                     "did you forget a semicolon?",
@@ -781,8 +781,8 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::Assign) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::Assign)) {
                 auto assignment = TRY(parse_variable_assignment(
                     expressions, tokens, end));
                 TRY(expressions[block.expressions].append(
@@ -796,7 +796,7 @@ static ParseSingleItemResult parse_block(
             end = call.end_token_index();
             TRY(expressions[block.expressions].append(call));
 
-            if (tokens[end].type != TokenType::Semicolon) {
+            if (tokens[end].is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';'",
                     "did you forget a semicolon?",
@@ -807,7 +807,7 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::If) {
+        if (tokens[end].is(TokenType::If)) {
             auto if_
                 = TRY(parse_if_statement(expressions, tokens, end));
             end = if_.end_token_index();
@@ -815,7 +815,7 @@ static ParseSingleItemResult parse_block(
             continue;
         }
 
-        if (tokens[end].type == TokenType::While) {
+        if (tokens[end].is(TokenType::While)) {
             auto while_ = TRY(
                 parse_while_statement(expressions, tokens, end));
             end = while_.end_token_index();
@@ -841,13 +841,13 @@ static ParseSingleItemResult parse_irvalue(
 
     auto end = start;
     for (; end < tokens.size();) {
-        if (tokens[end].type == TokenType::Comma)
+        if (tokens[end].is(TokenType::Comma))
             break;
-        if (tokens[end].type == TokenType::OpenCurly)
+        if (tokens[end].is(TokenType::OpenCurly))
             break;
 
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::OpenCurly) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::OpenCurly)) {
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, end));
                 end = initializer.end_token_index();
@@ -857,7 +857,7 @@ static ParseSingleItemResult parse_irvalue(
             }
         }
 
-        if (tokens[end].type == TokenType::InlineC) {
+        if (tokens[end].is(TokenType::InlineC)) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
@@ -871,7 +871,7 @@ static ParseSingleItemResult parse_irvalue(
             };
         }
 
-        if (tokens[end].type == TokenType::Uninitialized) {
+        if (tokens[end].is(TokenType::Uninitialized)) {
             auto uninitialized = TRY(
                 parse_uninitialized(expressions, tokens, end));
             auto start = end;
@@ -884,7 +884,7 @@ static ParseSingleItemResult parse_irvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Number) {
+        if (tokens[end].is(TokenType::Number)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -892,8 +892,19 @@ static ParseSingleItemResult parse_irvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Plus) {
-            // FIXME: Make this a unary operation.
+        TokenType binary_operators[] = {
+            TokenType::Plus,
+            TokenType::Minus,
+            TokenType::Star,
+
+            TokenType::Equals,
+            TokenType::LessThan,
+            TokenType::LessThanOrEqual,
+            TokenType::GreaterThan,
+            TokenType::GreaterThanOrEqual,
+        };
+        if (tokens[end].is_any_of(binary_operators)) {
+            // FIXME: Create parse_binary_operator.
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -901,8 +912,7 @@ static ParseSingleItemResult parse_irvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Minus) {
-            // FIXME: Make this a unary operation.
+        if (tokens[end].is(TokenType::Quoted)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -910,50 +920,15 @@ static ParseSingleItemResult parse_irvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::LessThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Equals) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Quoted) {
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::OpenParen) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::OpenParen)) {
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index();
                 TRY(expressions[rvalue.expressions].append(call));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::OpenCurly) {
+            if (tokens[end + 1].is(TokenType::OpenCurly)) {
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, start));
                 end = initializer.end_token_index() + 1;
@@ -961,7 +936,7 @@ static ParseSingleItemResult parse_irvalue(
                     initializer));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::Dot) {
+            if (tokens[end + 1].is(TokenType::Dot)) {
                 auto member_access = TRY(
                     parse_member_access(expressions, tokens, end));
                 end = member_access.end_token_index();
@@ -984,7 +959,7 @@ static ParseSingleItemResult parse_irvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::Comma) {
+    if (tokens[end].is(TokenType::Comma)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -993,7 +968,7 @@ static ParseSingleItemResult parse_irvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::OpenCurly) {
+    if (tokens[end].is(TokenType::OpenCurly)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1016,12 +991,12 @@ static ParseSingleItemResult parse_if_rvalue(
 
     auto end = start;
     for (; end < tokens.size();) {
-        if (tokens[end].type == TokenType::Semicolon)
+        if (tokens[end].is(TokenType::Semicolon))
             break;
-        if (tokens[end].type == TokenType::OpenCurly)
+        if (tokens[end].is(TokenType::OpenCurly))
             break;
 
-        if (tokens[end].type == TokenType::InlineC) {
+        if (tokens[end].is(TokenType::InlineC)) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
@@ -1035,7 +1010,7 @@ static ParseSingleItemResult parse_if_rvalue(
             };
         }
 
-        if (tokens[end].type == TokenType::Uninitialized) {
+        if (tokens[end].is(TokenType::Uninitialized)) {
             auto uninitialized = TRY(
                 parse_uninitialized(expressions, tokens, end));
             auto start = end;
@@ -1048,7 +1023,7 @@ static ParseSingleItemResult parse_if_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Number) {
+        if (tokens[end].is(TokenType::Number)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1056,8 +1031,19 @@ static ParseSingleItemResult parse_if_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Plus) {
-            // FIXME: Make this a unary operation.
+        TokenType binary_operators[] = {
+            TokenType::Plus,
+            TokenType::Minus,
+            TokenType::Star,
+
+            TokenType::Equals,
+            TokenType::LessThan,
+            TokenType::LessThanOrEqual,
+            TokenType::GreaterThan,
+            TokenType::GreaterThanOrEqual,
+        };
+        if (tokens[end].is_any_of(binary_operators)) {
+            // FIXME: Create parse_binary_operator.
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1065,8 +1051,7 @@ static ParseSingleItemResult parse_if_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Minus) {
-            // FIXME: Make this a unary operation.
+        if (tokens[end].is(TokenType::Quoted)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1074,68 +1059,15 @@ static ParseSingleItemResult parse_if_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::LessThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::LessThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Equals) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Quoted) {
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::OpenParen) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::OpenParen)) {
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index();
                 TRY(expressions[rvalue.expressions].append(call));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::Dot) {
+            if (tokens[end + 1].is(TokenType::Dot)) {
                 auto member_access = TRY(
                     parse_member_access(expressions, tokens, end));
                 end = member_access.end_token_index();
@@ -1158,7 +1090,7 @@ static ParseSingleItemResult parse_if_rvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::Semicolon) {
+    if (tokens[end].is(TokenType::Semicolon)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1167,7 +1099,7 @@ static ParseSingleItemResult parse_if_rvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::OpenCurly) {
+    if (tokens[end].is(TokenType::OpenCurly)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1190,12 +1122,12 @@ static ParseSingleItemResult parse_rvalue(
 
     auto end = start;
     for (; end < tokens.size();) {
-        if (tokens[end].type == TokenType::Semicolon)
+        if (tokens[end].is(TokenType::Semicolon))
             break;
-        if (tokens[end].type == TokenType::OpenCurly)
+        if (tokens[end].is(TokenType::OpenCurly))
             break;
 
-        if (tokens[end].type == TokenType::InlineC) {
+        if (tokens[end].is(TokenType::InlineC)) {
             auto inline_c
                 = TRY(parse_inline_c(expressions, tokens, end));
             end = inline_c.end_token_index();
@@ -1209,7 +1141,7 @@ static ParseSingleItemResult parse_rvalue(
             };
         }
 
-        if (tokens[end].type == TokenType::Uninitialized) {
+        if (tokens[end].is(TokenType::Uninitialized)) {
             auto uninitialized = TRY(
                 parse_uninitialized(expressions, tokens, end));
             auto start = end;
@@ -1222,7 +1154,7 @@ static ParseSingleItemResult parse_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Number) {
+        if (tokens[end].is(TokenType::Number)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1230,8 +1162,19 @@ static ParseSingleItemResult parse_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Plus) {
-            // FIXME: Make this a unary operation.
+        TokenType binary_operators[] = {
+            TokenType::Plus,
+            TokenType::Minus,
+            TokenType::Star,
+
+            TokenType::Equals,
+            TokenType::LessThan,
+            TokenType::LessThanOrEqual,
+            TokenType::GreaterThan,
+            TokenType::GreaterThanOrEqual,
+        };
+        if (tokens[end].is_any_of(binary_operators)) {
+            // FIXME: Create parse_binary_operator.
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1239,8 +1182,7 @@ static ParseSingleItemResult parse_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Minus) {
-            // FIXME: Make this a unary operation.
+        if (tokens[end].is(TokenType::Quoted)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1248,68 +1190,15 @@ static ParseSingleItemResult parse_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::LessThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::LessThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Equals) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Quoted) {
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::OpenParen) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::OpenParen)) {
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index();
                 TRY(expressions[rvalue.expressions].append(call));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::OpenCurly) {
+            if (tokens[end + 1].is(TokenType::OpenCurly)) {
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, end));
                 end = initializer.end_token_index();
@@ -1317,7 +1206,7 @@ static ParseSingleItemResult parse_rvalue(
                     initializer));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::Dot) {
+            if (tokens[end + 1].is(TokenType::Dot)) {
                 auto member_access = TRY(
                     parse_member_access(expressions, tokens, end));
                 end = member_access.end_token_index();
@@ -1326,7 +1215,7 @@ static ParseSingleItemResult parse_rvalue(
                 continue;
             }
 
-            if (tokens[end + 1].type == TokenType::OpenBracket) {
+            if (tokens[end + 1].is(TokenType::OpenBracket)) {
                 auto array_access = TRY(
                     parse_array_access(expressions, tokens, end));
                 end = array_access.end_token_index();
@@ -1349,7 +1238,7 @@ static ParseSingleItemResult parse_rvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::Semicolon) {
+    if (tokens[end].is(TokenType::Semicolon)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1358,7 +1247,7 @@ static ParseSingleItemResult parse_rvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::OpenCurly) {
+    if (tokens[end].is(TokenType::OpenCurly)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1381,10 +1270,10 @@ static ParseSingleItemResult parse_array_access_rvalue(
 
     auto end = start;
     for (; end < tokens.size();) {
-        if (tokens[end].type == TokenType::CloseBracket)
+        if (tokens[end].is(TokenType::CloseBracket))
             break;
 
-        if (tokens[end].type == TokenType::Number) {
+        if (tokens[end].is(TokenType::Number)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1392,8 +1281,19 @@ static ParseSingleItemResult parse_array_access_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Plus) {
-            // FIXME: Make this a unary operation.
+        TokenType binary_operators[] = {
+            TokenType::Plus,
+            TokenType::Minus,
+            TokenType::Star,
+
+            TokenType::Equals,
+            TokenType::LessThan,
+            TokenType::LessThanOrEqual,
+            TokenType::GreaterThan,
+            TokenType::GreaterThanOrEqual,
+        };
+        if (tokens[end].is_any_of(binary_operators)) {
+            // FIXME: Create parse_binary_operator.
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1401,8 +1301,7 @@ static ParseSingleItemResult parse_array_access_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Minus) {
-            // FIXME: Make this a unary operation.
+        if (tokens[end].is(TokenType::Quoted)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1410,68 +1309,15 @@ static ParseSingleItemResult parse_array_access_rvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::LessThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::LessThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThan) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::GreaterThanOrEqual) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Equals) {
-            // FIXME: Make this a unary operation.
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Quoted) {
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::OpenParen) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::OpenParen)) {
                 auto call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = call.end_token_index();
                 TRY(expressions[rvalue.expressions].append(call));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::OpenCurly) {
+            if (tokens[end + 1].is(TokenType::OpenCurly)) {
                 auto initializer = TRY(parse_struct_initializer(
                     expressions, tokens, end));
                 end = initializer.end_token_index();
@@ -1479,7 +1325,7 @@ static ParseSingleItemResult parse_array_access_rvalue(
                     initializer));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::Dot) {
+            if (tokens[end + 1].is(TokenType::Dot)) {
                 auto member_access = TRY(
                     parse_member_access(expressions, tokens, end));
                 end = member_access.end_token_index();
@@ -1488,7 +1334,7 @@ static ParseSingleItemResult parse_array_access_rvalue(
                 continue;
             }
 
-            if (tokens[end + 1].type == TokenType::OpenBracket) {
+            if (tokens[end + 1].is(TokenType::OpenBracket)) {
                 auto array_access = TRY(
                     parse_array_access(expressions, tokens, start));
                 end = array_access.end_token_index();
@@ -1511,7 +1357,7 @@ static ParseSingleItemResult parse_array_access_rvalue(
         };
     }
 
-    if (tokens[end].type != TokenType::CloseBracket) {
+    if (tokens[end].is_not(TokenType::CloseBracket)) {
         return ParseError {
             "expected ']'",
             nullptr,
@@ -1534,12 +1380,12 @@ static ParseSingleItemResult parse_prvalue(
 
     auto end = start;
     for (; end < tokens.size();) {
-        if (tokens[end].type == TokenType::Comma)
+        if (tokens[end].is(TokenType::Comma))
             break;
-        if (tokens[end].type == TokenType::CloseParen)
+        if (tokens[end].is(TokenType::CloseParen))
             break;
 
-        if (tokens[end].type == TokenType::Number) {
+        if (tokens[end].is(TokenType::Number)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1547,7 +1393,7 @@ static ParseSingleItemResult parse_prvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::RefMut) {
+        if (tokens[end].is(TokenType::RefMut)) {
             auto token = tokens[end];
             token.set_end_index(token.start_index + 1);
             auto literal = TRY(expressions.append(Literal {
@@ -1562,7 +1408,7 @@ static ParseSingleItemResult parse_prvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Ampersand) {
+        if (tokens[end].is(TokenType::Ampersand)) {
             auto token = tokens[end];
             token.set_end_index(token.start_index + 1);
             auto literal = TRY(expressions.append(Literal {
@@ -1577,8 +1423,19 @@ static ParseSingleItemResult parse_prvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Plus) {
-            // FIXME: Make this a unary operation.
+        TokenType binary_operators[] = {
+            TokenType::Plus,
+            TokenType::Minus,
+            TokenType::Star,
+
+            TokenType::Equals,
+            TokenType::LessThan,
+            TokenType::LessThanOrEqual,
+            TokenType::GreaterThan,
+            TokenType::GreaterThanOrEqual,
+        };
+        if (tokens[end].is_any_of(binary_operators)) {
+            // FIXME: Create parse_binary_operator.
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1586,8 +1443,7 @@ static ParseSingleItemResult parse_prvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Minus) {
-            // FIXME: Make this a unary operation.
+        if (tokens[end].is(TokenType::Quoted)) {
             auto literal
                 = TRY(parse_literal(expressions, tokens, end));
             TRY(expressions[rvalue.expressions].append(literal));
@@ -1595,16 +1451,8 @@ static ParseSingleItemResult parse_prvalue(
             continue;
         }
 
-        if (tokens[end].type == TokenType::Quoted) {
-            auto literal
-                = TRY(parse_literal(expressions, tokens, end));
-            TRY(expressions[rvalue.expressions].append(literal));
-            end = literal.end_token_index();
-            continue;
-        }
-
-        if (tokens[end].type == TokenType::Identifier) {
-            if (tokens[end + 1].type == TokenType::OpenParen) {
+        if (tokens[end].is(TokenType::Identifier)) {
+            if (tokens[end + 1].is(TokenType::OpenParen)) {
                 auto function_call = TRY(
                     parse_function_call(expressions, tokens, end));
                 end = function_call.end_token_index();
@@ -1612,7 +1460,7 @@ static ParseSingleItemResult parse_prvalue(
                     function_call));
                 continue;
             }
-            if (tokens[end + 1].type == TokenType::Dot) {
+            if (tokens[end + 1].is(TokenType::Dot)) {
                 auto member_access = TRY(
                     parse_member_access(expressions, tokens, end));
                 end = member_access.end_token_index();
@@ -1635,7 +1483,7 @@ static ParseSingleItemResult parse_prvalue(
         };
     }
 
-    if (tokens[end].type == TokenType::Comma) {
+    if (tokens[end].is(TokenType::Comma)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1643,7 +1491,7 @@ static ParseSingleItemResult parse_prvalue(
             end,
         };
     }
-    if (tokens[end].type == TokenType::CloseParen) {
+    if (tokens[end].is(TokenType::CloseParen)) {
         auto rvalue_id = TRY(expressions.append(rvalue));
         return Expression {
             rvalue_id,
@@ -1666,10 +1514,10 @@ static ParseSingleItemResult parse_struct_declaration(
 
     auto assign_index = start + 1;
     auto assign = tokens[assign_index];
-    if (assign.type != TokenType::Assign) {
+    if (assign.is_not(TokenType::Assign)) {
         auto const* hint = "struct declarations can't have colon "
                            "in this position";
-        if (assign.type != TokenType::Colon)
+        if (assign.is_not(TokenType::Colon))
             hint = nullptr;
         return ParseError {
             "expected '='",
@@ -1680,7 +1528,7 @@ static ParseSingleItemResult parse_struct_declaration(
 
     auto struct_token_index = assign_index + 1;
     auto struct_token = tokens[struct_token_index];
-    if (struct_token.type != TokenType::Struct) {
+    if (struct_token.is_not(TokenType::Struct)) {
         return ParseError {
             "expected 'struct'",
             nullptr,
@@ -1690,7 +1538,7 @@ static ParseSingleItemResult parse_struct_declaration(
 
     auto block_start_index = struct_token_index + 1;
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             nullptr,
@@ -1705,12 +1553,12 @@ static ParseSingleItemResult parse_struct_declaration(
     auto block_end_index = block_start_index + 1;
     while (block_end_index < tokens.size()) {
         auto block_end = tokens[block_end_index];
-        if (block_end.type == TokenType::CloseCurly)
+        if (block_end.is(TokenType::CloseCurly))
             break;
 
         auto member_name_index = block_end_index;
         auto member_name = tokens[member_name_index];
-        if (member_name.type != TokenType::Identifier) {
+        if (member_name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected name of member",
                 nullptr,
@@ -1720,7 +1568,7 @@ static ParseSingleItemResult parse_struct_declaration(
 
         auto colon_index = member_name_index + 1;
         auto colon = tokens[colon_index];
-        if (colon.type != TokenType::Colon) {
+        if (colon.is_not(TokenType::Colon)) {
             return ParseError {
                 "expected ':'",
                 nullptr,
@@ -1730,7 +1578,7 @@ static ParseSingleItemResult parse_struct_declaration(
 
         auto type_index = colon_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -1740,7 +1588,7 @@ static ParseSingleItemResult parse_struct_declaration(
 
         auto comma_index = type_index + 1;
         auto comma = tokens[comma_index];
-        if (comma.type != TokenType::Comma) {
+        if (comma.is_not(TokenType::Comma)) {
             return ParseError {
                 "expected ','",
                 "did you forget a comma?",
@@ -1757,7 +1605,7 @@ static ParseSingleItemResult parse_struct_declaration(
     }
 
     auto block_end = tokens[block_end_index];
-    if (block_end.type != TokenType::CloseCurly) {
+    if (block_end.is_not(TokenType::CloseCurly)) {
         return ParseError {
             "expected '}'",
             nullptr,
@@ -1767,7 +1615,7 @@ static ParseSingleItemResult parse_struct_declaration(
 
     auto semicolon_index = block_end_index + 1;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         return ParseError {
             "expected ';'",
             "did you forget a semicolon?",
@@ -1792,10 +1640,10 @@ static ParseSingleItemResult parse_enum_declaration(
 
     auto assign_index = start + 1;
     auto assign = tokens[assign_index];
-    if (assign.type != TokenType::Assign) {
+    if (assign.is_not(TokenType::Assign)) {
         auto const* hint = "struct declarations can't have colon "
                            "in this position";
-        if (assign.type != TokenType::Colon)
+        if (assign.is_not(TokenType::Colon))
             hint = nullptr;
         return ParseError {
             "expected '='",
@@ -1806,7 +1654,7 @@ static ParseSingleItemResult parse_enum_declaration(
 
     auto enum_token_index = assign_index + 1;
     auto enum_token = tokens[enum_token_index];
-    if (enum_token.type != TokenType::Enum) {
+    if (enum_token.is_not(TokenType::Enum)) {
         return ParseError {
             "expected 'enum'",
             nullptr,
@@ -1816,7 +1664,7 @@ static ParseSingleItemResult parse_enum_declaration(
 
     auto block_start_index = enum_token_index + 1;
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             nullptr,
@@ -1831,12 +1679,12 @@ static ParseSingleItemResult parse_enum_declaration(
     auto block_end_index = block_start_index + 1;
     while (block_end_index < tokens.size()) {
         auto block_end = tokens[block_end_index];
-        if (block_end.type == TokenType::CloseCurly)
+        if (block_end.is(TokenType::CloseCurly))
             break;
 
         auto member_name_index = block_end_index;
         auto member_name = tokens[member_name_index];
-        if (member_name.type != TokenType::Identifier) {
+        if (member_name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected name of member",
                 nullptr,
@@ -1846,7 +1694,7 @@ static ParseSingleItemResult parse_enum_declaration(
 
         auto comma_index = member_name_index + 1;
         auto comma = tokens[comma_index];
-        if (comma.type != TokenType::Comma) {
+        if (comma.is_not(TokenType::Comma)) {
             return ParseError {
                 "expected ','",
                 "did you forget a comma?",
@@ -1863,7 +1711,7 @@ static ParseSingleItemResult parse_enum_declaration(
     }
 
     auto block_end = tokens[block_end_index];
-    if (block_end.type != TokenType::CloseCurly) {
+    if (block_end.is_not(TokenType::CloseCurly)) {
         return ParseError {
             "expected '}'",
             nullptr,
@@ -1873,7 +1721,7 @@ static ParseSingleItemResult parse_enum_declaration(
 
     auto semicolon_index = block_end_index + 1;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         return ParseError {
             "expected ';'",
             "did you forget a semicolon?",
@@ -1899,10 +1747,10 @@ static ParseSingleItemResult parse_union_declaration(
 
     auto assign_index = start + 1;
     auto assign = tokens[assign_index];
-    if (assign.type != TokenType::Assign) {
+    if (assign.is_not(TokenType::Assign)) {
         auto const* hint = "struct declarations can't have colon "
                            "in this position";
-        if (assign.type != TokenType::Colon)
+        if (assign.is_not(TokenType::Colon))
             hint = nullptr;
         return ParseError {
             "expected '='",
@@ -1913,7 +1761,7 @@ static ParseSingleItemResult parse_union_declaration(
 
     auto union_token_index = assign_index + 1;
     auto union_token = tokens[union_token_index];
-    if (union_token.type != TokenType::Union) {
+    if (union_token.is_not(TokenType::Union)) {
         return ParseError {
             "expected 'union'",
             nullptr,
@@ -1923,7 +1771,7 @@ static ParseSingleItemResult parse_union_declaration(
 
     auto block_start_index = union_token_index + 1;
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             nullptr,
@@ -1938,12 +1786,12 @@ static ParseSingleItemResult parse_union_declaration(
     auto block_end_index = block_start_index + 1;
     while (block_end_index < tokens.size()) {
         auto block_end = tokens[block_end_index];
-        if (block_end.type == TokenType::CloseCurly)
+        if (block_end.is(TokenType::CloseCurly))
             break;
 
         auto member_name_index = block_end_index;
         auto member_name = tokens[member_name_index];
-        if (member_name.type != TokenType::Identifier) {
+        if (member_name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected name of member",
                 nullptr,
@@ -1953,7 +1801,7 @@ static ParseSingleItemResult parse_union_declaration(
 
         auto colon_index = member_name_index + 1;
         auto colon = tokens[colon_index];
-        if (colon.type != TokenType::Colon) {
+        if (colon.is_not(TokenType::Colon)) {
             return ParseError {
                 "expected ':'",
                 nullptr,
@@ -1963,7 +1811,7 @@ static ParseSingleItemResult parse_union_declaration(
 
         auto type_index = colon_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -1973,7 +1821,7 @@ static ParseSingleItemResult parse_union_declaration(
 
         auto comma_index = type_index + 1;
         auto comma = tokens[comma_index];
-        if (comma.type != TokenType::Comma) {
+        if (comma.is_not(TokenType::Comma)) {
             return ParseError {
                 "expected ','",
                 "did you forget a comma?",
@@ -1990,7 +1838,7 @@ static ParseSingleItemResult parse_union_declaration(
     }
 
     auto block_end = tokens[block_end_index];
-    if (block_end.type != TokenType::CloseCurly) {
+    if (block_end.is_not(TokenType::CloseCurly)) {
         return ParseError {
             "expected '}'",
             nullptr,
@@ -2000,7 +1848,7 @@ static ParseSingleItemResult parse_union_declaration(
 
     auto semicolon_index = block_end_index + 1;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         return ParseError {
             "expected ';'",
             "did you forget a semicolon?",
@@ -2025,10 +1873,10 @@ static ParseSingleItemResult parse_variant_declaration(
 
     auto assign_index = start + 1;
     auto assign = tokens[assign_index];
-    if (assign.type != TokenType::Assign) {
+    if (assign.is_not(TokenType::Assign)) {
         auto const* hint = "struct declarations can't have colon "
                            "in this position";
-        if (assign.type != TokenType::Colon)
+        if (assign.is_not(TokenType::Colon))
             hint = nullptr;
         return ParseError {
             "expected '='",
@@ -2039,7 +1887,7 @@ static ParseSingleItemResult parse_variant_declaration(
 
     auto variant_token_index = assign_index + 1;
     auto variant_token = tokens[variant_token_index];
-    if (variant_token.type != TokenType::Variant) {
+    if (variant_token.is_not(TokenType::Variant)) {
         return ParseError {
             "expected 'variant'",
             nullptr,
@@ -2049,7 +1897,7 @@ static ParseSingleItemResult parse_variant_declaration(
 
     auto block_start_index = variant_token_index + 1;
     auto block_start = tokens[block_start_index];
-    if (block_start.type != TokenType::OpenCurly) {
+    if (block_start.is_not(TokenType::OpenCurly)) {
         return ParseError {
             "expected '{'",
             nullptr,
@@ -2064,12 +1912,12 @@ static ParseSingleItemResult parse_variant_declaration(
     auto block_end_index = block_start_index + 1;
     while (block_end_index < tokens.size()) {
         auto block_end = tokens[block_end_index];
-        if (block_end.type == TokenType::CloseCurly)
+        if (block_end.is(TokenType::CloseCurly))
             break;
 
         auto member_name_index = block_end_index;
         auto member_name = tokens[member_name_index];
-        if (member_name.type != TokenType::Identifier) {
+        if (member_name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected name of member",
                 nullptr,
@@ -2079,7 +1927,7 @@ static ParseSingleItemResult parse_variant_declaration(
 
         auto colon_index = member_name_index + 1;
         auto colon = tokens[colon_index];
-        if (colon.type != TokenType::Colon) {
+        if (colon.is_not(TokenType::Colon)) {
             return ParseError {
                 "expected ':'",
                 nullptr,
@@ -2089,7 +1937,7 @@ static ParseSingleItemResult parse_variant_declaration(
 
         auto type_index = colon_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -2099,7 +1947,7 @@ static ParseSingleItemResult parse_variant_declaration(
 
         auto comma_index = type_index + 1;
         auto comma = tokens[comma_index];
-        if (comma.type != TokenType::Comma) {
+        if (comma.is_not(TokenType::Comma)) {
             return ParseError {
                 "expected ','",
                 "did you forget a comma?",
@@ -2116,7 +1964,7 @@ static ParseSingleItemResult parse_variant_declaration(
     }
 
     auto block_end = tokens[block_end_index];
-    if (block_end.type != TokenType::CloseCurly) {
+    if (block_end.is_not(TokenType::CloseCurly)) {
         return ParseError {
             "expected '}'",
             nullptr,
@@ -2126,7 +1974,7 @@ static ParseSingleItemResult parse_variant_declaration(
 
     auto semicolon_index = block_end_index + 1;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         return ParseError {
             "expected ';'",
             "did you forget a semicolon?",
@@ -2150,7 +1998,7 @@ static ParseSingleItemResult parse_private_variable_declaration(
     auto type = tokens[start];
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "expected variable name",
             "did you forget to name your variable?",
@@ -2161,10 +2009,10 @@ static ParseSingleItemResult parse_private_variable_declaration(
     auto colon_or_assign_index = name_index + 1;
     auto rvalue_start_index = colon_or_assign_index + 1;
     auto colon_or_assign = tokens[colon_or_assign_index];
-    if (colon_or_assign.type == TokenType::Colon) {
+    if (colon_or_assign.is(TokenType::Colon)) {
         auto type_index = colon_or_assign_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -2175,7 +2023,7 @@ static ParseSingleItemResult parse_private_variable_declaration(
 
         auto assign_index = type_index + 1;
         auto assign = tokens[assign_index];
-        if (assign.type != TokenType::Assign) {
+        if (assign.is_not(TokenType::Assign)) {
             return ParseError {
                 "expected '='",
                 nullptr,
@@ -2183,7 +2031,7 @@ static ParseSingleItemResult parse_private_variable_declaration(
             };
         }
         rvalue_start_index = assign_index + 1;
-    } else if (colon_or_assign.type != TokenType::Assign) {
+    } else if (colon_or_assign.is_not(TokenType::Assign)) {
         return ParseError {
             "expected ':', or '='",
             nullptr,
@@ -2193,16 +2041,16 @@ static ParseSingleItemResult parse_private_variable_declaration(
 
     auto struct_name_index = rvalue_start_index;
     auto struct_name = tokens[struct_name_index];
-    if (struct_name.type == TokenType::Identifier) {
+    if (struct_name.is(TokenType::Identifier)) {
         auto open_curly_index = struct_name_index + 1;
         auto open_curly = tokens[open_curly_index];
-        if (open_curly.type == TokenType::OpenCurly) {
+        if (open_curly.is(TokenType::OpenCurly)) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
             auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
-            if (semicolon.type != TokenType::Semicolon) {
+            if (semicolon.is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';' after struct initializer",
                     "did you forget a semicolon?",
@@ -2231,7 +2079,7 @@ static ParseSingleItemResult parse_private_variable_declaration(
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         auto rvalue = tokens[rvalue_end_index];
         return ParseError {
             "expected ';' after rvalue",
@@ -2259,7 +2107,7 @@ static ParseSingleItemResult parse_variable_assignment(
 
     auto assign_index = start + 1;
     auto assign = tokens[assign_index];
-    if (assign.type != TokenType::Assign) {
+    if (assign.is_not(TokenType::Assign)) {
         return ParseError {
             "expected '='",
             nullptr,
@@ -2273,7 +2121,7 @@ static ParseSingleItemResult parse_variable_assignment(
 
     auto semicolon_index = rvalue.end_token_index();
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         return ParseError {
             "expected ';'",
             "did you forget a semicolon?",
@@ -2305,7 +2153,7 @@ static ParseSingleItemResult parse_member_access(
     while (end < tokens.size()) {
         auto name_index = end;
         auto name = tokens[name_index];
-        if (name.type != TokenType::Identifier) {
+        if (name.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected member name",
                 nullptr,
@@ -2317,7 +2165,7 @@ static ParseSingleItemResult parse_member_access(
 
         auto dot_index = name_index + 1;
         auto dot = tokens[dot_index];
-        if (dot.type != TokenType::Dot)
+        if (dot.is_not(TokenType::Dot))
             break;
 
         end = dot_index + 1;
@@ -2336,7 +2184,7 @@ static ParseSingleItemResult parse_array_access(
 {
     auto name_index = start;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "expected array name",
             nullptr,
@@ -2346,7 +2194,7 @@ static ParseSingleItemResult parse_array_access(
 
     auto open_bracket_index = name_index + 1;
     auto open_bracket = tokens[open_bracket_index];
-    if (open_bracket.type != TokenType::OpenBracket) {
+    if (open_bracket.is_not(TokenType::OpenBracket)) {
         return ParseError {
             "expected '['",
             nullptr,
@@ -2360,7 +2208,7 @@ static ParseSingleItemResult parse_array_access(
 
     auto close_bracket_index = index.end_token_index();
     auto close_bracket = tokens[close_bracket_index];
-    if (close_bracket.type != TokenType::CloseBracket) {
+    if (close_bracket.is_not(TokenType::CloseBracket)) {
         return ParseError {
             "expected ']'",
             nullptr,
@@ -2387,7 +2235,7 @@ static ParseSingleItemResult parse_public_variable_declaration(
     auto type = tokens[start];
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "expected variable name",
             "did you forget to name your variable?",
@@ -2398,10 +2246,10 @@ static ParseSingleItemResult parse_public_variable_declaration(
     auto colon_or_assign_index = name_index + 1;
     auto rvalue_start_index = colon_or_assign_index + 1;
     auto colon_or_assign = tokens[colon_or_assign_index];
-    if (colon_or_assign.type == TokenType::Colon) {
+    if (colon_or_assign.is(TokenType::Colon)) {
         auto type_index = colon_or_assign_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -2412,7 +2260,7 @@ static ParseSingleItemResult parse_public_variable_declaration(
 
         auto assign_index = type_index + 1;
         auto assign = tokens[assign_index];
-        if (assign.type != TokenType::Assign) {
+        if (assign.is_not(TokenType::Assign)) {
             return ParseError {
                 "expected '='",
                 nullptr,
@@ -2420,7 +2268,7 @@ static ParseSingleItemResult parse_public_variable_declaration(
             };
         }
         rvalue_start_index = assign_index + 1;
-    } else if (colon_or_assign.type != TokenType::Assign) {
+    } else if (colon_or_assign.is_not(TokenType::Assign)) {
         return ParseError {
             "expected ':', or '='",
             nullptr,
@@ -2430,16 +2278,16 @@ static ParseSingleItemResult parse_public_variable_declaration(
 
     auto struct_name_index = rvalue_start_index;
     auto struct_name = tokens[struct_name_index];
-    if (struct_name.type == TokenType::Identifier) {
+    if (struct_name.is(TokenType::Identifier)) {
         auto open_curly_index = struct_name_index + 1;
         auto open_curly = tokens[open_curly_index];
-        if (open_curly.type == TokenType::OpenCurly) {
+        if (open_curly.is(TokenType::OpenCurly)) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
             auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
-            if (semicolon.type != TokenType::Semicolon) {
+            if (semicolon.is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';' after struct initializer",
                     "did you forget a semicolon?",
@@ -2468,7 +2316,7 @@ static ParseSingleItemResult parse_public_variable_declaration(
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         auto rvalue = tokens[rvalue_end_index];
         return ParseError {
             "expected ';' after rvalue",
@@ -2494,7 +2342,7 @@ static ParseSingleItemResult parse_private_constant_declaration(
     auto type = tokens[start];
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "expected variable name",
             "did you forget to name your variable?",
@@ -2505,10 +2353,10 @@ static ParseSingleItemResult parse_private_constant_declaration(
     auto colon_or_assign_index = name_index + 1;
     auto rvalue_start_index = colon_or_assign_index + 1;
     auto colon_or_assign = tokens[colon_or_assign_index];
-    if (colon_or_assign.type == TokenType::Colon) {
+    if (colon_or_assign.is(TokenType::Colon)) {
         auto type_index = colon_or_assign_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -2519,7 +2367,7 @@ static ParseSingleItemResult parse_private_constant_declaration(
 
         auto assign_index = type_index + 1;
         auto assign = tokens[assign_index];
-        if (assign.type != TokenType::Assign) {
+        if (assign.is_not(TokenType::Assign)) {
             return ParseError {
                 "expected '='",
                 nullptr,
@@ -2527,7 +2375,7 @@ static ParseSingleItemResult parse_private_constant_declaration(
             };
         }
         rvalue_start_index = assign_index + 1;
-    } else if (colon_or_assign.type != TokenType::Assign) {
+    } else if (colon_or_assign.is_not(TokenType::Assign)) {
         return ParseError {
             "expected ':', or '='",
             nullptr,
@@ -2537,16 +2385,16 @@ static ParseSingleItemResult parse_private_constant_declaration(
 
     auto struct_name_index = rvalue_start_index;
     auto struct_name = tokens[struct_name_index];
-    if (struct_name.type == TokenType::Identifier) {
+    if (struct_name.is(TokenType::Identifier)) {
         auto open_curly_index = struct_name_index + 1;
         auto open_curly = tokens[open_curly_index];
-        if (open_curly.type == TokenType::OpenCurly) {
+        if (open_curly.is(TokenType::OpenCurly)) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
             auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
-            if (semicolon.type != TokenType::Semicolon) {
+            if (semicolon.is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';' after struct initializer",
                     "did you forget a semicolon?",
@@ -2575,7 +2423,7 @@ static ParseSingleItemResult parse_private_constant_declaration(
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         auto rvalue = tokens[rvalue_end_index];
         return ParseError {
             "expected ';' after rvalue",
@@ -2601,7 +2449,7 @@ static ParseSingleItemResult parse_public_constant_declaration(
     auto type = tokens[start];
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "expected variable name",
             "did you forget to name your variable?",
@@ -2612,10 +2460,10 @@ static ParseSingleItemResult parse_public_constant_declaration(
     auto colon_or_assign_index = name_index + 1;
     auto rvalue_start_index = colon_or_assign_index + 1;
     auto colon_or_assign = tokens[colon_or_assign_index];
-    if (colon_or_assign.type == TokenType::Colon) {
+    if (colon_or_assign.is(TokenType::Colon)) {
         auto type_index = colon_or_assign_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -2626,7 +2474,7 @@ static ParseSingleItemResult parse_public_constant_declaration(
 
         auto assign_index = type_index + 1;
         auto assign = tokens[assign_index];
-        if (assign.type != TokenType::Assign) {
+        if (assign.is_not(TokenType::Assign)) {
             return ParseError {
                 "expected '='",
                 nullptr,
@@ -2634,7 +2482,7 @@ static ParseSingleItemResult parse_public_constant_declaration(
             };
         }
         rvalue_start_index = assign_index + 1;
-    } else if (colon_or_assign.type != TokenType::Assign) {
+    } else if (colon_or_assign.is_not(TokenType::Assign)) {
         return ParseError {
             "expected ':', or '='",
             nullptr,
@@ -2644,16 +2492,16 @@ static ParseSingleItemResult parse_public_constant_declaration(
 
     auto struct_name_index = rvalue_start_index;
     auto struct_name = tokens[struct_name_index];
-    if (struct_name.type == TokenType::Identifier) {
+    if (struct_name.is(TokenType::Identifier)) {
         auto open_curly_index = struct_name_index + 1;
         auto open_curly = tokens[open_curly_index];
-        if (open_curly.type == TokenType::OpenCurly) {
+        if (open_curly.is(TokenType::OpenCurly)) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
             auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
-            if (semicolon.type != TokenType::Semicolon) {
+            if (semicolon.is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';' after struct initializer",
                     "did you forget a semicolon?",
@@ -2681,7 +2529,7 @@ static ParseSingleItemResult parse_public_constant_declaration(
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         auto rvalue = tokens[rvalue_end_index];
         return ParseError {
             "expected ';' after rvalue",
@@ -2708,7 +2556,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto type = tokens[start];
     auto name_index = start + 1;
     auto name = tokens[name_index];
-    if (name.type != TokenType::Identifier) {
+    if (name.is_not(TokenType::Identifier)) {
         return ParseError {
             "expected variable name",
             "did you forget to name your variable or struct?",
@@ -2719,10 +2567,10 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
     auto colon_or_assign_index = name_index + 1;
     auto rvalue_start_index = colon_or_assign_index + 1;
     auto colon_or_assign = tokens[colon_or_assign_index];
-    if (colon_or_assign.type == TokenType::Colon) {
+    if (colon_or_assign.is(TokenType::Colon)) {
         auto type_index = colon_or_assign_index + 1;
         auto type_token = tokens[type_index];
-        if (type_token.type != TokenType::Identifier) {
+        if (type_token.is_not(TokenType::Identifier)) {
             return ParseError {
                 "expected type name",
                 nullptr,
@@ -2733,7 +2581,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
 
         auto assign_index = type_index + 1;
         auto assign = tokens[assign_index];
-        if (assign.type != TokenType::Assign) {
+        if (assign.is_not(TokenType::Assign)) {
             return ParseError {
                 "expected '='",
                 nullptr,
@@ -2741,7 +2589,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
             };
         }
         rvalue_start_index = assign_index + 1;
-    } else if (colon_or_assign.type != TokenType::Assign) {
+    } else if (colon_or_assign.is_not(TokenType::Assign)) {
         return ParseError {
             "expected ':', or '='",
             nullptr,
@@ -2751,16 +2599,16 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
 
     auto struct_name_index = rvalue_start_index;
     auto struct_name = tokens[struct_name_index];
-    if (struct_name.type == TokenType::Identifier) {
+    if (struct_name.is(TokenType::Identifier)) {
         auto open_curly_index = struct_name_index + 1;
         auto open_curly = tokens[open_curly_index];
-        if (open_curly.type == TokenType::OpenCurly) {
+        if (open_curly.is(TokenType::OpenCurly)) {
             auto value = TRY(parse_struct_initializer(expressions,
                 tokens, struct_name_index));
 
             auto semicolon_index = value.end_token_index();
             auto semicolon = tokens[semicolon_index];
-            if (semicolon.type != TokenType::Semicolon) {
+            if (semicolon.is_not(TokenType::Semicolon)) {
                 return ParseError {
                     "expected ';' after struct initializer",
                     "did you forget a semicolon?",
@@ -2784,25 +2632,25 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
 
     auto struct_token_index = colon_or_assign_index + 1;
     auto struct_token = tokens[struct_token_index];
-    if (struct_token.type == TokenType::Struct)
+    if (struct_token.is(TokenType::Struct))
         return TRY(parse_struct_declaration(expressions, tokens,
             name_index));
 
     auto enum_token_index = struct_token_index;
     auto enum_token = tokens[enum_token_index];
-    if (enum_token.type == TokenType::Enum)
+    if (enum_token.is(TokenType::Enum))
         return TRY(parse_enum_declaration(expressions, tokens,
             name_index));
 
     auto union_token_index = struct_token_index;
     auto union_token = tokens[union_token_index];
-    if (union_token.type == TokenType::Union)
+    if (union_token.is(TokenType::Union))
         return TRY(parse_union_declaration(expressions, tokens,
             name_index));
 
     auto variant_token_index = union_token_index;
     auto variant_token = tokens[variant_token_index];
-    if (variant_token.type == TokenType::Variant)
+    if (variant_token.is(TokenType::Variant))
         return TRY(parse_variant_declaration(expressions, tokens,
             name_index));
 
@@ -2813,7 +2661,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
 
     auto semicolon_index = rvalue_end_index;
     auto semicolon = tokens[semicolon_index];
-    if (semicolon.type != TokenType::Semicolon) {
+    if (semicolon.is_not(TokenType::Semicolon)) {
         auto rvalue = tokens[rvalue_end_index];
         return ParseError {
             "expected ';' after rvalue",
