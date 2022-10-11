@@ -25,7 +25,7 @@ types_dep = subproject('Types').get_variable('types_dep')
 
 stage_0_exe = executable('stage-0', [
     'src/bootstrap/main.cpp',
-    'src/bootstrap/He/TypecheckedExpression.cpp',
+    'src/bootstrap/He/Codegen.cpp',
     'src/bootstrap/He/Expression.cpp',
     'src/bootstrap/He/Lexer.cpp',
     'src/bootstrap/He/Parser.cpp',

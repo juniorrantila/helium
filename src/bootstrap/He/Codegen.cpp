@@ -125,12 +125,12 @@ typedef char const* c_string;
 )c";
     out.write(prelude);
 
-    for (auto filename : import_cs) {
+    for (auto filename : import_c_quoted_filenames) {
         out.writeln("#include ",
             filename.text(context.source.text));
     }
 
-    for (auto inline_c_expression : inline_cs)
+    for (auto inline_c_expression : inline_c_texts)
         out.write(inline_c_expression.text(context.source.text));
 
     for (auto declaration : enum_forwards) {
