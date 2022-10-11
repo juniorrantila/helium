@@ -29,6 +29,20 @@ FORWARD_DECLARE_PARSER(pub_specifier);
 
 #undef FORWARD_DECLARE_PARSER
 
+ParseResult parse(Tokens const& tokens)
+{
+    auto expressions = TRY(ParsedExpressions::create());
+    for (u32 start = 0; start < tokens.size();) {
+        if (tokens[start].is(TokenType::NewLine))
+            continue; // Ignore leading and trailing new lines.
+        auto item
+            = TRY(parse_root_item(expressions, tokens, start));
+        start = item.end_token_index();
+        TRY(expressions.expressions.append(item));
+    }
+    return expressions;
+}
+
 [[maybe_unused]] static ParseSingleItemResult parse_uninitialized(
     ParsedExpressions&, Tokens const& tokens, u32 start)
 {
@@ -68,20 +82,6 @@ FORWARD_DECLARE_PARSER(pub_specifier);
         start,
         end + 1,
     };
-}
-
-ParseResult parse(Tokens const& tokens)
-{
-    auto expressions = TRY(ParsedExpressions::create());
-    for (u32 start = 0; start < tokens.size();) {
-        if (tokens[start].is(TokenType::NewLine))
-            continue; // Ignore leading and trailing new lines.
-        auto item
-            = TRY(parse_root_item(expressions, tokens, start));
-        start = item.end_token_index();
-        TRY(expressions.expressions.append(item));
-    }
-    return expressions;
 }
 
 static ParseSingleItemResult parse_literal(
@@ -2692,7 +2692,7 @@ parse_invalid(ParsedExpressions&, Tokens const& tokens, u32 start)
     };
 }
 
-[[deprecated("can't moved value")]] //
+[[deprecated("can't parse moved value")]] //
 [[maybe_unused]] static ParseSingleItemResult
 parse_moved_value(ParsedExpressions&, Tokens const& tokens,
     u32 start)
