@@ -1,3 +1,4 @@
+#include <Core/Threads.h>
 #include <FileBuffer.h>
 #include <He/Context.h>
 #include <He/Expression.h>
@@ -29,7 +30,7 @@ FORWARD_DECLARE_CODEGEN(Parameters, parameters);
 #undef FORWARD_DECLARE_CODEGEN
 
 static char* create_buffer_for_each_thread(u32 size,
-    u32 threads = std::thread::hardware_concurrency())
+    u32 threads)
 {
     auto memory_size = size * threads;
     auto* memory = mmap(0, memory_size, PROT_WRITE,
@@ -40,19 +41,19 @@ static char* create_buffer_for_each_thread(u32 size,
 }
 
 static void destroy_buffer_for_each_thread(char* buf, u32 size,
-    u32 threads = std::thread::hardware_concurrency())
+    u32 threads)
 {
     auto memory_size = size * threads;
     munmap(buf, memory_size);
 }
 
 static FileBuffer* create_file_for_each_thread(u32 size,
-    u32 threads = std::thread::hardware_concurrency())
+    u32 threads)
 {
     auto* files = (FileBuffer*)malloc(sizeof(FileBuffer) * threads);
     if (!files)
         return files;
-    auto* buf = create_buffer_for_each_thread(size);
+    auto* buf = create_buffer_for_each_thread(size, threads);
     if (!buf) {
         free(files);
         return nullptr;
@@ -67,7 +68,7 @@ static FileBuffer* create_file_for_each_thread(u32 size,
 }
 
 static void destroy_file_for_each_thread(FileBuffer* file,
-    u32 threads = std::thread::hardware_concurrency())
+    u32 threads)
 {
     destroy_buffer_for_each_thread(file->data, file->capacity,
         threads);
@@ -77,7 +78,8 @@ static void destroy_file_for_each_thread(FileBuffer* file,
 void TypecheckedExpressions::codegen(int out_fd,
     Context const& context) const
 {
-    auto* files = create_file_for_each_thread(2 * 1024 * 1024);
+    u16 threads = Core::Threads::in_machine();
+    auto* files = create_file_for_each_thread(2 * 1024 * 1024, threads);
     auto& out = files[0];
     auto const* prelude = R"c(
 #include <stdint.h>
@@ -188,18 +190,17 @@ typedef char const* c_string;
     for (auto const& expression : context.expressions.expressions)
         codegen_expression(out, context, expression);
 
-    u16 vecs = std::thread::hardware_concurrency();
     auto* iovec
-        = (struct iovec*)malloc(sizeof(struct iovec) * vecs);
-    for (u32 i = 0; i < vecs; i++) {
+        = (struct iovec*)malloc(sizeof(struct iovec) * threads);
+    for (u32 i = 0; i < threads; i++) {
         iovec[i] = {
             .iov_base = files[i].data,
             .iov_len = files[i].size,
         };
     }
-    writev(out_fd, iovec, vecs);
+    writev(out_fd, iovec, threads);
     free(iovec);
-    destroy_file_for_each_thread(files);
+    destroy_file_for_each_thread(files, threads);
 }
 
 static void codegen_parameters(FileBuffer& out,
