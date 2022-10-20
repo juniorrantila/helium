@@ -1,4 +1,5 @@
 #include <CLI/ArgumentParser.h>
+#include <Core/Bench.h>
 #include <Core/Defer.h>
 #include <Core/MappedFile.h>
 #include <Core/System.h>
@@ -10,14 +11,10 @@
 #include <He/Typecheck.h>
 #include <He/TypecheckedExpression.h>
 #include <SourceFile.h>
-#include <cstdio>
-#include <cstdlib>
-#include <fcntl.h>
 #include <spawn.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
-extern char** environ;
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
 
 [[nodiscard]] static Core::ErrorOr<void> move_file(c_string to,
     c_string from);
@@ -63,6 +60,14 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
             export_source = true;
         });
 
+    auto should_display_benchmark
+        = Core::BenchEnableShowOnStopAndShow::No;
+    argument_parser.add_flag("--benchmark", "-b",
+        "benchmark each compiler stage", [&] {
+            should_display_benchmark
+                = Core::BenchEnableShowOnStopAndShow::Yes;
+        });
+
     c_string source_file_path = nullptr;
     argument_parser.add_positional_argument("file", [&](auto path) {
         source_file_path = path;
@@ -72,12 +77,17 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
     if (export_source && !output_path_set)
         output_path = "a.c";
 
+    auto bench = Core::Bench(should_display_benchmark);
+
     auto file = TRY(Core::MappedFile::open(source_file_path));
     auto source_file = SourceFile {
         StringView::from_c_string(source_file_path),
         file.view(),
     };
+
+    bench.start();
     auto lex_result = He::lex(source_file.text);
+    bench.stop_and_show("lex");
     if (lex_result.is_error())
         return lex_result.error().show(source_file);
     auto tokens = lex_result.release_value();
@@ -89,7 +99,9 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
         }
     }
 
+    bench.start();
     auto parse_result = He::parse(tokens);
+    bench.stop_and_show("parse");
     if (parse_result.is_error())
         return parse_result.error().show(source_file);
     auto expressions = parse_result.release_value();
@@ -101,37 +113,49 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
     }
 
     auto context = He::Context { source_file, expressions };
+    bench.start();
     auto typecheck_result = He::typecheck(context);
+    bench.stop_and_show("typecheck");
     if (typecheck_result.is_error())
         TRY(typecheck_result.error().show(context));
     auto typechecked_expressions = typecheck_result.release_value();
 
     char temporary_file[] = "/tmp/XXXXXX.c";
     int output_file = STDOUT_FILENO;
-    if (isatty(STDOUT_FILENO) == 1 || export_source) {
-        output_file = mkstemps(temporary_file, 2);
-        if (output_file < 0)
-            return Core::Error::from_errno();
+    if (export_source || Core::System::isatty(STDOUT_FILENO)) {
+        output_file
+            = TRY(Core::System::mkstemps(temporary_file, 2));
     }
+    bench.start();
     auto code = TRY(He::codegen(context, typechecked_expressions));
+    bench.stop_and_show("codegen");
 
-    write(output_file, code.data(), code.size());
+    bench.start();
+    TRY(Core::System::write(output_file, code));
+    bench.stop_and_show("write");
 
     if (output_file == STDOUT_FILENO)
         return {};
 
-    if (fsync(output_file) < 0)
-        return Core::Error::from_errno();
-    if (close(output_file) < 0)
-        return Core::Error::from_errno();
+    TRY(Core::System::close(output_file));
 
     if (!export_source) {
-        auto const* input_file = temporary_file;
-        TRY(compile_source(output_path, input_file));
-        (void)remove(temporary_file);
+        bench.start();
+        TRY(compile_source(output_path, temporary_file));
+        bench.stop_and_show("compile c");
+        auto remove_result = Core::System::remove(temporary_file);
+        if (remove_result.is_error()) {
+            auto error_message = remove_result.error().message();
+            (void)fprintf(stderr, "remove '%s': %.*s\n",
+                temporary_file, error_message.size,
+                error_message.data);
+        }
         return {};
     }
+
+    bench.start();
     TRY(move_file(output_path, temporary_file));
+    bench.stop_and_show("move file");
 
     return {};
 }
@@ -151,41 +175,28 @@ int main(int argc, c_string argv[])
 static Core::ErrorOr<void> move_file(c_string to, c_string from)
 {
     auto from_file = TRY(Core::MappedFile::open(from));
-    auto to_fd = open(to, O_WRONLY | O_CREAT, 0666);
-    if (to_fd < 0)
-        return Core::Error::from_errno();
-
-    if (write(to_fd, from_file.m_data, from_file.m_size) < 0)
-        return Core::Error::from_errno();
-
-    close(to_fd);
-
-    if (unlink(from) < 0)
-        return Core::Error::from_errno();
-
+    auto to_fd = TRY(Core::System::open(to, O_WRONLY, 0666));
+    TRY(Core::System::write(to_fd, from_file));
+    TRY(Core::System::close(to_fd));
+    TRY(Core::System::unlink(from));
     return {};
 }
 
 [[nodiscard]] static Core::ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path)
 {
-    char* argv[] = {
-        (char*)(getenv("CC") ?: "clang"),
-        (char*)"-Wno-duplicate-decl-specifier",
-        (char*)"-o",
-        (char*)destination_path,
-        (char*)source_path,
+    c_string argv[] = {
+        getenv("CC") ?: "clang",
+        "-Wno-duplicate-decl-specifier",
+        "-o",
+        destination_path,
+        source_path,
         nullptr,
     };
-    int pid = -1;
-    if (posix_spawnp(&pid, argv[0], 0, 0, argv, environ) != 0)
-        return Core::Error::from_errno();
-    if (pid < 0)
-        return Core::Error::from_errno();
 
-    int exit_code = 0;
-    waitpid(pid, &exit_code, 0);
-    if (!WIFEXITED(exit_code) || WEXITSTATUS(exit_code) != 0)
+    auto pid = TRY(Core::System::posix_spawnp(argv[0], argv));
+    auto status = TRY(Core::System::waitpid(pid));
+    if (!status.did_exit() || status.exit_status() != 0)
         return Core::Error::from_string_literal(
             "could not compile source");
 
