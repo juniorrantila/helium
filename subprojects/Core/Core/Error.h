@@ -25,16 +25,30 @@ typedef struct Error {
         c_string file = __builtin_FILE(),
         u32 line_in_file = __builtin_LINE())
     {
-        return { errno_to_string(code), function, file, line_in_file };
+        return {
+            errno_to_string(code),
+            function,
+            file,
+            line_in_file,
+        };
     }
 
     static c_string errno_to_string(int);
 
-    StringView message() const { return m_message; }
+    StringView message() const
+    {
+        return StringView::from_c_string(m_message);
+    }
 
-    StringView function() const { return m_function; }
+    StringView function() const
+    {
+        return StringView::from_c_string(m_function);
+    }
 
-    StringView file() const { return m_file; }
+    StringView file() const
+    {
+        return StringView::from_c_string(m_file);
+    }
 
     u32 line_in_file() const { return m_line_in_file; }
 

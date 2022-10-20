@@ -49,13 +49,12 @@ typedef struct StringView {
 
     constexpr StringView() = default;
 
-    constexpr StringView(c_string string)
-        : data(string)
-        , size(__builtin_strlen(string))
+    static constexpr StringView from_c_string(c_string data)
     {
+        return StringView(data, __builtin_strlen(data));
     }
 
-    constexpr StringView(c_string data, u32 size)
+    constexpr StringView(char const* data, u32 size)
         : data(data)
         , size(size)
     {

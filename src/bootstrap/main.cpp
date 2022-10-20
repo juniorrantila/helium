@@ -72,7 +72,7 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
 
     auto file = TRY(Core::MappedFile::open(source_file_path));
     auto source_file = SourceFile {
-        source_file_path,
+        StringView::from_c_string(source_file_path),
         file.view(),
     };
     auto lex_result = He::lex(source_file.text);
