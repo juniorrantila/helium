@@ -124,11 +124,11 @@ typedef char const* c_string;
 #define let __auto_type const
 #define var __auto_type
 
-)c";
+)c"sv;
     out.write(prelude);
 
     for (auto filename : import_c_quoted_filenames) {
-        out.writeln("#include ",
+        out.writeln("#include "sv,
             filename.text(context.source.text));
     }
 
@@ -137,7 +137,7 @@ typedef char const* c_string;
 
     for (auto declaration : enum_forwards) {
         auto name = declaration.name.text(context.source.text);
-        out.writeln("typedef enum ", name, ' ', name, ';');
+        out.writeln("typedef enum "sv, name, " "sv, name, ";"sv);
     }
 
     for (auto declaration : struct_forwards) {

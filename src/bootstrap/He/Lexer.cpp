@@ -156,27 +156,27 @@ static LexItemResult lex_single_item(StringView source, u32 start)
         auto token = lex_string(source, start + 1);
         auto value = token.text(source);
 
-        if (value == "embed") {
+        if (value == "embed"sv) {
             token.type = TokenType::Embed;
             return token;
         }
 
-        if (value == "uninitialized") {
+        if (value == "uninitialized"sv) {
             token.type = TokenType::Uninitialized;
             return token;
         }
 
-        if (value == "import_c") {
+        if (value == "import_c"sv) {
             token.type = TokenType::ImportC;
             return token;
         }
 
-        if (value == "size_of") {
+        if (value == "size_of"sv) {
             token.type = TokenType::SizeOf;
             return token;
         }
 
-        return LexError { "invalid builtin function", start + 1 };
+        return LexError { "invalid builtin function"sv, start + 1 };
     }
 
     if (character == '&')
@@ -185,55 +185,55 @@ static LexItemResult lex_single_item(StringView source, u32 start)
     if (is_letter(character)) {
         auto token = lex_string(source, start);
         auto value = token.text(source);
-        if (value == "c_fn") {
+        if (value == "c_fn"sv) {
             token.type = TokenType::CFn;
             return token;
         }
-        if (value == "fn") {
+        if (value == "fn"sv) {
             token.type = TokenType::Fn;
             return token;
         }
-        if (value == "pub") {
+        if (value == "pub"sv) {
             token.type = TokenType::Pub;
             return token;
         }
-        if (value == "return") {
+        if (value == "return"sv) {
             token.type = TokenType::Return;
             return token;
         }
-        if (value == "let") {
+        if (value == "let"sv) {
             token.type = TokenType::Let;
             return token;
         }
-        if (value == "var") {
+        if (value == "var"sv) {
             token.type = TokenType::Var;
             return token;
         }
-        if (value == "if") {
+        if (value == "if"sv) {
             token.type = TokenType::If;
             return token;
         }
-        if (value == "inline_c") {
+        if (value == "inline_c"sv) {
             token.type = TokenType::InlineC;
             return token;
         }
-        if (value == "while") {
+        if (value == "while"sv) {
             token.type = TokenType::While;
             return token;
         }
-        if (value == "struct") {
+        if (value == "struct"sv) {
             token.type = TokenType::Struct;
             return token;
         }
-        if (value == "union") {
+        if (value == "union"sv) {
             token.type = TokenType::Union;
             return token;
         }
-        if (value == "variant") {
+        if (value == "variant"sv) {
             token.type = TokenType::Variant;
             return token;
         }
-        if (value == "enum") {
+        if (value == "enum"sv) {
             token.type = TokenType::Enum;
             return token;
         }
@@ -243,7 +243,7 @@ static LexItemResult lex_single_item(StringView source, u32 start)
     if (is_identifier_character(character))
         return lex_identifier(source, start);
 
-    return LexError { "unknown token", start };
+    return LexError { "unknown token"sv, start };
 }
 
 static constexpr Token lex_minus_or_arrow(StringView source,
@@ -262,7 +262,7 @@ static constexpr Token lex_ampersand_or_ref_mut(StringView source,
 {
     std::string_view source_view = { source.data, source.size };
     if (start + 1 < source_view.size()) {
-        if (source_view.substr(start + 1, 3) == "mut")
+        if (source_view.substr(start + 1, 3) == "mut"sv)
             return { TokenType::RefMut, start, start + 4 };
     }
     return { TokenType::Ampersand, start, start + 1 };

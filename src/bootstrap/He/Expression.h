@@ -65,7 +65,7 @@ constexpr StringView expression_type_string(ExpressionType type)
 {
     switch (type) {
 #define X(T, ...) \
-    case ExpressionType::T: return #T;
+    case ExpressionType::T: return #T##sv;
         EXPRESSIONS
 #undef X
     }

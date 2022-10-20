@@ -4,7 +4,7 @@
 
 namespace He {
 
-static std::string_view token_type_string(TokenType type);
+static StringView token_type_string(TokenType type);
 
 void Token::dump(StringView source_view) const
 {
@@ -16,42 +16,21 @@ void Token::dump(StringView source_view) const
     auto end = *Util::line_and_column_for(source, end_index());
     end.line += 1;
     end.column += 1;
-    std::cerr << "Token" << '[';
+    std::cerr << "Token"sv << '[';
     auto old_width = std::cerr.width(12);
     std::cerr << token_type_string(type);
-#if 0
-    std::cout.width(1);
-    std::cout << '(';
-    std::cout.width(3);
-    std::cout << start.line;
-    std::cout.width(1);
-    std::cout << ' ';
-    std::cout.width(2);
-    std::cout << start.column;
-    std::cout.width(1);
-    std::cout << ' ';
-    std::cout.width(3);
-    std::cout << end.line;
-    std::cout.width(1);
-    std::cout << ' ';
-    std::cout.width(2);
-    std::cout << end.column;
-    std::cout.width(1);
-    std::cout << ')';
-#endif
     std::cerr << ' ';
-    std::cerr << '\'' << (text == "\n" ? "\\n" : text) << '\'';
+    std::cerr << '\'' << (text == "\n"sv ? "\\n"sv : text) << '\'';
 
     std::cerr << ']' << '\n';
     std::cerr.width(old_width);
-    // std::cout << value << value;
 }
 
-static std::string_view token_type_string(TokenType type)
+static StringView token_type_string(TokenType type)
 {
     switch (type) {
 #define CASE_RETURN(variant) \
-    case TokenType::variant: return #variant
+    case TokenType::variant: return #variant##sv
         CASE_RETURN(OpenBracket);
         CASE_RETURN(CloseBracket);
 

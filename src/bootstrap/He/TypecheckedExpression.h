@@ -75,7 +75,7 @@ constexpr StringView checked_expression_type_string(
 {
     switch (type) {
 #define X(T, ...) \
-    case CheckedExpressionType::T: return #T;
+    case CheckedExpressionType::T: return #T##sv;
         CHECKED_EXPRESSIONS
 #undef X
     }

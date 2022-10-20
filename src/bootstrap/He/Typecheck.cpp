@@ -311,7 +311,7 @@ parse_invalid(TypecheckedExpressions&, ParsedExpressions const&,
     u32 index)
 {
     return TypecheckError {
-        "trying to typecheck invalid",
+        "trying to typecheck invalid"sv,
         index,
     };
 }
@@ -322,7 +322,7 @@ parse_moved_value(TypecheckedExpressions&, ParsedExpressions const&,
     u32 start)
 {
     return TypecheckError {
-        "trying to typecheck moved",
+        "trying to typecheck moved"sv,
         start,
     };
 }
