@@ -557,8 +557,6 @@ public:
     StructForwardDeclarations struct_forwards;
     UnionForwardDeclarations union_forwards;
     VariantForwardDeclarations variant_forwards;
-
-    void codegen(int out_fd, Context const&) const;
 };
 
 }

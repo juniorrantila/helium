@@ -1,24 +1,20 @@
+#include <Core/Defer.h>
+#include <Core/File.h>
+#include <Core/StringBuffer.h>
 #include <Core/Threads.h>
-#include <FileBuffer.h>
 #include <He/Context.h>
 #include <He/Expression.h>
 #include <He/Parser.h>
 #include <He/TypecheckedExpression.h>
 #include <SourceFile.h>
-#include <iostream>
-#include <string>
-#include <string_view>
-#include <sys/mman.h>
-#include <sys/uio.h>
-#include <thread>
-#include <type_traits>
-#include <vector>
 
 namespace He {
 
-#define FORWARD_DECLARE_CODEGEN(T, name)                    \
-    static void codegen_##name(FileBuffer&, Context const&, \
-        T const&)
+namespace {
+
+#define FORWARD_DECLARE_CODEGEN(T, name)              \
+    Core::ErrorOr<void> codegen_##name(Core::StringBuffer&, \
+        Context const&, T const&)
 
 #define X(T, name, ...) FORWARD_DECLARE_CODEGEN(T, name);
 EXPRESSIONS
@@ -29,59 +25,14 @@ FORWARD_DECLARE_CODEGEN(Parameters, parameters);
 
 #undef FORWARD_DECLARE_CODEGEN
 
-static char* create_buffer_for_each_thread(u32 size,
-    u32 threads)
-{
-    auto memory_size = size * threads;
-    auto* memory = mmap(0, memory_size, PROT_WRITE,
-        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (memory == MAP_FAILED)
-        return nullptr;
-    return (char*)memory;
 }
 
-static void destroy_buffer_for_each_thread(char* buf, u32 size,
-    u32 threads)
+Core::ErrorOr<Core::StringBuffer> codegen(Context const& context,
+    TypecheckedExpressions const& typechecked)
 {
-    auto memory_size = size * threads;
-    munmap(buf, memory_size);
-}
-
-static FileBuffer* create_file_for_each_thread(u32 size,
-    u32 threads)
-{
-    auto* files = (FileBuffer*)malloc(sizeof(FileBuffer) * threads);
-    if (!files)
-        return files;
-    auto* buf = create_buffer_for_each_thread(size, threads);
-    if (!buf) {
-        free(files);
-        return nullptr;
-    }
-    for (u64 i = 0; i < threads; i++) {
-        files[i] = FileBuffer {
-            &buf[i * size],
-            size,
-        };
-    }
-    return files;
-}
-
-static void destroy_file_for_each_thread(FileBuffer* file,
-    u32 threads)
-{
-    destroy_buffer_for_each_thread(file->data, file->capacity,
-        threads);
-    free(file);
-}
-
-void TypecheckedExpressions::codegen(int out_fd,
-    Context const& context) const
-{
-    u16 threads = Core::Threads::in_machine();
-    auto* files = create_file_for_each_thread(2 * 1024 * 1024, threads);
-    auto& out = files[0];
-    auto const* prelude = R"c(
+    auto estimate = context.expressions.expressions.size() * 512;
+    auto out = TRY(Core::StringBuffer::create(estimate));
+    auto prelude = R"c(
 #include <stdint.h>
 #include <stddef.h>
 
@@ -125,106 +76,106 @@ typedef char const* c_string;
 #define var __auto_type
 
 )c"sv;
-    out.write(prelude);
+    TRY(out.write(prelude));
 
-    for (auto filename : import_c_quoted_filenames) {
-        out.writeln("#include "sv,
-            filename.text(context.source.text));
+    for (auto filename : typechecked.import_c_quoted_filenames) {
+        TRY(out.writeln("#include "sv,
+            filename.text(context.source.text)));
     }
 
-    for (auto inline_c_expression : inline_c_texts)
-        out.write(inline_c_expression.text(context.source.text));
+    for (auto inline_c_expression : typechecked.inline_c_texts) {
+        TRY(out.write(
+            inline_c_expression.text(context.source.text)));
+    }
 
-    for (auto declaration : enum_forwards) {
+    for (auto declaration : typechecked.enum_forwards) {
         auto name = declaration.name.text(context.source.text);
-        out.writeln("typedef enum "sv, name, " "sv, name, ";"sv);
+        TRY(out.writeln("typedef enum "sv, name, " "sv, name, ";"sv));
     }
 
-    for (auto declaration : struct_forwards) {
+    for (auto declaration : typechecked.struct_forwards) {
         auto name = declaration.name.text(context.source.text);
-        out.writeln("typedef struct ", name, ' ', name, ';');
+        TRY(out.writeln("typedef struct "sv, name, " "sv, name, ";"sv));
     }
 
-    for (auto declaration : union_forwards) {
+    for (auto declaration : typechecked.union_forwards) {
         auto name = declaration.name.text(context.source.text);
-        out.writeln("typedef union ", name, ' ', name, ';');
+        TRY(out.writeln("typedef union "sv, name, " "sv, name, ";"sv));
     }
 
-    for (auto declaration : variant_forwards) {
+    for (auto declaration : typechecked.variant_forwards) {
         auto name = declaration.name.text(context.source.text);
-        out.writeln("typedef struct ", name, ' ', name, ';');
+        TRY(out.writeln("typedef struct "sv, name, " "sv, name, ";"sv));
     }
 
-    for (auto const& function : public_function_forwards) {
+    for (auto const& function :
+        typechecked.public_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
-        out.write(type, ' ', name);
-        codegen_parameters(out, context, function.parameters);
-        out.writeln(';');
+        TRY(out.write(type, " "sv, name));
+        TRY(codegen_parameters(out, context, function.parameters));
+        TRY(out.writeln(";"sv));
     }
 
-    for (auto const& function : private_function_forwards) {
+    for (auto const& function :
+        typechecked.private_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
-        out.write("static ", type, ' ', name);
-        codegen_parameters(out, context, function.parameters);
-        out.writeln(';');
+        TRY(out.write("static "sv, type, " "sv, name));
+        TRY(codegen_parameters(out, context, function.parameters));
+        TRY(out.writeln(";"sv));
     }
 
-    for (auto const& function : public_c_function_forwards) {
+    for (auto const& function :
+        typechecked.public_c_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
-        out.write(type, ' ', name);
-        codegen_parameters(out, context, function.parameters);
-        out.writeln(';');
+        TRY(out.write(type, " "sv, name));
+        TRY(codegen_parameters(out, context, function.parameters));
+        TRY(out.writeln(";"sv));
     }
 
-    for (auto const& function : private_c_function_forwards) {
+    for (auto const& function :
+        typechecked.private_c_function_forwards) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
-        out.write("static ", type, ' ', name);
-        codegen_parameters(out, context, function.parameters);
-        out.writeln(';');
+        TRY(out.write("static "sv, type, " "sv, name));
+        TRY(codegen_parameters(out, context, function.parameters));
+        TRY(out.writeln(";"sv));
     }
 
     for (auto const& expression : context.expressions.expressions)
-        codegen_expression(out, context, expression);
+        TRY(codegen_expression(out, context, expression));
 
-    auto* iovec
-        = (struct iovec*)malloc(sizeof(struct iovec) * threads);
-    for (u32 i = 0; i < threads; i++) {
-        iovec[i] = {
-            .iov_base = files[i].data,
-            .iov_len = files[i].size,
-        };
-    }
-    writev(out_fd, iovec, threads);
-    free(iovec);
-    destroy_file_for_each_thread(files, threads);
+    return std::move(out);
 }
 
-static void codegen_parameters(FileBuffer& out,
+namespace {
+
+Core::ErrorOr<void> codegen_parameters(Core::StringBuffer& out,
     Context const& context, Parameters const& parameters)
 {
     auto source = context.source.text;
     if (parameters.is_empty()) {
-        out.write("(void)");
-        return;
+        TRY(out.write("(void)"sv));
+        return {};
     }
-    out.write('(');
+    TRY(out.write("("sv));
     auto last_parameter = parameters.size() - 1;
     for (u32 i = 0; i < last_parameter; i++) {
         auto parameter = parameters[i];
-        out.write(parameter.type.text(source), ' ',
-            parameter.name.text(source), ", ");
+        TRY(out.write(parameter.type.text(source), " "sv,
+            parameter.name.text(source), ", "sv));
     }
     auto parameter = parameters[last_parameter];
-    out.write(parameter.type.text(source), ' ',
-        parameter.name.text(source));
-    out.write(')');
+    TRY(out.write(parameter.type.text(source), " "sv,
+        parameter.name.text(source)));
+    TRY(out.write(")"sv));
+
+    return {};
 }
 
-static void codegen_member_access(FileBuffer& out,
+Core::ErrorOr<void> codegen_member_access(Core::StringBuffer& out,
     Context const& context, MemberAccess const& access)
 {
     auto source = context.source.text;
@@ -232,35 +183,40 @@ static void codegen_member_access(FileBuffer& out,
 
     for (u32 i = 0; i < members.size() - 1; i++) {
         auto member = members[i];
-        out.write(member.text(source), '.');
+        TRY(out.write(member.text(source), "."sv));
     }
-    out.write(members[members.size() - 1].text(source));
+    TRY(out.write(members[members.size() - 1].text(source)));
+
+    return {};
 }
 
-static void codegen_array_access(FileBuffer& out,
+Core::ErrorOr<void> codegen_array_access(Core::StringBuffer& out,
     Context const& context, ArrayAccess const& access)
 {
     auto source = context.source.text;
     auto name = access.name.text(source);
-    out.write(name, '[');
+    TRY(out.write(name, "["sv));
     auto const& index = context.expressions[access.index];
-    codegen_rvalue(out, context, index);
-    out.write(']');
+    TRY(codegen_rvalue(out, context, index));
+    TRY(out.write("]"sv));
+
+    return {};
 }
 
-static void codegen_moved_value(FileBuffer&, Context const&,
-    Moved const&)
+Core::ErrorOr<void> codegen_moved_value(Core::StringBuffer&,
+    Context const&, Moved const&)
 {
+    return {};
 }
 
-static void codegen_invalid(FileBuffer&, Context const&,
+Core::ErrorOr<void> codegen_invalid(Core::StringBuffer&, Context const&,
     Invalid const&)
 {
-    std::cerr << "ExpressionType::Invalid in codegen\n";
-    __builtin_abort();
+    return Core::Error::from_string_literal(
+        "trying to codegen invalid");
 }
 
-static void codegen_expression(FileBuffer& out,
+Core::ErrorOr<void> codegen_expression(Core::StringBuffer& out,
     Context const& context, Expression const& expression)
 {
     auto const& expressions = context.expressions;
@@ -270,348 +226,405 @@ static void codegen_expression(FileBuffer& out,
     case ExpressionType::T: {                     \
         auto id = expression.as_##name();         \
         auto const& value = expressions[id];      \
-        codegen_##name(out, context, value);      \
+        TRY(codegen_##name(out, context, value)); \
         if (type == ExpressionType::FunctionCall) \
-            out.write(';');                       \
+            TRY(out.write(";"sv));                  \
     } break
 #define X(T, name, ...) CODEGEN(T, name);
         EXPRESSIONS
 #undef X
 #undef CODEGEN
     }
+
+    return {};
 }
 
-static void codegen_expression_in_rvalue(FileBuffer& out,
+Core::ErrorOr<void> codegen_expression_in_rvalue(Core::StringBuffer& out,
     Context const& context, Expression const& expression)
 {
     auto const& expressions = context.expressions;
     switch (expression.type()) {
-#define CODEGEN(T, name)                     \
-    case ExpressionType::T: {                \
-        auto id = expression.as_##name();    \
-        auto const& value = expressions[id]; \
-        codegen_##name(out, context, value); \
+#define CODEGEN(T, name)                          \
+    case ExpressionType::T: {                     \
+        auto id = expression.as_##name();         \
+        auto const& value = expressions[id];      \
+        TRY(codegen_##name(out, context, value)); \
     } break
 #define X(T, name, ...) CODEGEN(T, name);
         EXPRESSIONS
 #undef X
 #undef CODEGEN
     }
+
+    return {};
 }
 
-static void codegen_public_variable_declaration(FileBuffer& out,
-    Context const& context,
+Core::ErrorOr<void> codegen_public_variable_declaration(
+    Core::StringBuffer& out, Context const& context,
     PublicVariableDeclaration const& variable)
 {
     auto source = context.source.text;
-    out.write(variable.type.text(source), ' ',
-        variable.name.text(source), " = ");
+    TRY(out.write(variable.type.text(source), " "sv,
+        variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    codegen_expression(out, context, value);
-    out.writeln(';');
+    TRY(codegen_expression(out, context, value));
+    TRY(out.writeln(";"sv));
+
+    return {};
 }
 
-static void codegen_private_variable_declaration(FileBuffer& out,
-    Context const& context,
+Core::ErrorOr<void> codegen_private_variable_declaration(
+    Core::StringBuffer& out, Context const& context,
     PrivateVariableDeclaration const& variable)
 {
     auto source = context.source.text;
-    out.write("static ", variable.type.text(source), ' ',
-        variable.name.text(source), " = ");
+    TRY(out.write("static "sv, variable.type.text(source), " "sv,
+        variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    codegen_expression(out, context, value);
-    out.writeln(';');
+    TRY(codegen_expression(out, context, value));
+    TRY(out.writeln(";"sv));
+
+    return {};
 }
 
-static void codegen_public_constant_declaration(FileBuffer& out,
-    Context const& context,
+Core::ErrorOr<void> codegen_public_constant_declaration(
+    Core::StringBuffer& out, Context const& context,
     PublicConstantDeclaration const& variable)
 {
     auto source = context.source.text;
-    out.write(variable.type.text(source), " const ",
-        variable.name.text(source), " = ");
+    TRY(out.write(variable.type.text(source), " const "sv,
+        variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    codegen_expression(out, context, value);
-    out.writeln(';');
+    TRY(codegen_expression(out, context, value));
+    TRY(out.writeln(";"sv));
+
+    return {};
 }
 
-static void codegen_private_constant_declaration(FileBuffer& out,
-    Context const& context,
+Core::ErrorOr<void> codegen_private_constant_declaration(
+    Core::StringBuffer& out, Context const& context,
     PrivateConstantDeclaration const& variable)
 {
     auto source = context.source.text;
-    out.write("static ", variable.type.text(source), " const ",
-        variable.name.text(source), " = ");
+    TRY(out.write("static "sv, variable.type.text(source), " const "sv,
+        variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    codegen_expression(out, context, value);
-    out.writeln(';');
+    TRY(codegen_expression(out, context, value));
+    TRY(out.writeln(";"sv));
+
+    return {};
 }
 
-static void codegen_variable_assignment(FileBuffer& out,
-    Context const& context,
-    VariableAssignment const& variable)
+Core::ErrorOr<void> codegen_variable_assignment(Core::StringBuffer& out,
+    Context const& context, VariableAssignment const& variable)
 {
     auto source = context.source.text;
-    out.write(variable.name.text(source), " = ");
+    TRY(out.write(variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
-    codegen_rvalue(out, context, value);
-    out.writeln(';');
+    TRY(codegen_rvalue(out, context, value));
+    TRY(out.writeln(";"sv));
+
+    return {};
 }
 
-static void codegen_struct_declaration(FileBuffer& out,
+Core::ErrorOr<void> codegen_struct_declaration(Core::StringBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {
     auto source = context.source.text;
-    out.writeln("struct ", struct_.name.text(source), "{");
+    TRY(out.writeln("struct "sv, struct_.name.text(source), "{"sv));
     for (auto member : context.expressions[struct_.members]) {
         auto type = member.type.text(source);
         auto name = member.name.text(source);
-        out.writeln(type, ' ', name, ';');
+        TRY(out.writeln(type, " "sv, name, ";"sv));
     }
-    out.writeln("};");
+    TRY(out.writeln("};"sv));
+
+    return {};
 }
 
-static void codegen_enum_declaration(FileBuffer& out,
+Core::ErrorOr<void> codegen_enum_declaration(Core::StringBuffer& out,
     Context const& context, EnumDeclaration const& enum_)
 {
     auto source = context.source.text;
     auto enum_name = enum_.name.text(source);
-    out.writeln("enum ", enum_name);
+    TRY(out.writeln("enum "sv, enum_name));
     if (enum_.underlying_type.type != TokenType::Invalid) {
-        out.write(" :", enum_.underlying_type.text(source), " ");
+        TRY(out.write(" :"sv, enum_.underlying_type.text(source),
+            " "sv));
     }
-    out.write("{");
+    TRY(out.write("{"sv));
     for (auto member : context.expressions[enum_.members]) {
         auto name = member.name.text(source);
-        out.writeln(enum_name, '$', name, ',');
+        TRY(out.writeln(enum_name, "$"sv, name, ","sv));
     }
-    out.writeln("};");
+    TRY(out.writeln("};"sv));
+
+    return {};
 }
 
-static void codegen_union_declaration(FileBuffer& out,
+Core::ErrorOr<void> codegen_union_declaration(Core::StringBuffer& out,
     Context const& context, UnionDeclaration const& union_)
 {
     auto source = context.source.text;
-    out.writeln("union ", union_.name.text(source), "{");
+    TRY(out.writeln("union "sv, union_.name.text(source), "{"sv));
     for (auto member : context.expressions[union_.members]) {
         auto type = member.type.text(source);
         auto name = member.name.text(source);
-        out.writeln(type, ' ', name, ';');
+        TRY(out.writeln(type, " "sv, name, ";"sv));
     }
-    out.writeln("};");
+    TRY(out.writeln("};"sv));
+
+    return {};
 }
 
-static void codegen_variant_declaration(FileBuffer& out,
+Core::ErrorOr<void> codegen_variant_declaration(Core::StringBuffer& out,
     Context const& context, VariantDeclaration const& variant)
 {
     auto source = context.source.text;
     auto variant_name = variant.name.text(source);
-    out.writeln("struct ", variant_name, "{");
+    TRY(out.writeln("struct "sv, variant_name, "{"sv));
 
-    out.writeln("union {");
+    TRY(out.writeln("union {"sv));
     for (auto member : context.expressions[variant.members]) {
         auto type = member.type.text(source);
         auto name = member.name.text(source);
-        out.writeln(type, ' ', name, ';');
+        TRY(out.writeln(type, " "sv, name, ";"sv));
     }
-    out.writeln("};");
+    TRY(out.writeln("};"sv));
 
-    out.writeln("enum {");
+    TRY(out.writeln("enum {"sv));
     for (auto member : context.expressions[variant.members]) {
         auto name = member.name.text(source);
-        out.writeln(variant_name, "$Type$", name, ',');
+        TRY(out.writeln(variant_name, "$Type$"sv, name, ","sv));
     }
-    out.writeln("} type;");
+    TRY(out.writeln("} type;"sv));
 
-    out.writeln("};");
+    TRY(out.writeln("};"sv));
+
+    return {};
 }
 
-static void codegen_struct_initializer(FileBuffer& out,
+Core::ErrorOr<void> codegen_struct_initializer(Core::StringBuffer& out,
     Context const& context, StructInitializer const& initializer)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
-    out.write('(', initializer.type.text(source), ") {");
+    TRY(out.write("("sv, initializer.type.text(source), ") {"sv));
     for (auto member : expressions[initializer.initializers]) {
         auto name = member.name.text(source);
-        out.writeln('.', name, '=');
+        TRY(out.writeln("."sv, name, "="sv));
         auto const& irvalue = context.expressions[member.value];
-        codegen_rvalue(out, context, irvalue);
-        out.writeln(',');
+        TRY(codegen_rvalue(out, context, irvalue));
+        TRY(out.writeln(","sv));
     }
-    out.writeln('}');
+    TRY(out.writeln("}"sv));
+
+    return {};
 }
 
-static void codegen_literal(FileBuffer& out, Context const& context,
-    Literal const& literal)
+Core::ErrorOr<void> codegen_literal(Core::StringBuffer& out,
+    Context const& context, Literal const& literal)
 {
     auto source = context.source.text;
-    out.write(literal.token.text(source));
+    TRY(out.write(literal.token.text(source)));
+
+    return {};
 }
 
-static void codegen_lvalue(FileBuffer& out, Context const& context,
-    LValue const& lvalue)
+Core::ErrorOr<void> codegen_lvalue(Core::StringBuffer& out,
+    Context const& context, LValue const& lvalue)
 {
     auto source = context.source.text;
-    out.write(lvalue.token.text(source));
+    TRY(out.write(lvalue.token.text(source)));
+
+    return {};
 }
 
-static void codegen_rvalue(FileBuffer& out, Context const& context,
-    RValue const& rvalue)
+Core::ErrorOr<void> codegen_rvalue(Core::StringBuffer& out,
+    Context const& context, RValue const& rvalue)
 {
     auto const& expressions = context.expressions;
 
     for (auto const& expression : expressions[rvalue.expressions])
-        codegen_expression_in_rvalue(out, context, expression);
+        TRY(codegen_expression_in_rvalue(out, context, expression));
+
+    return {};
 }
 
-static void codegen_if_statement(FileBuffer& out,
+Core::ErrorOr<void> codegen_if_statement(Core::StringBuffer& out,
     Context const& context, If const& if_statement)
 {
-    out.write("if (");
-    codegen_rvalue(out, context,
-        context.expressions[if_statement.condition]);
-    out.write(") ");
-    codegen_block(out, context,
-        context.expressions[if_statement.block]);
+    TRY(out.write("if ("sv));
+    TRY(codegen_rvalue(out, context,
+        context.expressions[if_statement.condition]));
+    TRY(out.write(") "sv));
+    TRY(codegen_block(out, context,
+        context.expressions[if_statement.block]));
+
+    return {};
 }
 
-static void codegen_while_statement(FileBuffer& out,
+Core::ErrorOr<void> codegen_while_statement(Core::StringBuffer& out,
     Context const& context, While const& while_loop)
 {
-    out.write("while (");
-    codegen_rvalue(out, context,
-        context.expressions[while_loop.condition]);
-    out.write(") ");
-    codegen_block(out, context,
-        context.expressions[while_loop.block]);
+    TRY(out.write("while ("sv));
+    TRY(codegen_rvalue(out, context,
+        context.expressions[while_loop.condition]));
+    TRY(out.write(") "sv));
+    TRY(codegen_block(out, context,
+        context.expressions[while_loop.block]));
+
+    return {};
 }
 
-static void codegen_block(FileBuffer& out, Context const& context,
-    Block const& block)
+Core::ErrorOr<void> codegen_block(Core::StringBuffer& out,
+    Context const& context, Block const& block)
 {
-    out.writeln('{');
+    TRY(out.writeln("{"sv));
     auto const& expressions
         = context.expressions[block.expressions];
     for (auto const& expression : expressions)
-        codegen_expression(out, context, expression);
-    out.writeln('}');
+        TRY(codegen_expression(out, context, expression));
+    TRY(out.writeln("}"sv));
+
+    return {};
 }
 
-static void codegen_private_function(FileBuffer& out,
+Core::ErrorOr<void> codegen_private_function(Core::StringBuffer& out,
     Context const& context, PrivateFunction const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
-    out.write("static ", function.return_type.text(source), " ",
-        function.name.text(source));
-    codegen_parameters(out, context,
-        expressions[function.parameters]);
-    codegen_block(out, context,
-        context.expressions[function.block]);
+    TRY(out.write("static "sv, function.return_type.text(source), " "sv,
+        function.name.text(source)));
+    TRY(codegen_parameters(out, context,
+        expressions[function.parameters]));
+    TRY(codegen_block(out, context,
+        context.expressions[function.block]));
+
+    return {};
 }
 
-static void codegen_public_function(FileBuffer& out,
+Core::ErrorOr<void> codegen_public_function(Core::StringBuffer& out,
     Context const& context, PublicFunction const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
 
-    out.write(function.return_type.text(source), " ",
-        function.name.text(source));
-    codegen_parameters(out, context,
-        expressions[function.parameters]);
-    codegen_block(out, context,
-        context.expressions[function.block]);
+    TRY(out.write(function.return_type.text(source), " "sv,
+        function.name.text(source)));
+    TRY(codegen_parameters(out, context,
+        expressions[function.parameters]));
+    TRY(codegen_block(out, context,
+        context.expressions[function.block]));
+
+    return {};
 }
 
-static void codegen_private_c_function(FileBuffer& out,
+Core::ErrorOr<void> codegen_private_c_function(Core::StringBuffer& out,
     Context const& context, PrivateCFunction const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
 
-    out.write("static ", function.return_type.text(source), " ",
-        function.name.text(source));
-    codegen_parameters(out, context,
-        expressions[function.parameters]);
-    codegen_block(out, context,
-        context.expressions[function.block]);
+    TRY(out.write("static "sv, function.return_type.text(source), " "sv,
+        function.name.text(source)));
+    TRY(codegen_parameters(out, context,
+        expressions[function.parameters]));
+    TRY(codegen_block(out, context,
+        context.expressions[function.block]));
+
+    return {};
 }
 
-static void codegen_public_c_function(FileBuffer& out,
+Core::ErrorOr<void> codegen_public_c_function(Core::StringBuffer& out,
     Context const& context, PublicCFunction const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
 
-    out.write(function.return_type.text(source), " ",
-        function.name.text(source));
-    codegen_parameters(out, context,
-        expressions[function.parameters]);
-    codegen_block(out, context,
-        context.expressions[function.block]);
+    TRY(out.write(function.return_type.text(source), " "sv,
+        function.name.text(source)));
+    TRY(codegen_parameters(out, context,
+        expressions[function.parameters]));
+    TRY(codegen_block(out, context,
+        context.expressions[function.block]));
+
+    return {};
 }
 
-static void codegen_function_call(FileBuffer& out,
+Core::ErrorOr<void> codegen_function_call(Core::StringBuffer& out,
     Context const& context, FunctionCall const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
     auto const& arguments = expressions[function.arguments];
 
-    out.write(function.name.text(source), "(");
+    TRY(out.write(function.name.text(source), "("sv));
     if (arguments.is_empty()) {
-        out.writeln(')');
-        return;
+        TRY(out.writeln(")"sv));
+        return {};
     }
     for (u32 i = 0; i < arguments.size() - 1; i++) {
         auto const& argument = arguments[i].as_rvalue();
-        codegen_rvalue(out, context, expressions[argument]);
-        out.write(", ");
+        TRY(codegen_rvalue(out, context, expressions[argument]));
+        TRY(out.write(", "sv));
     }
     auto last_index = arguments.size() - 1;
     auto const& last_argument = arguments[last_index];
-    codegen_rvalue(out, context,
-        expressions[last_argument.as_rvalue()]);
-    out.writeln(')');
+    TRY(codegen_rvalue(out, context,
+        expressions[last_argument.as_rvalue()]));
+    TRY(out.writeln(")"sv));
+
+    return {};
 }
 
-static void codegen_return_statement(FileBuffer& out,
+Core::ErrorOr<void> codegen_return_statement(Core::StringBuffer& out,
     Context const& context, Return const& return_)
 {
-    out.write("return ");
+    TRY(out.write("return "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[return_.value];
-    codegen_expression(out, context, value);
-    out.writeln(';');
+    TRY(codegen_expression(out, context, value));
+    TRY(out.writeln(";"sv));
+
+    return {};
 }
 
-static void codegen_import_c(FileBuffer& out,
+Core::ErrorOr<void> codegen_import_c(Core::StringBuffer& out,
     Context const& context, ImportC const& import_c)
 {
     auto source = context.source.text;
     auto filename = import_c.filename.text(source);
     if (!filename.is_empty())
-        out.writeln("#include ", import_c.filename.text(source));
+        TRY(out.writeln("#include "sv,
+            import_c.filename.text(source)));
+
+    return {};
 }
 
-static void codegen_inline_c(FileBuffer& out,
+Core::ErrorOr<void> codegen_inline_c(Core::StringBuffer& out,
     Context const& context, InlineC const& inline_c)
 {
     auto source = context.source.text;
-    out.write(inline_c.literal.text(source));
+    TRY(out.write(inline_c.literal.text(source)));
+
+    return {};
 }
 
-static void codegen_uninitialized(FileBuffer& out,
-    Context const&,
-    Uninitialized const&)
+Core::ErrorOr<void> codegen_uninitialized(Core::StringBuffer& out,
+    Context const&, Uninitialized const&)
 {
-    out.write("{ 0 }");
+    TRY(out.write("{ 0 }"sv));
+
+    return {};
 }
+
+}
+
 }

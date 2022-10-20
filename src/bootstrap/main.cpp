@@ -1,6 +1,8 @@
 #include <CLI/ArgumentParser.h>
 #include <Core/Defer.h>
 #include <Core/MappedFile.h>
+#include <Core/System.h>
+#include <He/Codegen.h>
 #include <He/Context.h>
 #include <He/Expression.h>
 #include <He/Lexer.h>
@@ -111,7 +113,9 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
         if (output_file < 0)
             return Core::Error::from_errno();
     }
-    typechecked_expressions.codegen(output_file, context);
+    auto code = TRY(He::codegen(context, typechecked_expressions));
+
+    write(output_file, code.data(), code.size());
 
     if (output_file == STDOUT_FILENO)
         return {};
