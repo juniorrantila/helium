@@ -21,6 +21,7 @@ core_lib = library('core', [
     'Core/MappedFile.cpp',
     'Core/GenericVector.cpp',
     'Core/DenseMap.cpp',
+    'Core/System.cpp',
     ], include_directories: '.',
     dependencies: types_dep)
 
