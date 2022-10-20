@@ -12,7 +12,7 @@ using TypecheckSingleItemResult
     = Core::ErrorOr<CheckedExpression, TypecheckError>;
 
 #define FORWARD_DECLARE_TYPECHECKER(name)                \
-    static TypecheckSingleItemResult typecheck_##name(   \
+    [[maybe_unused]] static TypecheckSingleItemResult typecheck_##name(   \
         TypecheckedExpressions& typechecked_expressions, \
         ParsedExpressions const& parsed_expressions, u32 start)
 
