@@ -17,6 +17,7 @@ typedef struct MappedFile {
 
     static MappedFileOrError open(StringView path) asm(
         "MappedFile$open");
+    static MappedFileOrError open(c_string path);
     ~MappedFile() asm("MappedFile$destroy");
 
     StringView view() const asm("MappedFile$view");
