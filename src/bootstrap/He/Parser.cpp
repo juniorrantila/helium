@@ -8,10 +8,12 @@
 
 namespace He {
 
+namespace {
+
 using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
 
 #define FORWARD_DECLARE_PARSER(name)                          \
-    static ParseSingleItemResult parse_##name(                \
+    ParseSingleItemResult parse_##name(                       \
         ParsedExpressions& expressions, Tokens const& tokens, \
         u32 start)
 
@@ -29,6 +31,8 @@ FORWARD_DECLARE_PARSER(pub_specifier);
 
 #undef FORWARD_DECLARE_PARSER
 
+}
+
 ParseResult parse(Tokens const& tokens)
 {
     auto expressions = TRY(ParsedExpressions::create());
@@ -43,7 +47,9 @@ ParseResult parse(Tokens const& tokens)
     return expressions;
 }
 
-[[maybe_unused]] static ParseSingleItemResult parse_uninitialized(
+namespace {
+
+[[maybe_unused]] ParseSingleItemResult parse_uninitialized(
     ParsedExpressions&, Tokens const& tokens, u32 start)
 {
     auto uninitialized_index = start;
@@ -84,8 +90,8 @@ ParseResult parse(Tokens const& tokens)
     };
 }
 
-static ParseSingleItemResult parse_literal(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_literal(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto literal = TRY(expressions.append(Literal {
         tokens[start],
@@ -97,8 +103,8 @@ static ParseSingleItemResult parse_literal(
     };
 }
 
-static ParseSingleItemResult parse_lvalue(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_lvalue(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto lvalue = TRY(expressions.append(LValue {
         tokens[start],
@@ -207,7 +213,7 @@ ParseSingleItemResult parse_struct_initializer(
     };
 }
 
-static ParseSingleItemResult parse_if_statement(
+ParseSingleItemResult parse_if_statement(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto condition
@@ -232,7 +238,7 @@ static ParseSingleItemResult parse_if_statement(
     return Expression(if_statement, start, end);
 }
 
-static ParseSingleItemResult parse_while_statement(
+ParseSingleItemResult parse_while_statement(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto condition
@@ -258,8 +264,8 @@ static ParseSingleItemResult parse_while_statement(
     return Expression(while_, start, end);
 }
 
-static ParseSingleItemResult parse_import_c(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_import_c(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto left_paren_index = start + 1;
     auto left_paren = tokens[left_paren_index];
@@ -310,7 +316,7 @@ static ParseSingleItemResult parse_import_c(
     return Expression(import_c, start, semicolon_index + 1);
 }
 
-static ParseSingleItemResult parse_pub_specifier(
+ParseSingleItemResult parse_pub_specifier(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto fn_index = start + 1;
@@ -336,7 +342,7 @@ static ParseSingleItemResult parse_pub_specifier(
     };
 }
 
-static ParseSingleItemResult parse_root_item(
+ParseSingleItemResult parse_root_item(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto token = tokens[start];
@@ -382,7 +388,7 @@ struct Function {
     u32 end_token_index { 0 };
 };
 
-static Core::ErrorOr<Function, ParseError> parse_function(
+Core::ErrorOr<Function, ParseError> parse_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start + 1;
@@ -511,7 +517,7 @@ static Core::ErrorOr<Function, ParseError> parse_function(
     };
 }
 
-static ParseSingleItemResult parse_public_function(
+ParseSingleItemResult parse_public_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function = TRY(parse_function(expressions, tokens, start));
@@ -528,7 +534,7 @@ static ParseSingleItemResult parse_public_function(
     };
 }
 
-static ParseSingleItemResult parse_public_c_function(
+ParseSingleItemResult parse_public_c_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function = TRY(parse_function(expressions, tokens, start));
@@ -545,7 +551,7 @@ static ParseSingleItemResult parse_public_c_function(
     };
 }
 
-static ParseSingleItemResult parse_private_function(
+ParseSingleItemResult parse_private_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function = TRY(parse_function(expressions, tokens, start));
@@ -562,7 +568,7 @@ static ParseSingleItemResult parse_private_function(
     };
 }
 
-static ParseSingleItemResult parse_private_c_function(
+ParseSingleItemResult parse_private_c_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function = TRY(parse_function(expressions, tokens, start));
@@ -579,7 +585,7 @@ static ParseSingleItemResult parse_private_c_function(
     };
 }
 
-static ParseSingleItemResult parse_function_call(
+ParseSingleItemResult parse_function_call(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto function_name = tokens[start];
@@ -631,7 +637,7 @@ static ParseSingleItemResult parse_function_call(
     return Expression(call_id, start, right_paren_index + 1);
 }
 
-static ParseSingleItemResult parse_return_statement(
+ParseSingleItemResult parse_return_statement(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start + 1;
@@ -668,8 +674,8 @@ static ParseSingleItemResult parse_return_statement(
     };
 }
 
-static ParseSingleItemResult parse_inline_c(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_inline_c(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     i32 level = 0;
     auto block_start_index = start + 1;
@@ -721,8 +727,8 @@ static ParseSingleItemResult parse_inline_c(
     return Expression(inline_c, start, end + 1);
 }
 
-static ParseSingleItemResult parse_block(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_block(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto block = TRY(expressions.create_block());
     auto end = start + 1;
@@ -834,8 +840,8 @@ static ParseSingleItemResult parse_block(
     return Expression(block_id, start, end + 1);
 }
 
-static ParseSingleItemResult parse_irvalue(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_irvalue(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto rvalue = TRY(expressions.create_rvalue());
 
@@ -984,7 +990,7 @@ static ParseSingleItemResult parse_irvalue(
     };
 }
 
-static ParseSingleItemResult parse_if_rvalue(
+ParseSingleItemResult parse_if_rvalue(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto rvalue = TRY(expressions.create_rvalue());
@@ -1115,8 +1121,8 @@ static ParseSingleItemResult parse_if_rvalue(
     };
 }
 
-static ParseSingleItemResult parse_rvalue(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_rvalue(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto rvalue = TRY(expressions.create_rvalue());
 
@@ -1263,7 +1269,7 @@ static ParseSingleItemResult parse_rvalue(
     };
 }
 
-static ParseSingleItemResult parse_array_access_rvalue(
+ParseSingleItemResult parse_array_access_rvalue(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto rvalue = TRY(expressions.create_rvalue());
@@ -1373,8 +1379,8 @@ static ParseSingleItemResult parse_array_access_rvalue(
     };
 }
 
-static ParseSingleItemResult parse_prvalue(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+ParseSingleItemResult parse_prvalue(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto rvalue = TRY(expressions.create_rvalue());
 
@@ -1507,7 +1513,7 @@ static ParseSingleItemResult parse_prvalue(
     };
 }
 
-static ParseSingleItemResult parse_struct_declaration(
+ParseSingleItemResult parse_struct_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -1633,7 +1639,7 @@ static ParseSingleItemResult parse_struct_declaration(
     return Expression(struct_id, start, end);
 }
 
-static ParseSingleItemResult parse_enum_declaration(
+ParseSingleItemResult parse_enum_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -1740,7 +1746,7 @@ static ParseSingleItemResult parse_enum_declaration(
     return Expression(enum_id, start, end);
 }
 
-static ParseSingleItemResult parse_union_declaration(
+ParseSingleItemResult parse_union_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -1866,7 +1872,7 @@ static ParseSingleItemResult parse_union_declaration(
     return Expression(union_id, start, end);
 }
 
-static ParseSingleItemResult parse_variant_declaration(
+ParseSingleItemResult parse_variant_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name = tokens[start];
@@ -1992,7 +1998,7 @@ static ParseSingleItemResult parse_variant_declaration(
     return Expression(variant_id, start, end);
 }
 
-static ParseSingleItemResult parse_private_variable_declaration(
+ParseSingleItemResult parse_private_variable_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2099,7 +2105,7 @@ static ParseSingleItemResult parse_private_variable_declaration(
     return Expression(variable, start, end);
 }
 
-static ParseSingleItemResult parse_variable_assignment(
+ParseSingleItemResult parse_variable_assignment(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start;
@@ -2143,7 +2149,7 @@ static ParseSingleItemResult parse_variable_assignment(
     };
 }
 
-static ParseSingleItemResult parse_member_access(
+ParseSingleItemResult parse_member_access(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto member_access = TRY(expressions.create_member_access());
@@ -2179,7 +2185,7 @@ static ParseSingleItemResult parse_member_access(
     };
 }
 
-static ParseSingleItemResult parse_array_access(
+ParseSingleItemResult parse_array_access(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start;
@@ -2229,7 +2235,7 @@ static ParseSingleItemResult parse_array_access(
     };
 }
 
-static ParseSingleItemResult parse_public_variable_declaration(
+ParseSingleItemResult parse_public_variable_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2336,8 +2342,9 @@ static ParseSingleItemResult parse_public_variable_declaration(
     return Expression(variable, start, end);
 }
 
-static ParseSingleItemResult parse_private_constant_declaration(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+[[maybe_unused]] ParseSingleItemResult
+parse_private_constant_declaration(ParsedExpressions& expressions,
+    Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
     auto name_index = start + 1;
@@ -2443,7 +2450,7 @@ static ParseSingleItemResult parse_private_constant_declaration(
     return Expression(constant, start, end);
 }
 
-static ParseSingleItemResult parse_public_constant_declaration(
+ParseSingleItemResult parse_public_constant_declaration(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2550,7 +2557,7 @@ static ParseSingleItemResult parse_public_constant_declaration(
     return Expression(constant, start, end);
 }
 
-static ParseSingleItemResult parse_top_level_constant_or_struct(
+ParseSingleItemResult parse_top_level_constant_or_struct(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto type = tokens[start];
@@ -2682,7 +2689,7 @@ static ParseSingleItemResult parse_top_level_constant_or_struct(
 }
 
 [[deprecated("can't parse invalid")]] //
-[[maybe_unused]] static ParseSingleItemResult
+[[maybe_unused]] ParseSingleItemResult
 parse_invalid(ParsedExpressions&, Tokens const& tokens, u32 start)
 {
     return ParseError {
@@ -2693,7 +2700,7 @@ parse_invalid(ParsedExpressions&, Tokens const& tokens, u32 start)
 }
 
 [[deprecated("can't parse moved value")]] //
-[[maybe_unused]] static ParseSingleItemResult
+[[maybe_unused]] ParseSingleItemResult
 parse_moved_value(ParsedExpressions&, Tokens const& tokens,
     u32 start)
 {
@@ -2702,6 +2709,8 @@ parse_moved_value(ParsedExpressions&, Tokens const& tokens,
         nullptr,
         tokens[start],
     };
+}
+
 }
 
 Core::ErrorOr<void> ParseError::show(SourceFile source) const
