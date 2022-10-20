@@ -35,29 +35,29 @@ struct Vector {
         }
     }
 
-    constexpr Id<T> unchecked_append(T&& value)
-        requires (!std::is_trivially_copyable_v<T>)
+    constexpr Id<T> unchecked_append(T&& value) requires(
+        !std::is_trivially_copyable_v<T>)
     {
         new (current_slot()) T(std::move(value));
         return Id<T>(m_size++);
     }
 
-    constexpr Id<T> unchecked_append(T value)
-        requires (std::is_trivially_copyable_v<T>)
+    constexpr Id<T> unchecked_append(T value) requires(
+        std::is_trivially_copyable_v<T>)
     {
         new (current_slot()) T(value);
         return Id<T>(m_size++);
     }
 
-    constexpr ErrorOr<Id<T>> append(T&& value)
-        requires (!std::is_trivially_copyable_v<T>)
+    constexpr ErrorOr<Id<T>> append(T&& value) requires(
+        !std::is_trivially_copyable_v<T>)
     {
         TRY(expand_if_needed());
         return unchecked_append(std::move(value));
     }
 
-    constexpr ErrorOr<Id<T>> append(T value)
-        requires (std::is_trivially_copyable_v<T>)
+    constexpr ErrorOr<Id<T>> append(T value) requires(
+        std::is_trivially_copyable_v<T>)
     {
         TRY(expand_if_needed());
         return unchecked_append(value);
@@ -75,6 +75,12 @@ struct Vector {
         if (elements > 0)
             TRY(expand(m_capacity + elements));
         return {};
+    }
+
+    constexpr View<T> view() { return { m_data, m_size }; }
+    constexpr View<T const> view() const
+    {
+        return { m_data, m_size };
     }
 
     constexpr T const& at(u32 index) const { return m_data[index]; }
@@ -104,6 +110,8 @@ struct Vector {
 
     constexpr bool is_empty() const { return m_size == 0; }
 
+    constexpr bool is_valid() const { return m_data != nullptr; }
+
 private:
     constexpr ErrorOr<void> expand(u32 capacity)
     {
@@ -118,18 +126,16 @@ private:
     }
 
     constexpr void destroy_elements() const
-        requires (!std::is_trivially_destructible_v<T>)
+        requires(!std::is_trivially_destructible_v<T>)
     {
-        for (u32 i = 0; i < m_size; i++) 
+        for (u32 i = 0; i < m_size; i++)
             data()[i].~T();
     }
 
     constexpr void destroy_elements() const
-        requires (std::is_trivially_destructible_v<T>)
+        requires(std::is_trivially_destructible_v<T>)
     {
     }
-
-    constexpr bool is_valid() const { return m_data != nullptr; }
 
     constexpr void invalidate() { m_data = nullptr; }
 
