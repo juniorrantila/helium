@@ -4,9 +4,9 @@
 #include <Core/StringBuffer.h>
 #include <fcntl.h>
 #include <spawn.h>
-#include <unistd.h>
-#include <sys/uio.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
 #ifndef _GNU_SOURCE
 extern char** environ;
@@ -18,14 +18,21 @@ ErrorOr<size_t> write(int fd, MappedFile const& file);
 ErrorOr<size_t> write(int fd, StringBuffer const& string);
 ErrorOr<size_t> write(int fd, StringView string);
 ErrorOr<size_t> write(int fd, void const* data, size_t size);
-ErrorOr<size_t> writev(int fd, struct iovec const* iovec, int count);
+ErrorOr<size_t> writev(int fd, struct iovec const* iovec,
+    int count);
 ErrorOr<void> fsync(int fd);
 ErrorOr<void> munmap(void const* addr, size_t size);
-ErrorOr<u8*> mmap(size_t size, int prot, int flags, int fd = -1, off_t offset = 0);
-ErrorOr<u8*> mmap(void* addr, size_t size, int prot, int flags, int fd = -1, off_t offset = 0);
+ErrorOr<u8*> mmap(size_t size, int prot, int flags, int fd = -1,
+    off_t offset = 0);
+ErrorOr<u8*> mmap(void* addr, size_t size, int prot, int flags,
+    int fd = -1, off_t offset = 0);
+ErrorOr<void> mprotect(void* addr, size_t len, int prot);
 
 struct Stat {
-    constexpr bool is_regular() const { return S_ISREG(raw.st_mode); }
+    constexpr bool is_regular() const
+    {
+        return S_ISREG(raw.st_mode);
+    }
     constexpr off_t size() const { return raw.st_size; }
 
     struct stat raw;
@@ -56,5 +63,7 @@ ErrorOr<Status> waitpid(pid_t pid, int options = 0);
 bool isatty(int fd);
 
 ErrorOr<long> sysconf(int name);
+
+ErrorOr<u32> page_size();
 
 }

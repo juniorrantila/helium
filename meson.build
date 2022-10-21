@@ -15,12 +15,14 @@ if not meson.is_subproject()
       '-Wno-gnu-case-range', 
       '-Wno-gnu-conditional-omitted-operand', 
       '-Wno-gnu-statement-expression', 
+      '-Wno-user-defined-literals',
     ], language: ['c', 'cpp'])
 endif
 
 core_proj = subproject('Core')
 core_dep = core_proj.get_variable('core_dep')
 cli_dep = core_proj.get_variable('cli_dep')
+mem_dep = core_proj.get_variable('mem_dep')
 types_dep = subproject('Types').get_variable('types_dep')
 
 stage_0_exe = executable('stage-0', [
@@ -36,6 +38,7 @@ stage_0_exe = executable('stage-0', [
   dependencies: [
     core_dep,
     cli_dep,
+    mem_dep,
     types_dep,
   ])
 

@@ -38,3 +38,12 @@ cli_lib = library('cli', [
 cli_dep = declare_dependency(
   link_with: cli_lib,
   include_directories: '.')
+
+mem_lib = library('mem', [
+    'Mem/AddressSpace.cpp',
+  ], include_directories: '.',
+  dependencies: [core_dep, types_dep])
+
+mem_dep = declare_dependency(
+  link_with: mem_lib,
+  include_directories: '.')
