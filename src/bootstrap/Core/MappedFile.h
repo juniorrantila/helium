@@ -1,6 +1,6 @@
 #pragma once
 #include <Types.h>
-#include <Core/Error.h>
+#include "Error.h"
 
 #ifdef __cplusplus
 namespace Core {

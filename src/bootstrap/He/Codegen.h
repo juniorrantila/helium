@@ -1,8 +1,8 @@
 #pragma once
 #include <Core/ErrorOr.h>
 #include <Core/StringBuffer.h>
-#include <He/Context.h>
-#include <He/TypecheckedExpression.h>
+#include "Context.h"
+#include "TypecheckedExpression.h"
 
 namespace He {
 

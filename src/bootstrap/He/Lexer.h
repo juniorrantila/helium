@@ -1,7 +1,7 @@
 #pragma once
 #include <Core/ErrorOr.h>
-#include <He/Token.h>
-#include <SourceFile.h>
+#include "Token.h"
+#include "SourceFile.h"
 #include <Types.h>
 #include <vector>
 

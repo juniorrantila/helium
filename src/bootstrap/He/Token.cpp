@@ -1,5 +1,5 @@
-#include <He/Token.h>
-#include <Util.h>
+#include "Token.h"
+#include "Util.h"
 #include <iostream>
 
 namespace He {

@@ -1,5 +1,5 @@
-#include <Core/DenseMap.h>
-#include <Core/Try.h>
+#include "DenseMap.h"
+#include "Try.h"
 #include <Types.h>
 #include <stdlib.h>
 #include <string.h>

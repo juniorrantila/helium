@@ -1,6 +1,6 @@
 #pragma once
-#include <He/Parser.h>
-#include <SourceFile.h>
+#include "Parser.h"
+#include "SourceFile.h"
 
 namespace He {
 

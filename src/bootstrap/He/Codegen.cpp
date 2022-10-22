@@ -2,11 +2,11 @@
 #include <Core/File.h>
 #include <Core/StringBuffer.h>
 #include <Core/Threads.h>
-#include <He/Context.h>
-#include <He/Expression.h>
-#include <He/Parser.h>
-#include <He/TypecheckedExpression.h>
-#include <SourceFile.h>
+#include "Context.h"
+#include "Expression.h"
+#include "Parser.h"
+#include "TypecheckedExpression.h"
+#include "SourceFile.h"
 
 namespace He {
 

@@ -1,5 +1,5 @@
-#include <Core/GenericVector.h>
-#include <Core/Try.h>
+#include "GenericVector.h"
+#include "Try.h"
 #include <Types.h>
 #include <stdlib.h>
 #include <string.h>

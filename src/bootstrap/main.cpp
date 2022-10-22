@@ -10,7 +10,7 @@
 #include <He/Parser.h>
 #include <He/Typecheck.h>
 #include <He/TypecheckedExpression.h>
-#include <SourceFile.h>
+#include <He/SourceFile.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,7 +80,7 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
     auto bench = Core::Bench(should_display_benchmark);
 
     auto file = TRY(Core::MappedFile::open(source_file_path));
-    auto source_file = SourceFile {
+    auto source_file = He::SourceFile {
         StringView::from_c_string(source_file_path),
         file.view(),
     };

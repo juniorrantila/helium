@@ -1,10 +1,10 @@
 #pragma once
-#include <Core/Error.h>
+#include "Error.h"
 #include <Types.h>
 #include <string.h>
 #ifdef __cplusplus
-#    include <Core/ErrorOr.h>
-#    include <Core/Try.h>
+#    include "ErrorOr.h"
+#    include "Try.h"
 #endif
 
 #ifdef __cplusplus

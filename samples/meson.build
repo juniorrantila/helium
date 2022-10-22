@@ -9,14 +9,14 @@ samples_c_args = [
     '-Wno-extra-semi',
   ]
 
-executable('fib', stage_0_c_gen.process('fib.he'), c_args: samples_c_args)
-executable('global', stage_0_c_gen.process('global.he'), c_args: samples_c_args)
-executable('hello-world', stage_0_c_gen.process('hello-world.he'), c_args: samples_c_args)
-executable('inline-c', stage_0_c_gen.process('inline-c.he'), c_args: samples_c_args)
-executable('struct', stage_0_c_gen.process('struct.he'), c_args: samples_c_args)
+executable('fib', bootstrap_gen.process('fib.he'), c_args: samples_c_args)
+executable('global', bootstrap_gen.process('global.he'), c_args: samples_c_args)
+executable('hello-world', bootstrap_gen.process('hello-world.he'), c_args: samples_c_args)
+executable('inline-c', bootstrap_gen.process('inline-c.he'), c_args: samples_c_args)
+executable('struct', bootstrap_gen.process('struct.he'), c_args: samples_c_args)
 
 if build_machine.system() == 'linux'
-executable('watchf', stage_0_c_gen.process('watchf.he'), c_args: [
+executable('watchf', bootstrap_gen.process('watchf.he'), c_args: [
     samples_c_args,
     '-D_POSIX_C_SOURCE'
   ])

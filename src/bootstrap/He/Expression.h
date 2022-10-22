@@ -1,6 +1,6 @@
 #pragma once
 #include <Core/Vector.h>
-#include <He/Token.h>
+#include "Token.h"
 #include <stdio.h>
 
 namespace He {

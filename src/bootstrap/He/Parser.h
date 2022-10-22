@@ -1,8 +1,8 @@
 #pragma once
 #include <Core/ErrorOr.h>
-#include <He/Expression.h>
-#include <He/Token.h>
-#include <SourceFile.h>
+#include "Expression.h"
+#include "Token.h"
+#include "SourceFile.h"
 
 namespace He {
 

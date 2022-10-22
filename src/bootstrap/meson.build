@@ -1,0 +1,22 @@
+subdir('Core')
+subdir('CLI')
+subdir('Mem')
+subdir('He')
+
+bootstrap_exe = executable('helium', [
+    'main.cpp',
+  ],
+  include_directories: '.',
+  dependencies: [
+    cli_dep,
+    core_dep,
+    he_dep,
+    mem_dep,
+    types_dep,
+  ])
+
+bootstrap_gen = generator(bootstrap_exe,
+  output: '@BASENAME@.c',
+  arguments: ['@INPUT@', '-S', '-o', '@OUTPUT@'],
+  depends: bootstrap_exe,
+  )

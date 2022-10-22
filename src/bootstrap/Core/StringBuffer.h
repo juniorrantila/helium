@@ -1,7 +1,7 @@
 #pragma once
-#include <Core/ErrorOr.h>
-#include <Core/Try.h>
-#include <Core/Vector.h>
+#include "ErrorOr.h"
+#include "Try.h"
+#include "Vector.h"
 #include <Types.h>
 
 namespace Core {

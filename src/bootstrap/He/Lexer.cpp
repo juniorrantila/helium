@@ -1,8 +1,8 @@
 #include <Core/Error.h>
 #include <Core/Try.h>
-#include <He/Lexer.h>
-#include <He/Token.h>
-#include <Util.h>
+#include "Lexer.h"
+#include "Token.h"
+#include "Util.h"
 #include <iostream>
 
 namespace He {

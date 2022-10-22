@@ -1,10 +1,10 @@
 #include <Core/ErrorOr.h>
 #include <Core/Try.h>
-#include <He/Context.h>
-#include <He/Expression.h>
-#include <He/Parser.h>
-#include <He/Token.h>
-#include <Util.h>
+#include "Context.h"
+#include "Expression.h"
+#include "Parser.h"
+#include "Token.h"
+#include "Util.h"
 
 namespace He {
 

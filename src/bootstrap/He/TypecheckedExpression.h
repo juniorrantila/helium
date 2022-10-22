@@ -1,8 +1,8 @@
 #pragma once
 #include <Core/Vector.h>
-#include <He/Context.h>
-#include <He/Lexer.h>
-#include <He/Parser.h>
+#include "Context.h"
+#include "Lexer.h"
+#include "Parser.h"
 
 namespace He {
 
