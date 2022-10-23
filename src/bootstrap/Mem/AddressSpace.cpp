@@ -1,11 +1,12 @@
-#include <Core/Defer.h>
-#include <Core/System.h>
 #include "AddressSpace.h"
+#include <Core/System.h>
+#include <Ty/Defer.h>
+#include <Ty/ErrorOr.h>
 #include <sys/mman.h>
 
 namespace Mem::Internal {
 
-Core::ErrorOr<void> init(uintptr_t base, uintptr_t size)
+ErrorOr<void> init(uintptr_t base, uintptr_t size)
 {
     auto page_size = TRY(Core::System::page_size());
     TRY(Core::System::mmap((void*)base, size,
@@ -13,7 +14,7 @@ Core::ErrorOr<void> init(uintptr_t base, uintptr_t size)
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT
             | MAP_FIXED_NOREPLACE));
     bool should_unmap_region = true;
-    Core::Defer unmap_region = [&] {
+    Defer unmap_region = [&] {
         if (should_unmap_region) {
             (void)Core::System::munmap((void*)base, size);
         }
@@ -24,7 +25,7 @@ Core::ErrorOr<void> init(uintptr_t base, uintptr_t size)
     return {};
 }
 
-Core::ErrorOr<void> deinit(uintptr_t base, uintptr_t size)
+ErrorOr<void> deinit(uintptr_t base, uintptr_t size)
 {
     TRY(Core::System::munmap((void*)base, size));
     return {};

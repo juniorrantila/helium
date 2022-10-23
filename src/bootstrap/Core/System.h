@@ -1,7 +1,7 @@
 #pragma once
-#include "ErrorOr.h"
 #include "MappedFile.h"
-#include "StringBuffer.h"
+#include <Ty/ErrorOr.h>
+#include <Ty/StringBuffer.h>
 #include <fcntl.h>
 #include <spawn.h>
 #include <sys/stat.h>

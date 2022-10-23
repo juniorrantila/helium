@@ -1,16 +1,16 @@
-#include <Core/ErrorOr.h>
-#include <Core/Try.h>
 #include "Context.h"
 #include "Expression.h"
 #include "Parser.h"
 #include "Token.h"
 #include "Util.h"
+#include <Ty/ErrorOr.h>
+#include <Ty/Try.h>
 
 namespace He {
 
 namespace {
 
-using ParseSingleItemResult = Core::ErrorOr<Expression, ParseError>;
+using ParseSingleItemResult = ErrorOr<Expression, ParseError>;
 
 #define FORWARD_DECLARE_PARSER(name)                          \
     ParseSingleItemResult parse_##name(                       \
@@ -388,7 +388,7 @@ struct Function {
     u32 end_token_index { 0 };
 };
 
-Core::ErrorOr<Function, ParseError> parse_function(
+ErrorOr<Function, ParseError> parse_function(
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
     auto name_index = start + 1;
@@ -2713,7 +2713,7 @@ parse_moved_value(ParsedExpressions&, Tokens const& tokens,
 
 }
 
-Core::ErrorOr<void> ParseError::show(SourceFile source) const
+ErrorOr<void> ParseError::show(SourceFile source) const
 {
     auto start = *Util::line_and_column_for(source.text,
         offending_token.start_index);

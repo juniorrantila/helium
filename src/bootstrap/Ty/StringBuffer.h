@@ -1,17 +1,17 @@
 #pragma once
+#include "Base.h"
 #include "ErrorOr.h"
 #include "Try.h"
 #include "Vector.h"
-#include <Ty/Base.h>
 
-namespace Core {
+namespace Ty {
 
 struct StringBuffer {
-    static Core::ErrorOr<StringBuffer> create(u32 capacity)
+    static ErrorOr<StringBuffer> create(u32 capacity)
     {
         auto* data = (char*)__builtin_malloc(capacity);
         if (!data)
-            return Core::Error::from_errno();
+            return Error::from_errno();
         return StringBuffer {
             data,
             capacity,
@@ -35,7 +35,7 @@ struct StringBuffer {
     }
 
     template <typename... Args>
-    constexpr Core::ErrorOr<void> write(Args... args)
+    constexpr ErrorOr<void> write(Args... args)
     {
         const StringView strings[] = {
             args...,
@@ -47,27 +47,25 @@ struct StringBuffer {
     }
 
     template <typename... Args>
-    constexpr Core::ErrorOr<void> writeln(Args... args)
+    constexpr ErrorOr<void> writeln(Args... args)
     {
         TRY(write(args..., "\n"sv));
         return {};
     }
 
-    constexpr Core::ErrorOr<void> write(StringView string)
+    constexpr ErrorOr<void> write(StringView string)
     {
         if (m_size + string.size >= m_capacity)
-            return Core::Error::from_string_literal(
-                "buffer filled");
+            return Error::from_string_literal("buffer filled");
         m_size += string.unchecked_copy_to(&m_data[m_size]);
 
         return {};
     }
 
-    constexpr Core::ErrorOr<void> writeln(StringView string)
+    constexpr ErrorOr<void> writeln(StringView string)
     {
         if (m_size + string.size >= m_capacity)
-            return Core::Error::from_string_literal(
-                "buffer filled");
+            return Error::from_string_literal("buffer filled");
         m_size += string.unchecked_copy_to(&m_data[m_size]);
         TRY(write("\n"sv));
 

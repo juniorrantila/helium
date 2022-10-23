@@ -1,12 +1,12 @@
 #pragma once
+#include "Base.h"
 #include "ErrorOr.h"
+#include "Id.h"
 #include "Try.h"
-#include <Ty/Base.h>
-#include <Ty/Id.h>
-#include <Ty/View.h>
+#include "View.h"
 #include <type_traits>
 
-namespace Core {
+namespace Ty {
 
 template <typename T>
 struct Vector {
@@ -169,3 +169,5 @@ private:
 };
 
 }
+
+using namespace Ty;

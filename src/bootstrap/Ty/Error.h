@@ -1,8 +1,8 @@
 #pragma once
-#include <Ty/Base.h>
-#include <Ty/StringView.h>
+#include "Base.h"
+#include "StringView.h"
 
-namespace Core {
+namespace Ty {
 
 struct Error {
     c_string m_message;
@@ -64,3 +64,5 @@ private:
 };
 
 }
+
+using namespace Ty;

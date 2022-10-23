@@ -1,13 +1,13 @@
 #pragma once
-#include <Core/Vector.h>
 #include "Context.h"
 #include "Lexer.h"
 #include "Parser.h"
+#include <Ty/Vector.h>
 
 namespace He {
 
 struct CheckedExpression;
-using CheckedExpressions = Core::Vector<CheckedExpression>;
+using CheckedExpressions = Vector<CheckedExpression>;
 struct TypecheckedExpressions;
 
 using TypeId = Id<StringView>;
@@ -113,13 +113,13 @@ struct CheckedParameter {
     Token name {};
     TypeId type;
 };
-using CheckedParameters = Core::Vector<CheckedParameter>;
+using CheckedParameters = Vector<CheckedParameter>;
 
 struct CheckedMember {
     Token name {};
     TypeId type;
 };
-using CheckedMembers = Core::Vector<CheckedMember>;
+using CheckedMembers = Vector<CheckedMember>;
 
 struct CheckedStructDeclaration {
     Token name {};
@@ -164,7 +164,7 @@ struct CheckedInitializer {
     Id<CheckedRValue> value {};
     TypeId type;
 };
-using CheckedInitializers = Core::Vector<Initializer>;
+using CheckedInitializers = Vector<Initializer>;
 
 struct CheckedStructInitializer {
     TypeId type;
@@ -361,31 +361,28 @@ struct FunctionForwardDeclaration {
     Parameters const& parameters;
 };
 using FunctionForwardDeclarations
-    = Core::Vector<FunctionForwardDeclaration>;
+    = Vector<FunctionForwardDeclaration>;
 
 struct StructForwardDeclaration {
     Token name {};
 };
-using StructForwardDeclarations
-    = Core::Vector<StructForwardDeclaration>;
+using StructForwardDeclarations = Vector<StructForwardDeclaration>;
 
 struct EnumForwardDeclaration {
     Token name {};
 };
-using EnumForwardDeclarations
-    = Core::Vector<EnumForwardDeclaration>;
+using EnumForwardDeclarations = Vector<EnumForwardDeclaration>;
 
 struct UnionForwardDeclaration {
     Token name {};
 };
-using UnionForwardDeclarations
-    = Core::Vector<UnionForwardDeclaration>;
+using UnionForwardDeclarations = Vector<UnionForwardDeclaration>;
 
 struct VariantForwardDeclaration {
     Token name {};
 };
 using VariantForwardDeclarations
-    = Core::Vector<VariantForwardDeclaration>;
+    = Vector<VariantForwardDeclaration>;
 
 struct CheckedExpression {
 #define VARIANT(T, name)                                      \
@@ -439,15 +436,15 @@ private:
 
 struct TypecheckedExpressions {
 public:
-    static Core::ErrorOr<TypecheckedExpressions> create()
+    static ErrorOr<TypecheckedExpressions> create()
     {
-#define X(T, name, ...) .name##s = TRY(Core::Vector<T>::create()),
+#define X(T, name, ...) .name##s = TRY(Vector<T>::create()),
         // clang-format off
-        using BlockData = Core::Vector<CheckedExpressions>;
-        using Initializerss = Core::Vector<CheckedInitializers>;
-        using Memberss = Core::Vector<CheckedMembers>;
-        using Parameterss = Core::Vector<CheckedParameters>;
-        using MemberAccessData = Core::Vector<Tokens>;
+        using BlockData = Vector<CheckedExpressions>;
+        using Initializerss = Vector<CheckedInitializers>;
+        using Memberss = Vector<CheckedMembers>;
+        using Parameterss = Vector<CheckedParameters>;
+        using MemberAccessData = Vector<Tokens>;
         return TypecheckedExpressions {
             EXPRESSIONS
             .late_expressions = TRY(CheckedExpressions::create()),
@@ -479,12 +476,12 @@ public:
     {                                                      \
         return name[id];                                   \
     }                                                      \
-    constexpr Core::ErrorOr<Id<T>> append(T value)         \
+    constexpr ErrorOr<Id<T>> append(T value)               \
     {                                                      \
         static_assert(std::is_trivially_copyable_v<T>);    \
         return name.append(value);                         \
     }                                                      \
-    Core::Vector<T> name
+    Vector<T> name
 
 #define NONTRIVIAL_SOA_MEMBER(T, name)                     \
     constexpr T& operator[](Id<T> id) { return name[id]; } \
@@ -492,12 +489,12 @@ public:
     {                                                      \
         return name[id];                                   \
     }                                                      \
-    constexpr Core::ErrorOr<Id<T>> append(T&& value)       \
+    constexpr ErrorOr<Id<T>> append(T&& value)             \
     {                                                      \
         static_assert(!std::is_trivially_copyable_v<T>);   \
         return name.append(std::move(value));              \
     }                                                      \
-    Core::Vector<T> name
+    Vector<T> name
 
 #define X(T, name, ...) SOA_MEMBER(T, name##s);
     EXPRESSIONS
@@ -510,7 +507,7 @@ public:
     NONTRIVIAL_SOA_MEMBER(CheckedParameters, parameterss);
     NONTRIVIAL_SOA_MEMBER(Tokens, member_access_data);
 
-    Core::ErrorOr<CheckedBlock> create_block()
+    ErrorOr<CheckedBlock> create_block()
     {
         return CheckedBlock {
             TRY(append(TRY(CheckedExpressions::create(8)))),
@@ -518,7 +515,7 @@ public:
         };
     }
 
-    Core::ErrorOr<CheckedRValue> create_rvalue()
+    ErrorOr<CheckedRValue> create_rvalue()
     {
         return CheckedRValue {
             TRY(append(TRY(CheckedExpressions::create(8)))),
@@ -526,7 +523,7 @@ public:
         };
     }
 
-    Core::ErrorOr<CheckedMemberAccess> create_member_access()
+    ErrorOr<CheckedMemberAccess> create_member_access()
     {
         return CheckedMemberAccess {
             TRY(append(TRY(CheckedMembers::create(8)))),

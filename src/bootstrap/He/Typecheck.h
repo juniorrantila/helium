@@ -1,8 +1,8 @@
 #pragma once
-#include <Core/ErrorOr.h>
 #include "Context.h"
 #include "Parser.h"
 #include "TypecheckedExpression.h"
+#include <Ty/ErrorOr.h>
 #include <string_view>
 
 namespace He {
@@ -18,16 +18,16 @@ struct TypecheckError {
     {
     }
 
-    TypecheckError(Core::Error error)
+    TypecheckError(Error error)
         : message(error.message())
     {
     }
 
-    Core::ErrorOr<void> show(Context const& context) const;
+    ErrorOr<void> show(Context const& context) const;
 };
 
 using TypecheckResult
-    = Core::ErrorOr<TypecheckedExpressions, TypecheckError>;
+    = ErrorOr<TypecheckedExpressions, TypecheckError>;
 TypecheckResult typecheck(Context& context);
 
 }

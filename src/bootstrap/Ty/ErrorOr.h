@@ -3,17 +3,17 @@
 #include <optional>
 #include <type_traits>
 
-namespace Core {
+namespace Ty {
 
 template <typename T, typename E = Error>
 struct [[nodiscard]] ErrorOr {
     constexpr ErrorOr(ErrorOr&& other)
         : m_state(other.m_state)
     {
-        switch(m_state) {
-            case State::Error: m_error = other.release_error(); break;
-            case State::Value: m_value = other.release_value(); break;
-            case State::Moved: break;
+        switch (m_state) {
+        case State::Error: m_error = other.release_error(); break;
+        case State::Value: m_value = other.release_value(); break;
+        case State::Moved: break;
         }
         other.m_state = State::Moved;
     }
@@ -57,13 +57,16 @@ struct [[nodiscard]] ErrorOr {
     constexpr ~ErrorOr()
     {
         switch (m_state) {
-            case State::Error: m_error.~E(); break;
-            case State::Value: m_value.~T(); break;
-            case State::Moved: break;
+        case State::Error: m_error.~E(); break;
+        case State::Value: m_value.~T(); break;
+        case State::Moved: break;
         }
     }
 
-    constexpr bool is_error() const { return m_state == State::Error; }
+    constexpr bool is_error() const
+    {
+        return m_state == State::Error;
+    }
 
     T release_value()
     {
@@ -71,7 +74,7 @@ struct [[nodiscard]] ErrorOr {
         return std::move(m_value);
     }
     E release_error()
-    { 
+    {
         m_state = State::Moved;
         return std::move(m_error);
     }
@@ -120,3 +123,5 @@ private:
 };
 
 }
+
+using namespace Ty;

@@ -1,19 +1,18 @@
-#include <Core/Error.h>
-#include <Core/Try.h>
 #include "Lexer.h"
 #include "Token.h"
 #include "Util.h"
+#include <Ty/Error.h>
+#include <Ty/Try.h>
 #include <iostream>
 
 namespace He {
 
-Core::ErrorOr<void> LexError::show(SourceFile source) const
+ErrorOr<void> LexError::show(SourceFile source) const
 {
     auto maybe_line_and_column
         = Util::line_and_column_for(source.text, source_index);
     if (!maybe_line_and_column)
-        return Core::Error::from_string_literal(
-            "could not fetch line");
+        return Error::from_string_literal("could not fetch line");
 
     auto line_number = maybe_line_and_column->line;
     auto column_number = maybe_line_and_column->column;
@@ -50,7 +49,7 @@ static constexpr Token lex_assign_or_equals(StringView source,
 static constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start);
 
-using LexItemResult = Core::ErrorOr<Token, LexError>;
+using LexItemResult = ErrorOr<Token, LexError>;
 static LexItemResult lex_single_item(StringView source, u32 start);
 
 LexResult lex(StringView source)

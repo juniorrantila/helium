@@ -1,10 +1,10 @@
 #pragma once
 #include <Ty/Base.h>
-#include <Core/ErrorOr.h>
+#include <Ty/ErrorOr.h>
 
 namespace Main {
 
-Core::ErrorOr<void> main(int argc, c_string argv[]);
+ErrorOr<void> main(int argc, c_string argv[]);
 
 }
 

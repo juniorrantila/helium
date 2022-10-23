@@ -1,6 +1,5 @@
 #include <CLI/ArgumentParser.h>
 #include <Core/Bench.h>
-#include <Core/Defer.h>
 #include <Core/MappedFile.h>
 #include <Core/System.h>
 #include <He/Codegen.h>
@@ -8,22 +7,18 @@
 #include <He/Expression.h>
 #include <He/Lexer.h>
 #include <He/Parser.h>
+#include <He/SourceFile.h>
 #include <He/Typecheck.h>
 #include <He/TypecheckedExpression.h>
-#include <He/SourceFile.h>
-#include <spawn.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
 #include <Main/Main.h>
 
-[[nodiscard]] static Core::ErrorOr<void> move_file(c_string to,
+[[nodiscard]] static ErrorOr<void> move_file(c_string to,
     c_string from);
 
-[[nodiscard]] static Core::ErrorOr<void> compile_source(
+[[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path);
 
-Core::ErrorOr<void> Main::main(int argc, c_string argv[])
+ErrorOr<void> Main::main(int argc, c_string argv[])
 {
     auto argument_parser = CLI::ArgumentParser();
 
@@ -159,7 +154,7 @@ Core::ErrorOr<void> Main::main(int argc, c_string argv[])
     return {};
 }
 
-static Core::ErrorOr<void> move_file(c_string to, c_string from)
+static ErrorOr<void> move_file(c_string to, c_string from)
 {
     auto from_file = TRY(Core::MappedFile::open(from));
     auto to_fd = TRY(Core::System::open(to, O_WRONLY, 0666));
@@ -169,7 +164,7 @@ static Core::ErrorOr<void> move_file(c_string to, c_string from)
     return {};
 }
 
-[[nodiscard]] static Core::ErrorOr<void> compile_source(
+[[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path)
 {
     c_string argv[] = {
@@ -184,7 +179,7 @@ static Core::ErrorOr<void> move_file(c_string to, c_string from)
     auto pid = TRY(Core::System::posix_spawnp(argv[0], argv));
     auto status = TRY(Core::System::waitpid(pid));
     if (!status.did_exit() || status.exit_status() != 0)
-        return Core::Error::from_string_literal(
+        return Error::from_string_literal(
             "could not compile source");
 
     return {};

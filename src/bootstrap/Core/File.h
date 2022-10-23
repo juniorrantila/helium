@@ -1,12 +1,12 @@
 #pragma once
 #include "System.h"
-#include "ErrorOr.h"
+#include <Ty/ErrorOr.h>
+#include <Ty/Forward.h>
 #include <sys/uio.h>
 #include <unistd.h>
 
 namespace Core {
 
-struct StringBuffer;
 struct MappedFile;
 
 struct File {
@@ -21,9 +21,11 @@ struct File {
         static auto file = File::from(STDERR_FILENO, false);
         return file;
     }
-    
-    static ErrorOr<File> open_for_writing(StringView path, mode_t mode = 0666);
-    static ErrorOr<File> open_for_writing(c_string path, mode_t mode = 0666);
+
+    static ErrorOr<File> open_for_writing(StringView path,
+        mode_t mode = 0666);
+    static ErrorOr<File> open_for_writing(c_string path,
+        mode_t mode = 0666);
     static File from(int fd, bool should_close)
     {
         return File(fd, should_close);
@@ -35,7 +37,7 @@ struct File {
         other.invalidate();
     }
 
-    constexpr File& operator = (File&& other)
+    constexpr File& operator=(File&& other)
     {
         m_fd = other.m_fd;
         other.invalidate();
@@ -53,7 +55,8 @@ struct File {
 
     void close() const;
 
-    ErrorOr<size_t> nonatomic_writev(struct iovec const*, size_t count) const;
+    ErrorOr<size_t> nonatomic_writev(struct iovec const*,
+        size_t count) const;
 
     ErrorOr<size_t> write(void const* data, size_t size) const
     {
@@ -74,7 +77,6 @@ struct File {
     {
         return TRY(Core::System::write(m_fd, string));
     }
-
 
     bool is_tty() const { return Core::System::isatty(m_fd); }
 

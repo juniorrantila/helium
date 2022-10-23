@@ -1,6 +1,6 @@
 #pragma once
-#include <Core/Vector.h>
 #include "Token.h"
+#include <Ty/Vector.h>
 #include <stdio.h>
 
 namespace He {
@@ -72,7 +72,7 @@ constexpr StringView expression_type_string(ExpressionType type)
 }
 
 struct Expression;
-using Expressions = Core::Vector<Expression>;
+using Expressions = Vector<Expression>;
 
 struct Literal {
     Token token {};
@@ -102,13 +102,13 @@ struct Parameter {
     Token name {};
     Token type {};
 };
-using Parameters = Core::Vector<Parameter>;
+using Parameters = Vector<Parameter>;
 
 struct Member {
     Token name {};
     Token type {};
 };
-using Members = Core::Vector<Member>;
+using Members = Vector<Member>;
 
 struct StructDeclaration {
     Token name {};
@@ -148,7 +148,7 @@ struct Initializer {
     Token name {};
     Id<RValue> value {};
 };
-using Initializers = Core::Vector<Initializer>;
+using Initializers = Vector<Initializer>;
 
 struct StructInitializer {
     Token type {};
@@ -374,15 +374,15 @@ private:
 
 struct ParsedExpressions {
 public:
-    static Core::ErrorOr<ParsedExpressions> create()
+    static ErrorOr<ParsedExpressions> create()
     {
-#define X(T, name, ...) .name##s = TRY(Core::Vector<T>::create()),
+#define X(T, name, ...) .name##s = TRY(Vector<T>::create()),
         // clang-format off
-        using BlockData = Core::Vector<Expressions>;
-        using Initializerss = Core::Vector<Initializers>;
-        using Memberss = Core::Vector<Members>;
-        using Parameterss = Core::Vector<Parameters>;
-        using MemberAccessData = Core::Vector<Tokens>;
+        using BlockData = Vector<Expressions>;
+        using Initializerss = Vector<Initializers>;
+        using Memberss = Vector<Members>;
+        using Parameterss = Vector<Parameters>;
+        using MemberAccessData = Vector<Tokens>;
         return ParsedExpressions {
             EXPRESSIONS
             .late_expressions = TRY(Expressions::create()),
@@ -403,12 +403,12 @@ public:
     {                                                      \
         return name[id];                                   \
     }                                                      \
-    constexpr Core::ErrorOr<Id<T>> append(T value)         \
+    constexpr ErrorOr<Id<T>> append(T value)               \
     {                                                      \
         static_assert(std::is_trivially_copyable_v<T>);    \
         return name.append(value);                         \
     }                                                      \
-    Core::Vector<T> name
+    Vector<T> name
 
 #define NONTRIVIAL_SOA_MEMBER(T, name)                     \
     constexpr T& operator[](Id<T> id) { return name[id]; } \
@@ -416,12 +416,12 @@ public:
     {                                                      \
         return name[id];                                   \
     }                                                      \
-    constexpr Core::ErrorOr<Id<T>> append(T&& value)       \
+    constexpr ErrorOr<Id<T>> append(T&& value)             \
     {                                                      \
         static_assert(!std::is_trivially_copyable_v<T>);   \
         return name.append(std::move(value));              \
     }                                                      \
-    Core::Vector<T> name
+    Vector<T> name
 
 #define X(T, name, ...) SOA_MEMBER(T, name##s);
     EXPRESSIONS
@@ -434,17 +434,17 @@ public:
     NONTRIVIAL_SOA_MEMBER(Parameters, parameterss);
     NONTRIVIAL_SOA_MEMBER(Tokens, member_access_data);
 
-    Core::ErrorOr<Block> create_block()
+    ErrorOr<Block> create_block()
     {
         return Block { TRY(append(TRY(Expressions::create(8)))) };
     }
 
-    Core::ErrorOr<RValue> create_rvalue()
+    ErrorOr<RValue> create_rvalue()
     {
         return RValue { TRY(append(TRY(Expressions::create(8)))) };
     }
 
-    Core::ErrorOr<MemberAccess> create_member_access()
+    ErrorOr<MemberAccess> create_member_access()
     {
         return MemberAccess { TRY(append(TRY(Tokens::create(8)))) };
     }

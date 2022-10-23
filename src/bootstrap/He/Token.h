@@ -1,6 +1,6 @@
 #pragma once
-#include <Core/Vector.h>
 #include <Ty/StringView.h>
+#include <Ty/Vector.h>
 #include <string_view>
 
 namespace He {
@@ -106,7 +106,7 @@ struct [[gnu::packed]] Token {
     }
 
     template <u32 size>
-    constexpr bool is_any_of(TokenType const (& types)[size]) const
+    constexpr bool is_any_of(TokenType const (&types)[size]) const
     {
         for (auto type : types) {
             if (is(type))
@@ -119,6 +119,6 @@ struct [[gnu::packed]] Token {
     u16 size { 0 };
     TokenType type { TokenType::Invalid };
 };
-using Tokens = Core::Vector<Token>;
+using Tokens = Vector<Token>;
 
 }

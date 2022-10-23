@@ -1,8 +1,8 @@
 #pragma once
-#include <Core/ErrorOr.h>
 #include "Expression.h"
-#include "Token.h"
 #include "SourceFile.h"
+#include "Token.h"
+#include <Ty/ErrorOr.h>
 
 namespace He {
 
@@ -21,7 +21,7 @@ struct ParseError {
     {
     }
 
-    constexpr ParseError(Core::Error error)
+    constexpr ParseError(Error error)
         : message(error.m_message)
         , parser_function(error.m_function)
         , parser_file(error.m_file)
@@ -37,10 +37,10 @@ struct ParseError {
     Token offending_token;
     u32 line_in_parser_file { 0 };
 
-    Core::ErrorOr<void> show(SourceFile source) const;
+    ErrorOr<void> show(SourceFile source) const;
 };
 
-using ParseResult = Core::ErrorOr<ParsedExpressions, ParseError>;
+using ParseResult = ErrorOr<ParsedExpressions, ParseError>;
 ParseResult parse(Tokens const& tokens);
 
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "ErrorOr.h"
+#include <Ty/ErrorOr.h>
 #include <Ty/StringView.h>
 
 namespace Core {
@@ -21,11 +21,7 @@ struct MappedFile {
     static ErrorOr<MappedFile> open(c_string path);
     ~MappedFile();
 
-    StringView view() const
-    {
-        return StringView(m_data, m_size);
-    }
-
+    StringView view() const { return StringView(m_data, m_size); }
 
     bool is_valid() const { return m_data != nullptr; }
     void invalidate() { m_data = nullptr; }
@@ -39,7 +35,6 @@ private:
     }
 
     constexpr MappedFile() = default;
-
 };
 
 }

@@ -1,7 +1,7 @@
 #pragma once
-#include <Core/ErrorOr.h>
-#include "Token.h"
 #include "SourceFile.h"
+#include "Token.h"
+#include <Ty/ErrorOr.h>
 #include <Ty/StringView.h>
 #include <vector>
 
@@ -11,7 +11,7 @@ struct LexError {
     StringView message {};
     u32 source_index { 0 };
 
-    constexpr LexError(Core::Error error)
+    constexpr LexError(Error error)
         : message(error.message())
     {
     }
@@ -22,10 +22,10 @@ struct LexError {
     {
     }
 
-    Core::ErrorOr<void> show(SourceFile source) const;
+    ErrorOr<void> show(SourceFile source) const;
 };
 
-using LexResult = Core::ErrorOr<Tokens, LexError>;
+using LexResult = ErrorOr<Tokens, LexError>;
 LexResult lex(StringView source);
 
 }

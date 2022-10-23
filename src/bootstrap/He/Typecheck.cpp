@@ -1,20 +1,22 @@
-#include <Core/ErrorOr.h>
 #include "Context.h"
 #include "Expression.h"
 #include "Parser.h"
+#include "SourceFile.h"
 #include "Typecheck.h"
 #include "TypecheckedExpression.h"
-#include "SourceFile.h"
+#include <Ty/ErrorOr.h>
 
 namespace He {
 
 using TypecheckSingleItemResult
-    = Core::ErrorOr<CheckedExpression, TypecheckError>;
+    = ErrorOr<CheckedExpression, TypecheckError>;
 
-#define FORWARD_DECLARE_TYPECHECKER(name)                \
-    [[maybe_unused]] static TypecheckSingleItemResult typecheck_##name(   \
-        TypecheckedExpressions& typechecked_expressions, \
-        ParsedExpressions const& parsed_expressions, u32 start)
+#define FORWARD_DECLARE_TYPECHECKER(name)                    \
+    [[maybe_unused]] static TypecheckSingleItemResult        \
+        typecheck_##name(                                    \
+            TypecheckedExpressions& typechecked_expressions, \
+            ParsedExpressions const& parsed_expressions,     \
+            u32 start)
 
 #define X(T, name, ...) FORWARD_DECLARE_TYPECHECKER(name);
 CHECKED_EXPRESSIONS
@@ -130,179 +132,173 @@ static TypecheckSingleItemResult typecheck_expression(
 static TypecheckSingleItemResult typecheck_uninitialized(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_literal(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult
 typecheck_private_constant_declaration(TypecheckedExpressions&,
     ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult
 typecheck_private_variable_declaration(TypecheckedExpressions&,
     ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult
 typecheck_public_constant_declaration(TypecheckedExpressions&,
     ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult
 typecheck_public_variable_declaration(TypecheckedExpressions&,
     ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_variable_assignment(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_struct_declaration(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_struct_initializer(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_member_access(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_array_access(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_enum_declaration(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_union_declaration(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_variant_declaration(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_lvalue(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_rvalue(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_if_statement(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_return_statement(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_while_statement(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_block(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_function_call(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
-}
-
-static TypecheckSingleItemResult typecheck_private_c_function(
-    TypecheckedExpressions&, ParsedExpressions const&, u32)
-{
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_private_function(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_public_c_function(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_public_function(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_import_c(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_inline_c(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_moved_value(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 static TypecheckSingleItemResult typecheck_invalid(
     TypecheckedExpressions&, ParsedExpressions const&, u32)
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 [[deprecated("can't typecheck invalid")]] //
@@ -327,9 +323,9 @@ parse_moved_value(TypecheckedExpressions&, ParsedExpressions const&,
     };
 }
 
-Core::ErrorOr<void> TypecheckError::show(Context const&) const
+ErrorOr<void> TypecheckError::show(Context const&) const
 {
-    return Core::Error::from_string_literal("unimplemented");
+    return Error::from_string_literal("unimplemented");
 }
 
 }

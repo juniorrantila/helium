@@ -1,15 +1,15 @@
 #pragma once
 #include "Sizes.h"
-#include <Core/ErrorOr.h>
-#include <Core/Try.h>
 #include <Ty/Base.h>
+#include <Ty/ErrorOr.h>
+#include <Ty/Try.h>
 
 namespace Mem {
 
 namespace Internal {
 
-Core::ErrorOr<void> init(uptr base, uptr size);
-Core::ErrorOr<void> deinit(uptr base, uptr size);
+ErrorOr<void> init(uptr base, uptr size);
+ErrorOr<void> deinit(uptr base, uptr size);
 
 }
 
@@ -19,13 +19,13 @@ struct AddressSpace {
     static constexpr auto size = Size;
     static constexpr auto end = BaseAddress + Size;
 
-    static Core::ErrorOr<void> init()
+    static ErrorOr<void> init()
     {
         TRY(Internal::init(base, size));
         return {};
     }
 
-    static Core::ErrorOr<void> deinit()
+    static ErrorOr<void> deinit()
     {
         TRY(Internal::deinit(base, size));
         return {};

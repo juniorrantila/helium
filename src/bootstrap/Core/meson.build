@@ -1,5 +1,4 @@
 core_lib = library('core', [
-    'Error.cpp',
     'File.cpp',
     'MappedFile.cpp',
     'System.cpp',

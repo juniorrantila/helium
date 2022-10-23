@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Core {
+namespace Ty {
 
 template <typename F>
 class Defer {
@@ -10,12 +10,12 @@ public:
     {
     }
 
-    ~Defer()
-    {
-        callback();
-    }
+    ~Defer() { callback(); }
+
 private:
     F callback;
 };
 
 }
+
+using namespace Ty;

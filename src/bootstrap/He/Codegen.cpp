@@ -1,20 +1,20 @@
-#include <Core/Defer.h>
-#include <Core/File.h>
-#include <Core/StringBuffer.h>
-#include <Core/Threads.h>
 #include "Context.h"
 #include "Expression.h"
 #include "Parser.h"
-#include "TypecheckedExpression.h"
 #include "SourceFile.h"
+#include "TypecheckedExpression.h"
+#include <Core/File.h>
+#include <Core/Threads.h>
+#include <Ty/Defer.h>
+#include <Ty/StringBuffer.h>
 
 namespace He {
 
 namespace {
 
-#define FORWARD_DECLARE_CODEGEN(T, name)              \
-    Core::ErrorOr<void> codegen_##name(Core::StringBuffer&, \
-        Context const&, T const&)
+#define FORWARD_DECLARE_CODEGEN(T, name)                        \
+    ErrorOr<void> codegen_##name(StringBuffer&, Context const&, \
+        T const&)
 
 #define X(T, name, ...) FORWARD_DECLARE_CODEGEN(T, name);
 EXPRESSIONS
@@ -27,11 +27,11 @@ FORWARD_DECLARE_CODEGEN(Parameters, parameters);
 
 }
 
-Core::ErrorOr<Core::StringBuffer> codegen(Context const& context,
+ErrorOr<StringBuffer> codegen(Context const& context,
     TypecheckedExpressions const& typechecked)
 {
     auto estimate = context.expressions.expressions.size() * 512;
-    auto out = TRY(Core::StringBuffer::create(estimate));
+    auto out = TRY(StringBuffer::create(estimate));
     auto prelude = R"c(
 #include <stdint.h>
 #include <stddef.h>
@@ -90,22 +90,26 @@ typedef char const* c_string;
 
     for (auto declaration : typechecked.enum_forwards) {
         auto name = declaration.name.text(context.source.text);
-        TRY(out.writeln("typedef enum "sv, name, " "sv, name, ";"sv));
+        TRY(out.writeln("typedef enum "sv, name, " "sv, name,
+            ";"sv));
     }
 
     for (auto declaration : typechecked.struct_forwards) {
         auto name = declaration.name.text(context.source.text);
-        TRY(out.writeln("typedef struct "sv, name, " "sv, name, ";"sv));
+        TRY(out.writeln("typedef struct "sv, name, " "sv, name,
+            ";"sv));
     }
 
     for (auto declaration : typechecked.union_forwards) {
         auto name = declaration.name.text(context.source.text);
-        TRY(out.writeln("typedef union "sv, name, " "sv, name, ";"sv));
+        TRY(out.writeln("typedef union "sv, name, " "sv, name,
+            ";"sv));
     }
 
     for (auto declaration : typechecked.variant_forwards) {
         auto name = declaration.name.text(context.source.text);
-        TRY(out.writeln("typedef struct "sv, name, " "sv, name, ";"sv));
+        TRY(out.writeln("typedef struct "sv, name, " "sv, name,
+            ";"sv));
     }
 
     for (auto const& function :
@@ -152,7 +156,7 @@ typedef char const* c_string;
 
 namespace {
 
-Core::ErrorOr<void> codegen_parameters(Core::StringBuffer& out,
+ErrorOr<void> codegen_parameters(StringBuffer& out,
     Context const& context, Parameters const& parameters)
 {
     auto source = context.source.text;
@@ -175,7 +179,7 @@ Core::ErrorOr<void> codegen_parameters(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_member_access(Core::StringBuffer& out,
+ErrorOr<void> codegen_member_access(StringBuffer& out,
     Context const& context, MemberAccess const& access)
 {
     auto source = context.source.text;
@@ -190,7 +194,7 @@ Core::ErrorOr<void> codegen_member_access(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_array_access(Core::StringBuffer& out,
+ErrorOr<void> codegen_array_access(StringBuffer& out,
     Context const& context, ArrayAccess const& access)
 {
     auto source = context.source.text;
@@ -203,20 +207,19 @@ Core::ErrorOr<void> codegen_array_access(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_moved_value(Core::StringBuffer&,
-    Context const&, Moved const&)
+ErrorOr<void> codegen_moved_value(StringBuffer&, Context const&,
+    Moved const&)
 {
     return {};
 }
 
-Core::ErrorOr<void> codegen_invalid(Core::StringBuffer&, Context const&,
+ErrorOr<void> codegen_invalid(StringBuffer&, Context const&,
     Invalid const&)
 {
-    return Core::Error::from_string_literal(
-        "trying to codegen invalid");
+    return Error::from_string_literal("trying to codegen invalid");
 }
 
-Core::ErrorOr<void> codegen_expression(Core::StringBuffer& out,
+ErrorOr<void> codegen_expression(StringBuffer& out,
     Context const& context, Expression const& expression)
 {
     auto const& expressions = context.expressions;
@@ -228,7 +231,7 @@ Core::ErrorOr<void> codegen_expression(Core::StringBuffer& out,
         auto const& value = expressions[id];      \
         TRY(codegen_##name(out, context, value)); \
         if (type == ExpressionType::FunctionCall) \
-            TRY(out.write(";"sv));                  \
+            TRY(out.write(";"sv));                \
     } break
 #define X(T, name, ...) CODEGEN(T, name);
         EXPRESSIONS
@@ -239,7 +242,7 @@ Core::ErrorOr<void> codegen_expression(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_expression_in_rvalue(Core::StringBuffer& out,
+ErrorOr<void> codegen_expression_in_rvalue(StringBuffer& out,
     Context const& context, Expression const& expression)
 {
     auto const& expressions = context.expressions;
@@ -259,8 +262,8 @@ Core::ErrorOr<void> codegen_expression_in_rvalue(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_public_variable_declaration(
-    Core::StringBuffer& out, Context const& context,
+ErrorOr<void> codegen_public_variable_declaration(StringBuffer& out,
+    Context const& context,
     PublicVariableDeclaration const& variable)
 {
     auto source = context.source.text;
@@ -274,8 +277,8 @@ Core::ErrorOr<void> codegen_public_variable_declaration(
     return {};
 }
 
-Core::ErrorOr<void> codegen_private_variable_declaration(
-    Core::StringBuffer& out, Context const& context,
+ErrorOr<void> codegen_private_variable_declaration(
+    StringBuffer& out, Context const& context,
     PrivateVariableDeclaration const& variable)
 {
     auto source = context.source.text;
@@ -289,8 +292,8 @@ Core::ErrorOr<void> codegen_private_variable_declaration(
     return {};
 }
 
-Core::ErrorOr<void> codegen_public_constant_declaration(
-    Core::StringBuffer& out, Context const& context,
+ErrorOr<void> codegen_public_constant_declaration(StringBuffer& out,
+    Context const& context,
     PublicConstantDeclaration const& variable)
 {
     auto source = context.source.text;
@@ -304,13 +307,13 @@ Core::ErrorOr<void> codegen_public_constant_declaration(
     return {};
 }
 
-Core::ErrorOr<void> codegen_private_constant_declaration(
-    Core::StringBuffer& out, Context const& context,
+ErrorOr<void> codegen_private_constant_declaration(
+    StringBuffer& out, Context const& context,
     PrivateConstantDeclaration const& variable)
 {
     auto source = context.source.text;
-    TRY(out.write("static "sv, variable.type.text(source), " const "sv,
-        variable.name.text(source), " = "sv));
+    TRY(out.write("static "sv, variable.type.text(source),
+        " const "sv, variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
     TRY(codegen_expression(out, context, value));
@@ -319,7 +322,7 @@ Core::ErrorOr<void> codegen_private_constant_declaration(
     return {};
 }
 
-Core::ErrorOr<void> codegen_variable_assignment(Core::StringBuffer& out,
+ErrorOr<void> codegen_variable_assignment(StringBuffer& out,
     Context const& context, VariableAssignment const& variable)
 {
     auto source = context.source.text;
@@ -332,7 +335,7 @@ Core::ErrorOr<void> codegen_variable_assignment(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_struct_declaration(Core::StringBuffer& out,
+ErrorOr<void> codegen_struct_declaration(StringBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {
     auto source = context.source.text;
@@ -347,7 +350,7 @@ Core::ErrorOr<void> codegen_struct_declaration(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_enum_declaration(Core::StringBuffer& out,
+ErrorOr<void> codegen_enum_declaration(StringBuffer& out,
     Context const& context, EnumDeclaration const& enum_)
 {
     auto source = context.source.text;
@@ -367,7 +370,7 @@ Core::ErrorOr<void> codegen_enum_declaration(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_union_declaration(Core::StringBuffer& out,
+ErrorOr<void> codegen_union_declaration(StringBuffer& out,
     Context const& context, UnionDeclaration const& union_)
 {
     auto source = context.source.text;
@@ -382,7 +385,7 @@ Core::ErrorOr<void> codegen_union_declaration(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_variant_declaration(Core::StringBuffer& out,
+ErrorOr<void> codegen_variant_declaration(StringBuffer& out,
     Context const& context, VariantDeclaration const& variant)
 {
     auto source = context.source.text;
@@ -409,7 +412,7 @@ Core::ErrorOr<void> codegen_variant_declaration(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_struct_initializer(Core::StringBuffer& out,
+ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
     Context const& context, StructInitializer const& initializer)
 {
     auto source = context.source.text;
@@ -427,7 +430,7 @@ Core::ErrorOr<void> codegen_struct_initializer(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_literal(Core::StringBuffer& out,
+ErrorOr<void> codegen_literal(StringBuffer& out,
     Context const& context, Literal const& literal)
 {
     auto source = context.source.text;
@@ -436,7 +439,7 @@ Core::ErrorOr<void> codegen_literal(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_lvalue(Core::StringBuffer& out,
+ErrorOr<void> codegen_lvalue(StringBuffer& out,
     Context const& context, LValue const& lvalue)
 {
     auto source = context.source.text;
@@ -445,7 +448,7 @@ Core::ErrorOr<void> codegen_lvalue(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_rvalue(Core::StringBuffer& out,
+ErrorOr<void> codegen_rvalue(StringBuffer& out,
     Context const& context, RValue const& rvalue)
 {
     auto const& expressions = context.expressions;
@@ -456,7 +459,7 @@ Core::ErrorOr<void> codegen_rvalue(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_if_statement(Core::StringBuffer& out,
+ErrorOr<void> codegen_if_statement(StringBuffer& out,
     Context const& context, If const& if_statement)
 {
     TRY(out.write("if ("sv));
@@ -469,7 +472,7 @@ Core::ErrorOr<void> codegen_if_statement(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_while_statement(Core::StringBuffer& out,
+ErrorOr<void> codegen_while_statement(StringBuffer& out,
     Context const& context, While const& while_loop)
 {
     TRY(out.write("while ("sv));
@@ -482,7 +485,7 @@ Core::ErrorOr<void> codegen_while_statement(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_block(Core::StringBuffer& out,
+ErrorOr<void> codegen_block(StringBuffer& out,
     Context const& context, Block const& block)
 {
     TRY(out.writeln("{"sv));
@@ -495,13 +498,13 @@ Core::ErrorOr<void> codegen_block(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_private_function(Core::StringBuffer& out,
+ErrorOr<void> codegen_private_function(StringBuffer& out,
     Context const& context, PrivateFunction const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
-    TRY(out.write("static "sv, function.return_type.text(source), " "sv,
-        function.name.text(source)));
+    TRY(out.write("static "sv, function.return_type.text(source),
+        " "sv, function.name.text(source)));
     TRY(codegen_parameters(out, context,
         expressions[function.parameters]));
     TRY(codegen_block(out, context,
@@ -510,7 +513,7 @@ Core::ErrorOr<void> codegen_private_function(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_public_function(Core::StringBuffer& out,
+ErrorOr<void> codegen_public_function(StringBuffer& out,
     Context const& context, PublicFunction const& function)
 {
     auto source = context.source.text;
@@ -526,14 +529,14 @@ Core::ErrorOr<void> codegen_public_function(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_private_c_function(Core::StringBuffer& out,
+ErrorOr<void> codegen_private_c_function(StringBuffer& out,
     Context const& context, PrivateCFunction const& function)
 {
     auto source = context.source.text;
     auto const& expressions = context.expressions;
 
-    TRY(out.write("static "sv, function.return_type.text(source), " "sv,
-        function.name.text(source)));
+    TRY(out.write("static "sv, function.return_type.text(source),
+        " "sv, function.name.text(source)));
     TRY(codegen_parameters(out, context,
         expressions[function.parameters]));
     TRY(codegen_block(out, context,
@@ -542,7 +545,7 @@ Core::ErrorOr<void> codegen_private_c_function(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_public_c_function(Core::StringBuffer& out,
+ErrorOr<void> codegen_public_c_function(StringBuffer& out,
     Context const& context, PublicCFunction const& function)
 {
     auto source = context.source.text;
@@ -558,7 +561,7 @@ Core::ErrorOr<void> codegen_public_c_function(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_function_call(Core::StringBuffer& out,
+ErrorOr<void> codegen_function_call(StringBuffer& out,
     Context const& context, FunctionCall const& function)
 {
     auto source = context.source.text;
@@ -584,7 +587,7 @@ Core::ErrorOr<void> codegen_function_call(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_return_statement(Core::StringBuffer& out,
+ErrorOr<void> codegen_return_statement(StringBuffer& out,
     Context const& context, Return const& return_)
 {
     TRY(out.write("return "sv));
@@ -596,7 +599,7 @@ Core::ErrorOr<void> codegen_return_statement(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_import_c(Core::StringBuffer& out,
+ErrorOr<void> codegen_import_c(StringBuffer& out,
     Context const& context, ImportC const& import_c)
 {
     auto source = context.source.text;
@@ -608,7 +611,7 @@ Core::ErrorOr<void> codegen_import_c(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_inline_c(Core::StringBuffer& out,
+ErrorOr<void> codegen_inline_c(StringBuffer& out,
     Context const& context, InlineC const& inline_c)
 {
     auto source = context.source.text;
@@ -617,7 +620,7 @@ Core::ErrorOr<void> codegen_inline_c(Core::StringBuffer& out,
     return {};
 }
 
-Core::ErrorOr<void> codegen_uninitialized(Core::StringBuffer& out,
+ErrorOr<void> codegen_uninitialized(StringBuffer& out,
     Context const&, Uninitialized const&)
 {
     TRY(out.write("{ 0 }"sv));
