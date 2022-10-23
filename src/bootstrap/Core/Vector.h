@@ -1,7 +1,9 @@
 #pragma once
 #include "ErrorOr.h"
 #include "Try.h"
-#include <Types.h>
+#include <Ty/Base.h>
+#include <Ty/Id.h>
+#include <Ty/View.h>
 #include <type_traits>
 
 namespace Core {

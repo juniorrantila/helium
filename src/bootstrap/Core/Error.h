@@ -1,17 +1,15 @@
 #pragma once
-#include <Types.h>
+#include <Ty/Base.h>
+#include <Ty/StringView.h>
 
-#ifdef __cplusplus
 namespace Core {
-#endif
 
-typedef struct Error {
-    c_string M(message);
-    c_string M(function);
-    c_string M(file);
-    u32 M(line_in_file);
+struct Error {
+    c_string m_message;
+    c_string m_function;
+    c_string m_file;
+    u32 m_line_in_file;
 
-#if __cplusplus
     static Error from_string_literal(c_string message,
         c_string function = __builtin_FUNCTION(),
         c_string file = __builtin_FILE(),
@@ -63,13 +61,6 @@ private:
         , m_line_in_file(line_in_file)
     {
     }
-#endif
-} Error;
+};
 
-#ifndef __cplusplus
-void Error$show(Error const*) asm("Error$show");
-#endif
-
-#ifdef __cplusplus
 }
-#endif

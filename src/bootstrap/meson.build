@@ -1,3 +1,4 @@
+subdir('Ty')
 subdir('Core')
 subdir('CLI')
 subdir('Mem')
@@ -12,7 +13,7 @@ bootstrap_exe = executable('helium', [
     core_dep,
     he_dep,
     mem_dep,
-    types_dep,
+    ty_dep,
   ])
 
 bootstrap_gen = generator(bootstrap_exe,

@@ -2,18 +2,18 @@
 #include "Sizes.h"
 #include <Core/ErrorOr.h>
 #include <Core/Try.h>
-#include <Types.h>
+#include <Ty/Base.h>
 
 namespace Mem {
 
 namespace Internal {
 
-Core::ErrorOr<void> init(uintptr_t base, uintptr_t size);
-Core::ErrorOr<void> deinit(uintptr_t base, uintptr_t size);
+Core::ErrorOr<void> init(uptr base, uptr size);
+Core::ErrorOr<void> deinit(uptr base, uptr size);
 
 }
 
-template <uintptr_t BaseAddress, uintptr_t Size>
+template <uptr BaseAddress, uptr Size>
 struct AddressSpace {
     static constexpr auto base = BaseAddress;
     static constexpr auto size = Size;

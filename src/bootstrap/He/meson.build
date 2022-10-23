@@ -11,7 +11,7 @@ he_lib = library('he', [
     core_dep,
     cli_dep,
     mem_dep,
-    types_dep,
+    ty_dep,
   ])
 
 he_dep = declare_dependency(

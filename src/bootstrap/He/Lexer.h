@@ -2,7 +2,7 @@
 #include <Core/ErrorOr.h>
 #include "Token.h"
 #include "SourceFile.h"
-#include <Types.h>
+#include <Ty/StringView.h>
 #include <vector>
 
 namespace He {

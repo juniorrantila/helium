@@ -19,6 +19,5 @@ if not meson.is_subproject()
     ], language: ['c', 'cpp'])
 endif
 
-types_dep = subproject('Types').get_variable('types_dep')
 subdir('src')
 subdir('samples')

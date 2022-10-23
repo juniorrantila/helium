@@ -1,6 +1,6 @@
 #pragma once
 #include <Core/Vector.h>
-#include <Types.h>
+#include <Ty/StringView.h>
 #include <string_view>
 
 namespace He {

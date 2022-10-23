@@ -15,6 +15,4 @@ selfhost_exe = executable('helium', [
   ],
   include_directories: '.',
   dependencies: [
-    core_dep,
-    types_dep,
   ])

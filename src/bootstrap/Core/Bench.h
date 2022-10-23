@@ -1,5 +1,5 @@
 #pragma once
-#include <Types.h>
+#include <Ty/Base.h>
 #include <stdio.h>
 
 namespace Core {

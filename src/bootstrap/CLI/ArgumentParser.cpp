@@ -3,7 +3,7 @@
 
 namespace CLI {
 
-void ArgumentParser::run(int argc, char const* argv[]) const
+void ArgumentParser::run(int argc, c_string argv[]) const
 {
     auto program_name = argv[0];
     size_t used_positional_arguments = 0;

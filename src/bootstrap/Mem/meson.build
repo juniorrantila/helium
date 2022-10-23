@@ -3,7 +3,7 @@ mem_lib = library('mem', [
   ],
   dependencies: [
     core_dep,
-    types_dep
+    ty_dep,
   ])
 
 mem_dep = declare_dependency(
