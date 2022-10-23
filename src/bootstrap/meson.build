@@ -3,6 +3,7 @@ subdir('Core')
 subdir('CLI')
 subdir('Mem')
 subdir('He')
+subdir('Main')
 
 bootstrap_exe = executable('helium', [
     'main.cpp',
@@ -12,6 +13,7 @@ bootstrap_exe = executable('helium', [
     cli_dep,
     core_dep,
     he_dep,
+    main_dep,
     mem_dep,
     ty_dep,
   ])

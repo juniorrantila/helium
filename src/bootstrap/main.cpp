@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <Main/Main.h>
 
 [[nodiscard]] static Core::ErrorOr<void> move_file(c_string to,
     c_string from);
@@ -22,9 +23,7 @@
 [[nodiscard]] static Core::ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path);
 
-namespace He {
-
-Core::ErrorOr<void> main(int argc, c_string argv[])
+Core::ErrorOr<void> Main::main(int argc, c_string argv[])
 {
     auto argument_parser = CLI::ArgumentParser();
 
@@ -158,18 +157,6 @@ Core::ErrorOr<void> main(int argc, c_string argv[])
     bench.stop_and_show("move file");
 
     return {};
-}
-
-}
-
-int main(int argc, c_string argv[])
-{
-    auto result = He::main(argc, argv);
-    if (result.is_error()) {
-        result.error().show();
-        return 1;
-    }
-    return 0;
 }
 
 static Core::ErrorOr<void> move_file(c_string to, c_string from)
