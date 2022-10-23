@@ -1,7 +1,6 @@
 #pragma once
-#include "Token.h"
 #include "SourceFile.h"
-#include <Types.h>
+#include "Token.h"
 
 typedef struct Lexer {
     c_string source;

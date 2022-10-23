@@ -1,2 +1,2 @@
 subdir('bootstrap')
-# subdir('selfhost')
+subdir('selfhost')

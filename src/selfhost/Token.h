@@ -1,5 +1,5 @@
 #pragma once
-#include <Types.h>
+#include <Ty/Base.h>
 
 typedef enum TokenType : u8 {
     TokenType_Identifier,

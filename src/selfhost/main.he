@@ -1,14 +1,14 @@
 @import_c("Lexer.h");
-@import_c("string.h");
-@import_c("Token.h");
 @import_c("SourceFile.h");
+@import_c("Token.h");
 @import_c("fcntl.h");
 @import_c("stdio.h");
 @import_c("stdlib.h");
+@import_c("string.h");
 @import_c("sys/mman.h");
 @import_c("sys/stat.h");
 @import_c("unistd.h");
-@import_c("Core/MappedFile.h");
+@import_c("Ty/StringView.h");
 
 inline_c typedef c_string* c_string_array;
 pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
@@ -16,19 +16,8 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
         let program_name = inline_c argv[0];
         usage(program_name, 1);
     }
-    inline_c let source_path_string = argv[1];
-    let source_path = StringView {
-        .data = source_path_string,
-        .size = strlen(source_path_string),
-    };
-
-    let mapped_file_or_error = MappedFile$open(source_path);
-
-    if mapped_file_or_error.is_error {
-        Error$show(&mapped_file_or_error.error);
-        return 1;
-    }
-    let mapped_file = mapped_file_or_error.value;
+    let source_path = StringView$from_c_string(argv[1]);
+    let mapped_file = MappedFile$open(source_path);
 
     let source_file = SourceFile {
         .name = source_path.data,
@@ -40,21 +29,38 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
     var lexer = Lexer {};
     if lexer_init(&mut lexer, source_file) < 0 {
         fprintf(stderr, "could not init lexer\n");
-        MappedFile$destroy(&mapped_file);
+        MappedFile$close(mapped_file);
         return 1;
     }
 
     if lexer_run(&mut lexer) < 0 {
         fprintf(stderr, "could not run lexer\n");
         lexer_deinit(&mut lexer);
-        MappedFile$destroy(&mapped_file);
+        MappedFile$close(mapped_file);
         return 1;
     }
 
     lexer_deinit(&mut lexer);
-    MappedFile$destroy(&mapped_file);
+    MappedFile$close(mapped_file);
 
     return 0;
+}
+
+let MappedFile = struct {
+    data: c_string,
+    size: usize,
+};
+
+fn MappedFile$open(path: StringView) -> MappedFile {
+    inline_c (void)path;
+    return MappedFile {
+        .data = "Hello, World!",
+        .size = 14,
+    };
+}
+
+fn MappedFile$close(file: MappedFile) -> void {
+    inline_c (void)file;
 }
 
 fn usage(program_name: c_string, exit_code: i32) -> void {
