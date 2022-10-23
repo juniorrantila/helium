@@ -1,6 +1,6 @@
+#include "Parser.h"
 #include "Context.h"
 #include "Expression.h"
-#include "Parser.h"
 #include "Token.h"
 #include "Util.h"
 #include <Ty/ErrorOr.h>
@@ -1472,6 +1472,14 @@ ParseSingleItemResult parse_prvalue(ParsedExpressions& expressions,
                 end = member_access.end_token_index();
                 TRY(expressions[rvalue.expressions].append(
                     member_access));
+                continue;
+            }
+            if (tokens[end + 1].is(TokenType::OpenBracket)) {
+                auto array_access = TRY(
+                    parse_array_access(expressions, tokens, end));
+                end = array_access.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    array_access));
                 continue;
             }
 
