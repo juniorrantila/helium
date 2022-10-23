@@ -2,6 +2,7 @@
 #include "Expression.h"
 #include "Parser.h"
 #include "SourceFile.h"
+#include "Token.h"
 #include "TypecheckedExpression.h"
 #include <Core/File.h>
 #include <Core/Threads.h>
@@ -148,10 +149,30 @@ typedef char const* c_string;
         TRY(out.writeln(";"sv));
     }
 
+    for (auto& enum_ : context.expressions.enum_declarations) {
+        TRY(codegen_enum_declaration(out, context, enum_));
+        enum_.name.type = TokenType::Invalid;
+    }
+
+    for (auto& struct_ : context.expressions.struct_declarations) {
+        TRY(codegen_struct_declaration(out, context, struct_));
+        struct_.name.type = TokenType::Invalid;
+    }
+
+    for (auto& union_ : context.expressions.union_declarations) {
+        TRY(codegen_union_declaration(out, context, union_));
+        union_.name.type = TokenType::Invalid;
+    }
+
+    for (auto& variant : context.expressions.variant_declarations) {
+        TRY(codegen_variant_declaration(out, context, variant));
+        variant.name.type = TokenType::Invalid;
+    }
+
     for (auto const& expression : context.expressions.expressions)
         TRY(codegen_expression(out, context, expression));
 
-    return std::move(out);
+    return out;
 }
 
 namespace {
@@ -338,6 +359,9 @@ ErrorOr<void> codegen_variable_assignment(StringBuffer& out,
 ErrorOr<void> codegen_struct_declaration(StringBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {
+    if (struct_.name.is(TokenType::Invalid))
+        return {};
+
     auto source = context.source.text;
     TRY(out.writeln("struct "sv, struct_.name.text(source), "{"sv));
     for (auto member : context.expressions[struct_.members]) {
@@ -353,6 +377,9 @@ ErrorOr<void> codegen_struct_declaration(StringBuffer& out,
 ErrorOr<void> codegen_enum_declaration(StringBuffer& out,
     Context const& context, EnumDeclaration const& enum_)
 {
+    if (enum_.name.is(TokenType::Invalid))
+        return {};
+
     auto source = context.source.text;
     auto enum_name = enum_.name.text(source);
     TRY(out.writeln("enum "sv, enum_name));
@@ -373,6 +400,9 @@ ErrorOr<void> codegen_enum_declaration(StringBuffer& out,
 ErrorOr<void> codegen_union_declaration(StringBuffer& out,
     Context const& context, UnionDeclaration const& union_)
 {
+    if (union_.name.is(TokenType::Invalid))
+        return {};
+
     auto source = context.source.text;
     TRY(out.writeln("union "sv, union_.name.text(source), "{"sv));
     for (auto member : context.expressions[union_.members]) {
@@ -388,6 +418,9 @@ ErrorOr<void> codegen_union_declaration(StringBuffer& out,
 ErrorOr<void> codegen_variant_declaration(StringBuffer& out,
     Context const& context, VariantDeclaration const& variant)
 {
+    if (variant.name.is(TokenType::Invalid))
+        return {};
+
     auto source = context.source.text;
     auto variant_name = variant.name.text(source);
     TRY(out.writeln("struct "sv, variant_name, "{"sv));
