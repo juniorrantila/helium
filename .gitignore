@@ -1,5 +1,9 @@
+a.c
+a.out
 build
-test.he
+perf.data
+perf.data.old
 test.c
+test.he
 playground/*
 !playground/README.md
