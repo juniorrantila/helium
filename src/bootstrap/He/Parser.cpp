@@ -21,7 +21,6 @@ using ParseSingleItemResult = ErrorOr<Expression, ParseError>;
 EXPRESSIONS
 #undef X
 
-FORWARD_DECLARE_PARSER(root_item);
 FORWARD_DECLARE_PARSER(top_level_constant_or_struct);
 FORWARD_DECLARE_PARSER(if_rvalue);
 FORWARD_DECLARE_PARSER(irvalue);
@@ -39,10 +38,91 @@ ParseResult parse(Tokens const& tokens)
     for (u32 start = 0; start < tokens.size();) {
         if (tokens[start].is(TokenType::NewLine))
             continue; // Ignore leading and trailing new lines.
-        auto item
-            = TRY(parse_root_item(expressions, tokens, start));
-        start = item.end_token_index();
-        TRY(expressions.expressions.append(item));
+        auto token = tokens[start];
+
+        if (token.is(TokenType::ImportC)) {
+            auto import_c
+                = TRY(parse_import_c(expressions, tokens, start));
+            start = import_c.end_token_index();
+            continue;
+        }
+
+        if (token.is(TokenType::InlineC)) {
+            auto inline_c
+                = TRY(parse_inline_c(expressions, tokens, start));
+            start = inline_c.end_token_index();
+            TRY(expressions.top_level_inline_cs.append(
+                expressions[inline_c.as_inline_c()]));
+            continue;
+        }
+
+        if (token.is(TokenType::Fn)) {
+            auto expression = TRY(
+                parse_private_function(expressions, tokens, start));
+            start = expression.end_token_index();
+            continue;
+        }
+
+        if (token.is(TokenType::CFn)) {
+            auto expression = TRY(parse_private_c_function(
+                expressions, tokens, start));
+            start = expression.end_token_index();
+            continue;
+        }
+
+        if (token.is(TokenType::Pub)) {
+            auto pub = TRY(
+                parse_pub_specifier(expressions, tokens, start));
+            start = pub.end_token_index();
+            if (pub.type()
+                == ExpressionType::PublicConstantDeclaration) {
+                auto constant = expressions
+                    [pub.as_public_constant_declaration()];
+                TRY(expressions.top_level_public_constants.append(
+                    constant));
+            }
+            if (pub.type()
+                == ExpressionType::PublicVariableDeclaration) {
+                auto constant = expressions
+                    [pub.as_public_constant_declaration()];
+                TRY(expressions.top_level_public_constants.append(
+                    constant));
+            }
+            continue;
+        }
+
+        if (token.is(TokenType::Let)) {
+            auto expression = TRY(
+                parse_top_level_constant_or_struct(expressions,
+                    tokens, start));
+            start = expression.end_token_index();
+            if (expression.type()
+                == ExpressionType::PrivateConstantDeclaration) {
+                auto constant = expressions
+                    [expression.as_private_constant_declaration()];
+                TRY(expressions.top_level_private_constants.append(
+                    constant));
+            }
+            continue;
+        }
+
+        if (token.is(TokenType::Var)) {
+            auto expression = TRY(
+                parse_private_variable_declaration(expressions,
+                    tokens, start));
+            start = expression.end_token_index();
+            auto variable = expressions
+                [expression.as_private_variable_declaration()];
+            TRY(expressions.top_level_private_variables.append(
+                variable));
+            continue;
+        }
+
+        return ParseError {
+            "unexpected token",
+            nullptr,
+            token,
+        };
     }
     return expressions;
 }
@@ -339,43 +419,6 @@ ParseSingleItemResult parse_pub_specifier(
         "expected one of ['fn', 'c_fn', 'let', 'var']",
         nullptr,
         fn,
-    };
-}
-
-ParseSingleItemResult parse_root_item(
-    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
-{
-    auto token = tokens[start];
-
-    if (token.is(TokenType::ImportC))
-        return parse_import_c(expressions, tokens, start);
-
-    if (token.is(TokenType::InlineC))
-        return parse_inline_c(expressions, tokens, start);
-
-    if (token.is(TokenType::Fn))
-        return parse_private_function(expressions, tokens, start);
-
-    if (token.is(TokenType::CFn))
-        return parse_private_c_function(expressions, tokens, start);
-
-    if (token.is(TokenType::Pub))
-        return parse_pub_specifier(expressions, tokens, start);
-
-    if (token.is(TokenType::Let)) {
-        return parse_top_level_constant_or_struct(expressions,
-            tokens, start);
-    }
-
-    if (token.is(TokenType::Var)) {
-        return parse_private_variable_declaration(expressions,
-            tokens, start);
-    }
-
-    return ParseError {
-        "unexpected token",
-        nullptr,
-        token,
     };
 }
 

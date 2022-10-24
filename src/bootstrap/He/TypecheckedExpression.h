@@ -355,35 +355,6 @@ struct CheckedInvalid {
     static void dump(CheckedExpressions const&, StringView, u32);
 };
 
-struct FunctionForwardDeclaration {
-    Token name {};
-    Token return_type {};
-    Parameters const& parameters;
-};
-using FunctionForwardDeclarations
-    = Vector<FunctionForwardDeclaration>;
-
-struct StructForwardDeclaration {
-    Token name {};
-};
-using StructForwardDeclarations = Vector<StructForwardDeclaration>;
-
-struct EnumForwardDeclaration {
-    Token name {};
-};
-using EnumForwardDeclarations = Vector<EnumForwardDeclaration>;
-
-struct UnionForwardDeclaration {
-    Token name {};
-};
-using UnionForwardDeclarations = Vector<UnionForwardDeclaration>;
-
-struct VariantForwardDeclaration {
-    Token name {};
-};
-using VariantForwardDeclarations
-    = Vector<VariantForwardDeclaration>;
-
 struct CheckedExpression {
 #define VARIANT(T, name)                                      \
     constexpr CheckedExpression(Id<T> value, u32 start_index, \
@@ -457,14 +428,6 @@ public:
 
             TRY(Tokens::create()),
             TRY(Tokens::create()),
-            TRY(FunctionForwardDeclarations::create()),
-            TRY(FunctionForwardDeclarations::create()),
-            TRY(FunctionForwardDeclarations::create()),
-            TRY(FunctionForwardDeclarations::create()),
-            TRY(EnumForwardDeclarations::create()),
-            TRY(StructForwardDeclarations::create()),
-            TRY(UnionForwardDeclarations::create()),
-            TRY(VariantForwardDeclarations::create()),
         };
         // clang-format on
 #undef X
@@ -544,16 +507,6 @@ public:
 
     Tokens import_c_quoted_filenames;
     Tokens inline_c_texts;
-
-    FunctionForwardDeclarations private_function_forwards;
-    FunctionForwardDeclarations private_c_function_forwards;
-    FunctionForwardDeclarations public_function_forwards;
-    FunctionForwardDeclarations public_c_function_forwards;
-
-    EnumForwardDeclarations enum_forwards;
-    StructForwardDeclarations struct_forwards;
-    UnionForwardDeclarations union_forwards;
-    VariantForwardDeclarations variant_forwards;
 };
 
 }

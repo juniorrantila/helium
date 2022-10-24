@@ -383,6 +383,11 @@ public:
         using Memberss = Vector<Members>;
         using Parameterss = Vector<Parameters>;
         using MemberAccessData = Vector<Tokens>;
+        using InlineCS = Vector<InlineC>;
+        using PrivateVariableDeclarations = Vector<PrivateVariableDeclaration>;
+        using PublicVariableDeclarations = Vector<PublicVariableDeclaration>;
+        using PrivateConstantDeclarations = Vector<PrivateConstantDeclaration>;
+        using PublicConstantDeclarations = Vector<PublicConstantDeclaration>;
         return ParsedExpressions {
             EXPRESSIONS
             .late_expressions = TRY(Expressions::create()),
@@ -391,7 +396,11 @@ public:
             .memberss = TRY(Memberss::create()),
             .parameterss = TRY(Parameterss::create()),
             .member_access_data = TRY(MemberAccessData::create()),
-            .expressions = TRY(Expressions::create()),
+            .top_level_inline_cs = TRY(InlineCS::create()),
+            .top_level_private_variables = TRY(PrivateVariableDeclarations::create()),
+            .top_level_public_variables = TRY(PublicVariableDeclarations::create()),
+            .top_level_private_constants = TRY(PrivateConstantDeclarations::create()),
+            .top_level_public_constants = TRY(PublicConstantDeclarations::create()),
         };
         // clang-format on
 #undef X
@@ -456,7 +465,16 @@ public:
 
 #undef NONTRIVIAL_SOA_MEMBER
 #undef SOA_MEMBER
-    Expressions expressions;
+
+    void dump(StringView source) const;
+
+    Vector<InlineC> top_level_inline_cs;
+
+    Vector<PrivateVariableDeclaration> top_level_private_variables;
+    Vector<PublicVariableDeclaration> top_level_public_variables;
+
+    Vector<PrivateConstantDeclaration> top_level_private_constants;
+    Vector<PublicConstantDeclaration> top_level_public_constants;
 };
 
 }

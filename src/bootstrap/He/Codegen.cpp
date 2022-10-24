@@ -1,5 +1,6 @@
 #include "Context.h"
 #include "Expression.h"
+#include "Mem/Sizes.h"
 #include "Parser.h"
 #include "SourceFile.h"
 #include "Token.h"
@@ -26,13 +27,88 @@ FORWARD_DECLARE_CODEGEN(Parameters, parameters);
 
 #undef FORWARD_DECLARE_CODEGEN
 
+ErrorOr<void> forward_declare_structures(StringBuffer& out,
+    Context const&);
+
+ErrorOr<void> forward_declare_functions(StringBuffer& out,
+    Context const&);
+
+ErrorOr<void> codegen_structures(StringBuffer& out, Context const&);
+
+ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
+    Context const&);
+
+ErrorOr<void> codegen_functions(StringBuffer& out, Context const&);
+
+ErrorOr<void> codegen_prelude(StringBuffer& out);
+
 }
 
 ErrorOr<StringBuffer> codegen(Context const& context,
-    TypecheckedExpressions const& typechecked)
+    TypecheckedExpressions const&)
 {
-    auto estimate = context.expressions.expressions.size() * 512;
-    auto out = TRY(StringBuffer::create(estimate));
+    auto out = TRY(StringBuffer::create(64 * Mem::MiB));
+
+    TRY(codegen_prelude(out));
+
+    for (auto import_c : context.expressions.import_cs) {
+        TRY(out.writeln("#include "sv,
+            import_c.filename.text(context.source.text)));
+    }
+
+    for (auto inline_c : context.expressions.top_level_inline_cs) {
+        TRY(out.write(inline_c.literal.text(context.source.text)));
+    }
+
+    TRY(forward_declare_structures(out, context));
+    TRY(forward_declare_functions(out, context));
+    TRY(codegen_structures(out, context));
+    TRY(codegen_top_level_variables(out, context));
+    TRY(codegen_functions(out, context));
+
+    return out;
+}
+
+namespace {
+
+ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
+    Context const& context)
+{
+    auto const& expressions = context.expressions;
+
+    auto const& public_constants
+        = expressions.top_level_public_constants;
+    for (auto const& constant : public_constants) {
+        TRY(codegen_public_constant_declaration(out, context,
+            constant));
+    }
+
+    auto const& private_constants
+        = expressions.top_level_private_constants;
+    for (auto const& constant : private_constants) {
+        TRY(codegen_private_constant_declaration(out, context,
+            constant));
+    }
+
+    auto const& public_variables
+        = expressions.top_level_public_variables;
+    for (auto const& variable : public_variables) {
+        TRY(codegen_public_variable_declaration(out, context,
+            variable));
+    }
+
+    auto const& private_variables
+        = expressions.top_level_private_variables;
+    for (auto const& variable : private_variables) {
+        TRY(codegen_private_variable_declaration(out, context,
+            variable));
+    }
+
+    return {};
+}
+
+ErrorOr<void> codegen_prelude(StringBuffer& out)
+{
     auto prelude = R"c(
 #include <stdint.h>
 #include <stddef.h>
@@ -79,76 +155,102 @@ typedef char const* c_string;
 )c"sv;
     TRY(out.write(prelude));
 
-    for (auto filename : typechecked.import_c_quoted_filenames) {
-        TRY(out.writeln("#include "sv,
-            filename.text(context.source.text)));
-    }
+    return {};
+}
 
-    for (auto inline_c_expression : typechecked.inline_c_texts) {
-        TRY(out.write(
-            inline_c_expression.text(context.source.text)));
-    }
+ErrorOr<void> forward_declare_structures(StringBuffer& out,
+    Context const& context)
+{
+    auto const& expressions = context.expressions;
 
-    for (auto declaration : typechecked.enum_forwards) {
+    auto const& enum_declarations = expressions.enum_declarations;
+    for (auto declaration : enum_declarations) {
         auto name = declaration.name.text(context.source.text);
         TRY(out.writeln("typedef enum "sv, name, " "sv, name,
             ";"sv));
     }
 
-    for (auto declaration : typechecked.struct_forwards) {
+    auto const& struct_declarations
+        = expressions.struct_declarations;
+    for (auto declaration : struct_declarations) {
         auto name = declaration.name.text(context.source.text);
         TRY(out.writeln("typedef struct "sv, name, " "sv, name,
             ";"sv));
     }
 
-    for (auto declaration : typechecked.union_forwards) {
+    auto const& union_declarations = expressions.union_declarations;
+    for (auto declaration : union_declarations) {
         auto name = declaration.name.text(context.source.text);
         TRY(out.writeln("typedef union "sv, name, " "sv, name,
             ";"sv));
     }
 
-    for (auto declaration : typechecked.variant_forwards) {
+    auto const& variant_declarations
+        = expressions.variant_declarations;
+    for (auto declaration : variant_declarations) {
         auto name = declaration.name.text(context.source.text);
         TRY(out.writeln("typedef struct "sv, name, " "sv, name,
             ";"sv));
     }
 
-    for (auto const& function :
-        typechecked.public_function_forwards) {
+    return {};
+}
+
+ErrorOr<void> forward_declare_functions(StringBuffer& out,
+    Context const& context)
+{
+    auto const& expressions = context.expressions;
+
+    auto const& public_functions = expressions.public_functions;
+    for (auto const& function : public_functions) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         TRY(out.write(type, " "sv, name));
-        TRY(codegen_parameters(out, context, function.parameters));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
         TRY(out.writeln(";"sv));
     }
 
-    for (auto const& function :
-        typechecked.private_function_forwards) {
+    auto const& private_functions = expressions.private_functions;
+    for (auto const& function : private_functions) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         TRY(out.write("static "sv, type, " "sv, name));
-        TRY(codegen_parameters(out, context, function.parameters));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
         TRY(out.writeln(";"sv));
     }
 
-    for (auto const& function :
-        typechecked.public_c_function_forwards) {
+    auto const& public_c_functions = expressions.public_functions;
+    for (auto const& function : public_c_functions) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         TRY(out.write(type, " "sv, name));
-        TRY(codegen_parameters(out, context, function.parameters));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
         TRY(out.writeln(";"sv));
     }
 
-    for (auto const& function :
-        typechecked.private_c_function_forwards) {
+    auto const& private_c_functions = expressions.private_functions;
+    for (auto const& function : private_c_functions) {
         auto type = function.return_type.text(context.source.text);
         auto name = function.name.text(context.source.text);
         TRY(out.write("static "sv, type, " "sv, name));
-        TRY(codegen_parameters(out, context, function.parameters));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
         TRY(out.writeln(";"sv));
     }
 
+    return {};
+}
+
+ErrorOr<void> codegen_structures(StringBuffer& out,
+    Context const& context)
+{
     for (auto& enum_ : context.expressions.enum_declarations) {
         TRY(codegen_enum_declaration(out, context, enum_));
         enum_.name.type = TokenType::Invalid;
@@ -169,13 +271,37 @@ typedef char const* c_string;
         variant.name.type = TokenType::Invalid;
     }
 
-    for (auto const& expression : context.expressions.expressions)
-        TRY(codegen_expression(out, context, expression));
-
-    return out;
+    return {};
 }
 
-namespace {
+ErrorOr<void> codegen_functions(StringBuffer& out,
+    Context const& context)
+{
+    auto const& expressions = context.expressions;
+
+    auto const& public_functions = expressions.public_functions;
+    for (auto const& function : public_functions) {
+        TRY(codegen_public_function(out, context, function));
+    }
+
+    auto const& private_functions = expressions.private_functions;
+    for (auto const& function : private_functions) {
+        TRY(codegen_private_function(out, context, function));
+    }
+
+    auto const& public_c_functions = expressions.public_c_functions;
+    for (auto const& function : public_c_functions) {
+        TRY(codegen_public_c_function(out, context, function));
+    }
+
+    auto const& private_c_functions
+        = expressions.private_c_functions;
+    for (auto const& function : private_c_functions) {
+        TRY(codegen_private_c_function(out, context, function));
+    }
+
+    return {};
+}
 
 ErrorOr<void> codegen_parameters(StringBuffer& out,
     Context const& context, Parameters const& parameters)

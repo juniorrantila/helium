@@ -349,4 +349,77 @@ void Invalid::dump(ParsedExpressions const&, StringView, u32)
     __builtin_abort();
 }
 
+void ParsedExpressions::dump(StringView source) const
+{
+    for (auto import_c : import_cs) {
+        import_c.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto inline_c : top_level_inline_cs) {
+        inline_c.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto struct_ : struct_declarations) {
+        struct_.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto enum_ : enum_declarations) {
+        enum_.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto union_ : union_declarations) {
+        union_.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto variant : variant_declarations) {
+        variant.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto constant : top_level_private_constants) {
+        constant.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto constant : top_level_public_constants) {
+        constant.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto variable : top_level_private_variables) {
+        variable.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto variable : top_level_public_variables) {
+        variable.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto function : private_functions) {
+        function.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto function : public_functions) {
+        function.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto function : private_c_functions) {
+        function.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+
+    for (auto function : public_c_functions) {
+        function.dump(*this, source, 0);
+        std::cerr << '\n';
+    }
+}
+
 }
