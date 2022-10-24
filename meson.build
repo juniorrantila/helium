@@ -5,6 +5,7 @@ project('helium', ['cpp', 'c'],
     'warning_level=3',
     'default_library=static',
     'buildtype=release',
+    'cpp_rtti=false',
   ])
 
 if not meson.is_subproject()
