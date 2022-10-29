@@ -4,7 +4,7 @@
 
 namespace Main {
 
-ErrorOr<void> main(int argc, c_string argv[]);
+ErrorOr<int> main(int argc, c_string argv[]);
 
 }
 

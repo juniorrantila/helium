@@ -7,6 +7,5 @@ int main(int argc, c_string argv[])
         result.error().show();
         return 1;
     }
-    return 0;
+    return result.value();
 }
-

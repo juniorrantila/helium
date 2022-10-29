@@ -18,7 +18,7 @@
 [[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path);
 
-ErrorOr<void> Main::main(int argc, c_string argv[])
+ErrorOr<int> Main::main(int argc, c_string argv[])
 {
     auto argument_parser = CLI::ArgumentParser();
 
@@ -84,8 +84,10 @@ ErrorOr<void> Main::main(int argc, c_string argv[])
     bench.start();
     auto lex_result = He::lex(source_file.text);
     bench.stop_and_show("lex");
-    if (lex_result.is_error())
-        return lex_result.error().show(source_file);
+    if (lex_result.is_error()) {
+        TRY(lex_result.error().show(source_file));
+        return 1;
+    }
     auto tokens = lex_result.release_value();
     if (dump_tokens) {
         for (u32 i = 0; i < tokens.size(); i++) {
@@ -98,8 +100,10 @@ ErrorOr<void> Main::main(int argc, c_string argv[])
     bench.start();
     auto parse_result = He::parse(tokens);
     bench.stop_and_show("parse");
-    if (parse_result.is_error())
-        return parse_result.error().show(source_file);
+    if (parse_result.is_error()) {
+        TRY(parse_result.error().show(source_file));
+        return 1;
+    }
     auto expressions = parse_result.release_value();
     if (dump_expressions) {
         expressions.dump(source_file.text);
@@ -109,8 +113,10 @@ ErrorOr<void> Main::main(int argc, c_string argv[])
     bench.start();
     auto typecheck_result = He::typecheck(context);
     bench.stop_and_show("typecheck");
-    if (typecheck_result.is_error())
+    if (typecheck_result.is_error()) {
         TRY(typecheck_result.error().show(context));
+        return 1;
+    }
     auto typechecked_expressions = typecheck_result.release_value();
 
     char temporary_file[] = "/tmp/XXXXXX.c";
@@ -128,7 +134,7 @@ ErrorOr<void> Main::main(int argc, c_string argv[])
     bench.stop_and_show("write");
 
     if (output_file == STDOUT_FILENO)
-        return {};
+        return 0;
 
     TRY(Core::System::close(output_file));
 
@@ -143,14 +149,14 @@ ErrorOr<void> Main::main(int argc, c_string argv[])
                 temporary_file, error_message.size,
                 error_message.data);
         }
-        return {};
+        return 0;
     }
 
     bench.start();
     TRY(move_file(output_path, temporary_file));
     bench.stop_and_show("move file");
 
-    return {};
+    return 0;
 }
 
 static ErrorOr<void> move_file(c_string to, c_string from)
