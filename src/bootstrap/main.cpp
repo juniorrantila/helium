@@ -22,50 +22,52 @@ ErrorOr<void> Main::main(int argc, c_string argv[])
 {
     auto argument_parser = CLI::ArgumentParser();
 
-    auto const* program_name = argv[0];
-    argument_parser.add_flag("--help", "-h", "show help message",
-        [&] {
+    c_string program_name = argv[0];
+    TRY(argument_parser.add_flag("--help"sv, "-h"sv,
+        "show help message"sv, [&] {
             argument_parser.print_usage_and_exit(program_name, 0);
-        });
+        }));
 
     bool output_path_set = false;
     c_string output_path = "a.out";
-    argument_parser.add_option("--output", "-o", "path",
-        "output file path", [&](auto path) {
+    TRY(argument_parser.add_option("--output"sv, "-o"sv, "path"sv,
+        "output file path"sv, [&](auto path) {
             output_path_set = true;
             output_path = path;
-        });
+        }));
 
     auto dump_tokens = false;
-    argument_parser.add_flag("--dump-tokens", "-dt", "dump tokens",
-        [&] {
+    TRY(argument_parser.add_flag("--dump-tokens"sv, "-dt"sv,
+        "dump tokens"sv, [&] {
             dump_tokens = true;
-        });
+        }));
 
     auto dump_expressions = false;
-    argument_parser.add_flag("--dump-expressions", "-de",
-        "dump expressions", [&] {
+    TRY(argument_parser.add_flag("--dump-expressions"sv, "-de"sv,
+        "dump expressions"sv, [&] {
             dump_expressions = true;
-        });
+        }));
 
     auto export_source = false;
-    argument_parser.add_flag("--export-generated-source", "-S",
-        "export generated source instead of executable", [&] {
+    TRY(argument_parser.add_flag("--export-generated-source"sv,
+        "-S"sv, "export generated source instead of executable"sv,
+        [&] {
             export_source = true;
-        });
+        }));
 
     auto should_display_benchmark
         = Core::BenchEnableShowOnStopAndShow::No;
-    argument_parser.add_flag("--benchmark", "-b",
-        "benchmark each compiler stage", [&] {
+    TRY(argument_parser.add_flag("--benchmark"sv, "-b"sv,
+        "benchmark each compiler stage"sv, [&] {
             should_display_benchmark
                 = Core::BenchEnableShowOnStopAndShow::Yes;
-        });
+        }));
 
     c_string source_file_path = nullptr;
-    argument_parser.add_positional_argument("file", [&](auto path) {
-        source_file_path = path;
-    });
+    TRY(argument_parser.add_positional_argument("file"sv,
+        [&](auto path) {
+            source_file_path = path;
+        }));
 
     argument_parser.run(argc, argv);
     if (export_source && !output_path_set)

@@ -1,84 +1,88 @@
 #pragma once
 #include <Ty/Base.h>
+#include <Ty/SmallMap.h>
+#include <Ty/SmallVector.h>
+#include <Ty/StringView.h>
+#include <Ty/Try.h>
 #include <functional>
-#include <iostream>
-#include <string_view>
-#include <vector>
-#include <map>
 
 namespace CLI {
 
-class ArgumentParser {
-public:
-    void add_flag(std::string_view long_name,
-        std::string_view short_name, std::string_view explanation,
-        std::function<void()> const& callback)
+struct ArgumentParser {
+    ErrorOr<void> add_flag(StringView long_name,
+        StringView short_name, StringView explanation,
+        std::function<void()>&& callback)
     {
-        flags.push_back({ long_name, short_name, explanation });
+        TRY(flags.append({ long_name, short_name, explanation }));
         auto id = flag_callbacks.size();
-        flag_callbacks.push_back(callback);
-        long_flag_callback_ids[long_name] = id;
-        short_flag_callback_ids[short_name] = id;
+        TRY(flag_callbacks.append(std::move(callback)));
+        TRY(long_flag_callback_ids.append(long_name, id));
+        TRY(short_flag_callback_ids.append(short_name, id));
+
+        return {};
     }
 
-    void add_option(std::string_view long_name,
-        std::string_view short_name, std::string_view placeholder,
-        std::string_view explanation,
-        std::function<void(c_string)> const& callback)
+    ErrorOr<void> add_option(StringView long_name,
+        StringView short_name, StringView placeholder,
+        StringView explanation,
+        std::function<void(c_string)>&& callback)
     {
-        options.push_back({
+        TRY(options.append({
             long_name,
             short_name,
             explanation,
             placeholder,
-        });
+        }));
         auto id = option_callbacks.size();
-        option_callbacks.push_back(callback);
-        long_option_callback_ids[long_name] = id;
-        short_option_callback_ids[short_name] = id;
+        TRY(option_callbacks.append(std::move(callback)));
+        TRY(long_option_callback_ids.append(long_name, id));
+        TRY(short_option_callback_ids.append(short_name, id));
+
+        return {};
     }
 
-    void add_positional_argument(std::string_view placeholder,
-        std::function<void(c_string)> const& callback)
+    ErrorOr<void> add_positional_argument(StringView placeholder,
+        std::function<void(c_string)>&& callback)
     {
-        positional_argument_placeholders.push_back(placeholder);
-        positional_argument_callbacks.push_back(callback);
+        TRY(positional_argument_placeholders.append(placeholder));
+        TRY(positional_argument_callbacks.append(
+            std::move(callback)));
+
+        return {};
     }
 
     void run(int argc, char const* argv[]) const;
 
-    void print_usage_and_exit(std::string_view program_name,
+    void print_usage_and_exit(c_string program_name,
         int exit_code = 0) const;
 
 private:
     struct Flag {
-        std::string_view long_name;
-        std::string_view short_name;
-        std::string_view explanation;
+        StringView long_name;
+        StringView short_name;
+        StringView explanation;
     };
-    std::vector<Flag> flags {};
+    SmallVector<Flag> flags {};
 
     struct Option {
-        std::string_view long_name;
-        std::string_view short_name;
-        std::string_view explanation;
-        std::string_view placeholder;
+        StringView long_name;
+        StringView short_name;
+        StringView explanation;
+        StringView placeholder;
     };
-    std::vector<Option> options {};
+    SmallVector<Option> options {};
 
-    std::map<std::string_view, u32> short_flag_callback_ids {};
-    std::map<std::string_view, u32> long_flag_callback_ids {};
+    SmallMap<StringView, u32> short_flag_callback_ids {};
+    SmallMap<StringView, u32> long_flag_callback_ids {};
 
-    std::map<std::string_view, u32> short_option_callback_ids {};
-    std::map<std::string_view, u32> long_option_callback_ids {};
+    SmallMap<StringView, u32> short_option_callback_ids {};
+    SmallMap<StringView, u32> long_option_callback_ids {};
 
-    std::vector<std::function<void()>> flag_callbacks;
-    std::vector<std::function<void(c_string)>>
-        option_callbacks;
+    SmallVector<std::function<void()>> flag_callbacks;
+    SmallVector<std::function<void(c_string)>> option_callbacks;
 
-    std::vector<std::string_view>
-        positional_argument_placeholders {};
-    std::vector<std::function<void(c_string)>>
+    SmallVector<StringView> positional_argument_placeholders {};
+    SmallVector<std::function<void(c_string)>>
         positional_argument_callbacks {};
 };
 
