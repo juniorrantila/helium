@@ -75,6 +75,8 @@ struct StringBuffer {
     constexpr char const* data() const { return m_data; }
     constexpr u32 size() const { return m_size; }
 
+    constexpr StringView view() const { return { m_data, m_size }; }
+
 private:
     constexpr StringBuffer(char* data, u32 capacity)
         : m_data(data)
