@@ -1,7 +1,7 @@
 subdir('Ty')
 subdir('Core')
-subdir('CLI')
 subdir('Mem')
+subdir('CLI')
 subdir('He')
 subdir('Main')
 

@@ -1,11 +1,29 @@
 #include "ArgumentParser.h"
-#include <exception>
+#include <Mem/Sizes.h>
 
 namespace CLI {
 
-void ArgumentParser::run(int argc, c_string argv[]) const
+ErrorOr<void> ArgumentParserError::show() const
+{
+    switch (m_state) {
+    case State::Buffer: {
+        std::cerr << m_buffer.view();
+    } break;
+    case State::Error: {
+        m_error.show();
+    } break;
+    case State::Invalid: break;
+    }
+
+    return {};
+}
+
+ArgumentParserResult ArgumentParser::run(int argc,
+    c_string argv[]) const
 {
     c_string program_name = argv[0];
+    auto program_name_view
+        = StringView::from_c_string(program_name);
     size_t used_positional_arguments = 0;
     for (int i = 1; i < argc; i++) {
         auto argument = StringView::from_c_string(argv[i]);
@@ -19,105 +37,116 @@ void ArgumentParser::run(int argc, c_string argv[]) const
                    = short_option_callback_ids.find(argument);
                    id.is_valid()) {
             if (i + 1 >= argc) {
-                std::cerr << "No argument provided for argument \""
-                          << argument << "\"" << std::endl;
-                std::cerr << std::endl
-                          << "See help for more info ("
-                          << program_name << " --help)"
-                          << std::endl;
-                exit(1);
+                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+                TRY(out.writeln(
+                    "No argument provided for argument \""sv,
+                    argument, "\""sv));
+                TRY(out.writeln("\nSee help for more info ("sv,
+                    program_name_view, " --help)"sv));
+                return ArgumentParserError { std::move(out) };
             }
             c_string value = argv[++i];
-            try {
-                option_callbacks[id.raw()](value);
-            } catch (std::exception& e) {
-                std::cerr << "Invalid value \"" << value
-                          << "\" for argument \"" << argument
-                          << "\"" << std::endl
-                          << "Reason: " << e.what() << std::endl;
-                std::cerr << std::endl
-                          << "See help for more info ("
-                          << program_name << " --help)"
-                          << std::endl;
-                exit(1);
+            auto result = option_callbacks[id.raw()](value);
+            if (result.is_error()) {
+                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+
+                auto value_view = StringView::from_c_string(value);
+                auto reason = result.error().message();
+                TRY(out.writeln("Invalid value \""sv, value_view,
+                    "\" for argument \""sv, argument, "\""sv));
+                TRY(out.writeln("Reason: "sv, reason));
+                TRY(out.writeln("\nSee help for more info ("sv,
+                    program_name_view, " --help)"sv));
+
+                return ArgumentParserError { std::move(out) };
             }
         } else if (auto id
                    = long_option_callback_ids.find(argument);
                    id.is_valid()) {
             if (i + 1 >= argc) {
-                std::cerr << "No argument provided for argument \""
-                          << argument << "\"" << std::endl;
-                std::cerr << std::endl
-                          << "See help for more info ("
-                          << program_name << " --help)"
-                          << std::endl;
-                exit(1);
+                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+                TRY(out.writeln("No argument provided for \""sv,
+                    argument, "\"\n"sv));
+                TRY(out.writeln("See help for more info ("sv,
+                    program_name_view, " --help)"sv));
+                return ArgumentParserError { std::move(out) };
             }
             c_string value = argv[++i];
-            try {
-                option_callbacks[id.raw()](value);
-            } catch (std::exception& e) {
-                std::cerr << "Invalid value \"" << value
-                          << "\" for argument \"" << argument
-                          << "\"" << std::endl
-                          << "Reason: " << e.what() << std::endl;
-                std::cerr << std::endl
-                          << "See help for more info ("
-                          << program_name << " --help)"
-                          << std::endl;
-                exit(1);
+            auto result = option_callbacks[id.raw()](value);
+            if (result.is_error()) {
+                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+
+                auto value_view = StringView::from_c_string(value);
+                auto reason = result.error().message();
+                TRY(out.writeln("Invalid value \""sv, value_view,
+                    "\" for argument \""sv, argument, "\""sv));
+                TRY(out.writeln("Reason: "sv, reason, "\n"sv));
+                TRY(out.writeln("See help for more info ("sv,
+                    program_name_view, "\" --help)"sv));
+
+                return ArgumentParserError { std::move(out) };
             }
         } else if (used_positional_arguments
             < positional_argument_callbacks.size()) {
-            try {
-                auto id = Id<std::function<void(c_string)>>(
-                    used_positional_arguments++);
-                positional_argument_callbacks[id](argument.data);
-            } catch (std::exception& e) {
-                std::cerr << "Invalid positional argument \""
-                          << argument << "\" for \""
-                          << positional_argument_placeholders
-                                 [used_positional_arguments - 1]
-                          << "\"" << std::endl
-                          << "Reason: " << e.what() << std::endl;
-                std::cerr << std::endl
-                          << "See help for more info ("
-                          << program_name << " --help)"
-                          << std::endl;
+            auto id = used_positional_arguments++;
+            auto result
+                = positional_argument_callbacks[id](argument.data);
+            if (result.is_error()) {
+                auto out = TRY(StringBuffer::create(1024));
+
+                auto placeholder = positional_placeholders
+                    [used_positional_arguments - 1];
+                TRY(out.writeln("Invalid positional argument \""sv,
+                    argument, "\" for \""sv, placeholder, "\""sv));
+
+                auto reason = result.error().message();
+                TRY(out.writeln("Reason: "sv, reason, "\n"sv));
+                TRY(out.writeln("See help for more info ("sv,
+                    program_name_view, " --help)"sv));
+
+                return ArgumentParserError { std::move(out) };
             }
         } else {
-            std::cerr << "Unrecognised argument: \"" << argument
-                      << "\"" << std::endl;
-            std::cerr << std::endl
-                      << "See help for more info (" << program_name
-                      << " --help)" << std::endl;
-            exit(1);
+            auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+
+            TRY(out.writeln("Unrecognised argument: \""sv, argument,
+                "\""sv));
+            TRY(out.writeln("\nSee help for more info ("sv,
+                program_name_view, " --help)"sv));
+
+            return ArgumentParserError { std::move(out) };
         }
     }
 
     if (used_positional_arguments
-        != positional_argument_placeholders.size()) {
-        if (positional_argument_placeholders.size()
+        != positional_placeholders.size()) {
+        auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+
+        if (positional_placeholders.size()
                 - used_positional_arguments
             == 1) {
-            std::cerr << "Missing positional argument: "
-                      << positional_argument_placeholders
-                             [used_positional_arguments]
-                      << std::endl;
+            auto out = TRY(StringBuffer::create(1 * Mem::KiB));
+            auto placeholder = positional_placeholders
+                [used_positional_arguments];
+
+            TRY(out.writeln("Missing positional argument: "sv,
+                placeholder));
         } else {
-            std::cerr << "Missing positional arguments: "
-                      << std::endl;
+            TRY(out.writeln("Missing positional arguments: "sv));
             for (size_t i = used_positional_arguments;
-                 i < positional_argument_placeholders.size(); i++)
-                std::cerr << "\t"
-                          << positional_argument_placeholders[i]
-                          << std::endl;
+                 i < positional_placeholders.size(); i++) {
+                auto placeholder = positional_placeholders[i];
+                TRY(out.writeln("\t"sv, placeholder));
+            }
         }
-        std::cerr << std::endl
-                  << "See help for more info (" << program_name
-                  << " --help)" << std::endl;
-        exit(1);
+
+        TRY(out.writeln("\nSee help for more info ("sv,
+            program_name_view, " --help)"sv));
+
+        return ArgumentParserError { std::move(out) };
     }
+
+    return {};
 }
 
 void ArgumentParser::print_usage_and_exit(c_string program_name,
@@ -125,8 +154,7 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
 {
     auto& out = exit_code != 0 ? std::cerr : std::cout;
     out << "USAGE: " << program_name << " [flags|options] ";
-    for (auto positional_argument :
-        positional_argument_placeholders)
+    for (auto positional_argument : positional_placeholders)
         out << positional_argument << " ";
     out << std::endl << std::endl;
     out << "FLAGS:" << std::endl;
@@ -143,5 +171,4 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
     }
     exit(exit_code);
 }
-
 }

@@ -69,7 +69,11 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
             source_file_path = path;
         }));
 
-    argument_parser.run(argc, argv);
+    if (auto result = argument_parser.run(argc, argv);
+        result.is_error()) {
+        TRY(result.error().show());
+        return 1;
+    }
     if (export_source && !output_path_set)
         output_path = "a.c";
 
