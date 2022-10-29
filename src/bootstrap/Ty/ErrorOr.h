@@ -99,8 +99,15 @@ template <typename E>
 struct [[nodiscard]] ErrorOr<void, E> {
     constexpr ErrorOr() = default;
 
-    constexpr ErrorOr(E error)
+    constexpr ErrorOr(E error) requires(
+        std::is_trivially_copyable_v<E>)
         : m_error(error)
+    {
+    }
+
+    constexpr ErrorOr(E&& error) requires(
+        !std::is_trivially_copyable_v<E>)
+        : m_error(std::move(error))
     {
     }
 
