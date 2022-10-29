@@ -176,8 +176,14 @@ static ErrorOr<void> move_file(c_string to, c_string from)
 [[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path)
 {
+    c_string compiler = getenv("CC");
+    if (!compiler) {
+        return Error::from_string_literal(
+            "could not fetch compiler, try setting environment "
+            "variable 'CC'");
+    }
     c_string argv[] = {
-        getenv("CC") ?: "clang",
+        compiler,
         "-Wno-duplicate-decl-specifier",
         "-o",
         destination_path,
