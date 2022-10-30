@@ -56,6 +56,9 @@ LexResult lex(StringView source)
 {
     auto tokens = TRY(Tokens::create());
 
+    auto const guesstimated_size = source.size / 20;
+    TRY(tokens.reserve(guesstimated_size));
+
     for (u32 start = 0; start < source.size;) {
         auto character = source[start];
         if (is_whitespace(character)) {
