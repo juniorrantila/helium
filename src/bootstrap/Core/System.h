@@ -29,6 +29,11 @@ ErrorOr<u8*> mmap(void* addr, size_t size, int prot, int flags,
 ErrorOr<void> mprotect(void* addr, size_t len, int prot);
 
 struct Stat {
+    constexpr Stat(struct stat st)
+        : raw(st)
+    {
+    }
+
     constexpr bool is_regular() const
     {
         return S_ISREG(raw.st_mode);

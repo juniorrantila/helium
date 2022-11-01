@@ -15,12 +15,10 @@ ErrorOr<void> fsync(int fd)
 
 ErrorOr<Stat> fstat(int fd)
 {
-    struct stat st;
+    struct stat st { };
     if (::fstat(fd, &st) < 0)
         return Error::from_errno();
-    return Stat {
-        .raw = st,
-    };
+    return Stat(st);
 }
 
 ErrorOr<size_t> write(int fd, void const* data, size_t size)
