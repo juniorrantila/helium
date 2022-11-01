@@ -4,12 +4,15 @@
 #include "Try.h"
 #include "Vector.h"
 
+void* he_malloc(size_t);
+void he_free(void*);
+
 namespace Ty {
 
 struct StringBuffer {
     static ErrorOr<StringBuffer> create(u32 capacity)
     {
-        auto* data = (char*)__builtin_malloc(capacity);
+        auto* data = (char*)he_malloc(capacity);
         if (!data)
             return Error::from_errno();
         return StringBuffer {
@@ -29,7 +32,7 @@ struct StringBuffer {
     ~StringBuffer()
     {
         if (is_valid()) {
-            __builtin_free(m_data);
+            he_free(m_data);
             invalidate();
         }
     }

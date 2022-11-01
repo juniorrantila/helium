@@ -6,15 +6,23 @@
 #include "View.h"
 #include <type_traits>
 
+void* he_malloc(size_t);
+void* he_realloc(void*, size_t);
+void he_free(void*);
+
+#define ALWAYS_INLINE [[gnu::always_inline]]
+#define FLATTEN [[gnu::flatten]]
+
 namespace Ty {
 
 template <typename T>
 struct Vector {
     static constexpr ErrorOr<Vector<T>> create(
-        u32 starting_capacity = 32)
+        u32 starting_capacity = inline_capacity)
     {
-        auto* data
-            = (T*)__builtin_malloc(sizeof(T) * starting_capacity);
+        if (starting_capacity <= inline_capacity)
+            return Vector();
+        auto* data = (T*)he_malloc(sizeof(T) * starting_capacity);
         if (!data)
             return Error::from_errno();
         return Vector { data, starting_capacity };
@@ -25,6 +33,13 @@ struct Vector {
         , m_size(other.m_size)
         , m_capacity(other.m_capacity)
     {
+        if (!other.is_hydrated()) {
+            for (u32 i = 0; i < m_size; i++) {
+                new (&inline_buffer()[i])
+                    T(std::move(other.inline_buffer()[i]));
+                other.inline_buffer()[i].~T();
+            }
+        }
         other.invalidate();
     }
 
@@ -32,93 +47,155 @@ struct Vector {
     {
         if (is_valid()) {
             destroy_elements();
-            __builtin_free(m_data);
+            if (is_hydrated())
+                he_free(m_data);
             invalidate();
         }
     }
 
-    constexpr Id<T> unchecked_append(T&& value) requires(
-        !std::is_trivially_copyable_v<T>)
+    ALWAYS_INLINE constexpr Id<T> unchecked_append(
+        T&& value) requires(!std::is_trivially_copyable_v<T>)
     {
         new (current_slot()) T(std::move(value));
         return Id<T>(m_size++);
     }
 
-    constexpr Id<T> unchecked_append(T value) requires(
-        std::is_trivially_copyable_v<T>)
+    ALWAYS_INLINE constexpr Id<T> unchecked_append(
+        T value) requires(std::is_trivially_copyable_v<T>)
     {
         new (current_slot()) T(value);
         return Id<T>(m_size++);
     }
 
-    constexpr ErrorOr<Id<T>> append(T&& value) requires(
-        !std::is_trivially_copyable_v<T>)
+    ALWAYS_INLINE constexpr ErrorOr<Id<T>> append(
+        T&& value) requires(!std::is_trivially_copyable_v<T>)
     {
         TRY(expand_if_needed());
         return unchecked_append(std::move(value));
     }
 
-    constexpr ErrorOr<Id<T>> append(T value) requires(
+    ALWAYS_INLINE constexpr ErrorOr<Id<T>> append(T value) requires(
         std::is_trivially_copyable_v<T>)
     {
         TRY(expand_if_needed());
         return unchecked_append(value);
     }
 
-    constexpr ErrorOr<void> ensure_capacity(u32 capacity)
+    ALWAYS_INLINE constexpr ErrorOr<void> ensure_capacity(
+        u32 capacity)
     {
         if (m_capacity < capacity)
             TRY(expand(capacity));
         return {};
     }
 
-    constexpr ErrorOr<void> reserve(u32 elements)
+    ALWAYS_INLINE constexpr ErrorOr<void> reserve(u32 elements)
     {
         if (elements > 0)
             TRY(expand(m_capacity + elements));
         return {};
     }
 
-    constexpr View<T> view() { return { m_data, m_size }; }
-    constexpr View<T const> view() const
+    FLATTEN constexpr View<T> view() { return { m_data, m_size }; }
+    FLATTEN constexpr View<T const> view() const
     {
         return { m_data, m_size };
     }
 
-    constexpr T const& at(u32 index) const { return m_data[index]; }
+    FLATTEN constexpr T const& at(u32 index) const
+    {
+        return data()[index];
+    }
 
-    constexpr T const& at(Id<T> id) const { return at(id.raw()); }
+    FLATTEN constexpr T const& at(Id<T> id) const
+    {
+        return at(id.raw());
+    }
 
-    constexpr T const& operator[](u32 index) const
+    FLATTEN constexpr T const& operator[](u32 index) const
     {
         return at(index);
     }
 
-    constexpr T const& operator[](Id<T> id) const { return at(id); }
+    FLATTEN constexpr T const& operator[](Id<T> id) const
+    {
+        return at(id);
+    }
 
-    constexpr T& operator[](u32 index) { return m_data[index]; }
+    FLATTEN constexpr T& operator[](u32 index)
+    {
+        return data()[index];
+    }
 
-    constexpr T& operator[](Id<T> id) { return m_data[id.raw()]; }
+    FLATTEN constexpr T& operator[](Id<T> id)
+    {
+        return data()[id.raw()];
+    }
 
-    constexpr T* begin() { return m_data; }
-    constexpr T* end() { return &m_data[m_size]; }
+    FLATTEN constexpr T* begin() { return data(); }
+    FLATTEN constexpr T* end() { return &data()[m_size]; }
 
-    constexpr T const* begin() const { return m_data; }
-    constexpr T const* end() const { return &m_data[m_size]; }
+    FLATTEN constexpr T const* begin() const { return data(); }
+    FLATTEN constexpr T const* end() const
+    {
+        return &data()[m_size];
+    }
 
-    constexpr T* data() { return m_data; }
-    constexpr T const* data() const { return m_data; }
-    constexpr u32 size() const { return m_size; }
+    FLATTEN constexpr T* data()
+    {
+        return m_data ?: inline_buffer();
+    }
+
+    FLATTEN constexpr T const* data() const
+    {
+        return m_data ?: inline_buffer();
+    }
+
+    ALWAYS_INLINE constexpr u32 size() const { return m_size; }
 
     constexpr bool is_empty() const { return m_size == 0; }
 
-    constexpr bool is_valid() const { return m_data != nullptr; }
+    constexpr bool is_valid() const { return m_size != 0xFFFFFF; }
 
 private:
+    constexpr static auto inline_capacity = 8;
+
+    constexpr Vector()
+        : m_capacity(inline_capacity)
+    {
+    }
+
+    static constexpr u32 storage_size()
+    {
+        return sizeof(T) * inline_capacity;
+    }
+
+    static constexpr u32 storage_alignment() { return alignof(T); }
+
+    ErrorOr<void> expand_hydrate(u32 capacity)
+    {
+        auto* data = (T*)he_malloc(capacity * sizeof(T));
+        if (!data)
+            return Error::from_errno();
+        __builtin_memcpy(data, inline_buffer(), storage_size());
+        m_capacity = capacity;
+        m_data = data;
+
+        return {};
+    }
+
+    ALWAYS_INLINE constexpr bool is_hydrated() const
+    {
+        return m_data != nullptr;
+    }
+
     constexpr ErrorOr<void> expand(u32 capacity)
     {
-        auto* data
-            = (T*)__builtin_realloc(m_data, capacity * sizeof(T));
+        if (!is_hydrated()) {
+            TRY(expand_hydrate(capacity));
+            return {};
+        }
+        auto* data = (T*)he_realloc(m_data, capacity * sizeof(T));
         if (!data)
             return Error::from_errno();
         m_capacity = capacity;
@@ -134,16 +211,16 @@ private:
             data()[i].~T();
     }
 
-    constexpr void destroy_elements() const
+    ALWAYS_INLINE constexpr void destroy_elements() const
         requires(std::is_trivially_destructible_v<T>)
     {
     }
 
-    constexpr void invalidate() { m_data = nullptr; }
+    ALWAYS_INLINE constexpr void invalidate() { m_size = 0xFFFFFF; }
 
-    constexpr T* current_slot() { return &m_data[m_size]; }
+    FLATTEN constexpr T* current_slot() { return &data()[m_size]; }
 
-    constexpr ErrorOr<void> expand_if_needed()
+    ALWAYS_INLINE constexpr ErrorOr<void> expand_if_needed()
     {
         if (m_size >= m_capacity)
             TRY(expand());
@@ -158,11 +235,21 @@ private:
 
     constexpr Vector(T* data, u32 capacity)
         : m_data(data)
-        , m_size(0)
         , m_capacity(capacity)
     {
     }
 
+    ALWAYS_INLINE T* inline_buffer()
+    {
+        return reinterpret_cast<T*>(m_storage);
+    }
+
+    ALWAYS_INLINE T const* inline_buffer() const
+    {
+        return reinterpret_cast<T const*>(m_storage);
+    }
+
+    alignas(storage_alignment()) u8 m_storage[storage_size()];
     T* m_data { nullptr };
     u32 m_size { 0 };
     u32 m_capacity { 0 };

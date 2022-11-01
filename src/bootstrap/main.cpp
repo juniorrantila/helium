@@ -226,3 +226,17 @@ static ErrorOr<void> move_file(c_string to, c_string from)
 
     return {};
 }
+
+void* he_malloc(size_t size) { return malloc(size); }
+
+void* he_realloc(void* ptr, size_t size)
+{
+    return realloc(ptr, size);
+}
+
+void* he_calloc(size_t nmemb, size_t size)
+{
+    return calloc(nmemb, size);
+}
+
+void he_free(void* ptr) { free(ptr); }
