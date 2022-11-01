@@ -251,24 +251,22 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
 ErrorOr<void> codegen_structures(StringBuffer& out,
     Context const& context)
 {
-    for (auto& enum_ : context.expressions.enum_declarations) {
-        TRY(codegen_enum_declaration(out, context, enum_));
-        enum_.name.type = TokenType::Invalid;
+    auto const& expressions = context.expressions;
+
+    for (auto const& type : expressions.enum_declarations) {
+        TRY(codegen_enum_declaration(out, context, type));
     }
 
-    for (auto& struct_ : context.expressions.struct_declarations) {
-        TRY(codegen_struct_declaration(out, context, struct_));
-        struct_.name.type = TokenType::Invalid;
+    for (auto const& type : expressions.struct_declarations) {
+        TRY(codegen_struct_declaration(out, context, type));
     }
 
-    for (auto& union_ : context.expressions.union_declarations) {
-        TRY(codegen_union_declaration(out, context, union_));
-        union_.name.type = TokenType::Invalid;
+    for (auto const& type : expressions.union_declarations) {
+        TRY(codegen_union_declaration(out, context, type));
     }
 
-    for (auto& variant : context.expressions.variant_declarations) {
-        TRY(codegen_variant_declaration(out, context, variant));
-        variant.name.type = TokenType::Invalid;
+    for (auto const& type : expressions.variant_declarations) {
+        TRY(codegen_variant_declaration(out, context, type));
     }
 
     return {};
