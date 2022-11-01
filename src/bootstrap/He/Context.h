@@ -5,8 +5,8 @@
 namespace He {
 
 struct Context {
-    SourceFile source;
-    ParsedExpressions& expressions;
+    StringView source;
+    ParsedExpressions const& expressions;
 };
 
 }

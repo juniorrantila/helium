@@ -53,11 +53,11 @@ ErrorOr<StringBuffer> codegen(Context const& context,
 
     for (auto import_c : context.expressions.import_cs) {
         TRY(out.writeln("#include "sv,
-            import_c.filename.text(context.source.text)));
+            import_c.filename.text(context.source)));
     }
 
     for (auto inline_c : context.expressions.top_level_inline_cs) {
-        TRY(out.write(inline_c.literal.text(context.source.text)));
+        TRY(out.write(inline_c.literal.text(context.source)));
     }
 
     TRY(forward_declare_structures(out, context));
@@ -165,7 +165,7 @@ ErrorOr<void> forward_declare_structures(StringBuffer& out,
 
     auto const& enum_declarations = expressions.enum_declarations;
     for (auto declaration : enum_declarations) {
-        auto name = declaration.name.text(context.source.text);
+        auto name = declaration.name.text(context.source);
         TRY(out.writeln("typedef enum "sv, name, " "sv, name,
             ";"sv));
     }
@@ -173,14 +173,14 @@ ErrorOr<void> forward_declare_structures(StringBuffer& out,
     auto const& struct_declarations
         = expressions.struct_declarations;
     for (auto declaration : struct_declarations) {
-        auto name = declaration.name.text(context.source.text);
+        auto name = declaration.name.text(context.source);
         TRY(out.writeln("typedef struct "sv, name, " "sv, name,
             ";"sv));
     }
 
     auto const& union_declarations = expressions.union_declarations;
     for (auto declaration : union_declarations) {
-        auto name = declaration.name.text(context.source.text);
+        auto name = declaration.name.text(context.source);
         TRY(out.writeln("typedef union "sv, name, " "sv, name,
             ";"sv));
     }
@@ -188,7 +188,7 @@ ErrorOr<void> forward_declare_structures(StringBuffer& out,
     auto const& variant_declarations
         = expressions.variant_declarations;
     for (auto declaration : variant_declarations) {
-        auto name = declaration.name.text(context.source.text);
+        auto name = declaration.name.text(context.source);
         TRY(out.writeln("typedef struct "sv, name, " "sv, name,
             ";"sv));
     }
@@ -202,9 +202,9 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
     auto const& expressions = context.expressions;
 
     auto const& public_functions = expressions.public_functions;
-    for (auto const& function : public_functions) {
-        auto type = function.return_type.text(context.source.text);
-        auto name = function.name.text(context.source.text);
+    for (auto function : public_functions) {
+        auto type = function.return_type.text(context.source);
+        auto name = function.name.text(context.source);
         TRY(out.write(type, " "sv, name));
 
         auto const& parameters = expressions[function.parameters];
@@ -213,9 +213,9 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
     }
 
     auto const& private_functions = expressions.private_functions;
-    for (auto const& function : private_functions) {
-        auto type = function.return_type.text(context.source.text);
-        auto name = function.name.text(context.source.text);
+    for (auto function : private_functions) {
+        auto type = function.return_type.text(context.source);
+        auto name = function.name.text(context.source);
         TRY(out.write("static "sv, type, " "sv, name));
 
         auto const& parameters = expressions[function.parameters];
@@ -224,9 +224,9 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
     }
 
     auto const& public_c_functions = expressions.public_functions;
-    for (auto const& function : public_c_functions) {
-        auto type = function.return_type.text(context.source.text);
-        auto name = function.name.text(context.source.text);
+    for (auto function : public_c_functions) {
+        auto type = function.return_type.text(context.source);
+        auto name = function.name.text(context.source);
         TRY(out.write(type, " "sv, name));
 
         auto const& parameters = expressions[function.parameters];
@@ -235,9 +235,9 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
     }
 
     auto const& private_c_functions = expressions.private_functions;
-    for (auto const& function : private_c_functions) {
-        auto type = function.return_type.text(context.source.text);
-        auto name = function.name.text(context.source.text);
+    for (auto function : private_c_functions) {
+        auto type = function.return_type.text(context.source);
+        auto name = function.name.text(context.source);
         TRY(out.write("static "sv, type, " "sv, name));
 
         auto const& parameters = expressions[function.parameters];
@@ -306,7 +306,7 @@ ErrorOr<void> codegen_functions(StringBuffer& out,
 ErrorOr<void> codegen_parameters(StringBuffer& out,
     Context const& context, Parameters const& parameters)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     if (parameters.is_empty()) {
         TRY(out.write("(void)"sv));
         return {};
@@ -329,7 +329,7 @@ ErrorOr<void> codegen_parameters(StringBuffer& out,
 ErrorOr<void> codegen_member_access(StringBuffer& out,
     Context const& context, MemberAccess const& access)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& members = context.expressions[access.members];
 
     for (u32 i = 0; i < members.size() - 1; i++) {
@@ -344,7 +344,7 @@ ErrorOr<void> codegen_member_access(StringBuffer& out,
 ErrorOr<void> codegen_array_access(StringBuffer& out,
     Context const& context, ArrayAccess const& access)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto name = access.name.text(source);
     TRY(out.write(name, "["sv));
     auto const& index = context.expressions[access.index];
@@ -413,7 +413,7 @@ ErrorOr<void> codegen_public_variable_declaration(StringBuffer& out,
     Context const& context,
     PublicVariableDeclaration const& variable)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write(variable.type.text(source), " "sv,
         variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
@@ -428,7 +428,7 @@ ErrorOr<void> codegen_private_variable_declaration(
     StringBuffer& out, Context const& context,
     PrivateVariableDeclaration const& variable)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write("static "sv, variable.type.text(source), " "sv,
         variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
@@ -443,7 +443,7 @@ ErrorOr<void> codegen_public_constant_declaration(StringBuffer& out,
     Context const& context,
     PublicConstantDeclaration const& variable)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write(variable.type.text(source), " const "sv,
         variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
@@ -458,7 +458,7 @@ ErrorOr<void> codegen_private_constant_declaration(
     StringBuffer& out, Context const& context,
     PrivateConstantDeclaration const& variable)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write("static "sv, variable.type.text(source),
         " const "sv, variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
@@ -472,7 +472,7 @@ ErrorOr<void> codegen_private_constant_declaration(
 ErrorOr<void> codegen_variable_assignment(StringBuffer& out,
     Context const& context, VariableAssignment const& variable)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write(variable.name.text(source), " = "sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
@@ -488,7 +488,7 @@ ErrorOr<void> codegen_struct_declaration(StringBuffer& out,
     if (struct_.name.is(TokenType::Invalid))
         return {};
 
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.writeln("struct "sv, struct_.name.text(source), "{"sv));
     for (auto member : context.expressions[struct_.members]) {
         auto type = member.type.text(source);
@@ -506,7 +506,7 @@ ErrorOr<void> codegen_enum_declaration(StringBuffer& out,
     if (enum_.name.is(TokenType::Invalid))
         return {};
 
-    auto source = context.source.text;
+    auto source = context.source;
     auto enum_name = enum_.name.text(source);
     TRY(out.writeln("enum "sv, enum_name));
     if (enum_.underlying_type.type != TokenType::Invalid) {
@@ -529,7 +529,7 @@ ErrorOr<void> codegen_union_declaration(StringBuffer& out,
     if (union_.name.is(TokenType::Invalid))
         return {};
 
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.writeln("union "sv, union_.name.text(source), "{"sv));
     for (auto member : context.expressions[union_.members]) {
         auto type = member.type.text(source);
@@ -547,7 +547,7 @@ ErrorOr<void> codegen_variant_declaration(StringBuffer& out,
     if (variant.name.is(TokenType::Invalid))
         return {};
 
-    auto source = context.source.text;
+    auto source = context.source;
     auto variant_name = variant.name.text(source);
     TRY(out.writeln("struct "sv, variant_name, "{"sv));
 
@@ -574,7 +574,7 @@ ErrorOr<void> codegen_variant_declaration(StringBuffer& out,
 ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
     Context const& context, StructInitializer const& initializer)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& expressions = context.expressions;
     TRY(out.write("("sv, initializer.type.text(source), ") {"sv));
     for (auto member : expressions[initializer.initializers]) {
@@ -592,7 +592,7 @@ ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
 ErrorOr<void> codegen_literal(StringBuffer& out,
     Context const& context, Literal const& literal)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write(literal.token.text(source)));
 
     return {};
@@ -601,7 +601,7 @@ ErrorOr<void> codegen_literal(StringBuffer& out,
 ErrorOr<void> codegen_lvalue(StringBuffer& out,
     Context const& context, LValue const& lvalue)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write(lvalue.token.text(source)));
 
     return {};
@@ -660,7 +660,7 @@ ErrorOr<void> codegen_block(StringBuffer& out,
 ErrorOr<void> codegen_private_function(StringBuffer& out,
     Context const& context, PrivateFunction const& function)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& expressions = context.expressions;
     TRY(out.write("static "sv, function.return_type.text(source),
         " "sv, function.name.text(source)));
@@ -675,7 +675,7 @@ ErrorOr<void> codegen_private_function(StringBuffer& out,
 ErrorOr<void> codegen_public_function(StringBuffer& out,
     Context const& context, PublicFunction const& function)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& expressions = context.expressions;
 
     TRY(out.write(function.return_type.text(source), " "sv,
@@ -691,7 +691,7 @@ ErrorOr<void> codegen_public_function(StringBuffer& out,
 ErrorOr<void> codegen_private_c_function(StringBuffer& out,
     Context const& context, PrivateCFunction const& function)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& expressions = context.expressions;
 
     TRY(out.write("static "sv, function.return_type.text(source),
@@ -707,7 +707,7 @@ ErrorOr<void> codegen_private_c_function(StringBuffer& out,
 ErrorOr<void> codegen_public_c_function(StringBuffer& out,
     Context const& context, PublicCFunction const& function)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& expressions = context.expressions;
 
     TRY(out.write(function.return_type.text(source), " "sv,
@@ -723,7 +723,7 @@ ErrorOr<void> codegen_public_c_function(StringBuffer& out,
 ErrorOr<void> codegen_function_call(StringBuffer& out,
     Context const& context, FunctionCall const& function)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto const& expressions = context.expressions;
     auto const& arguments = expressions[function.arguments];
 
@@ -761,7 +761,7 @@ ErrorOr<void> codegen_return_statement(StringBuffer& out,
 ErrorOr<void> codegen_import_c(StringBuffer& out,
     Context const& context, ImportC const& import_c)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     auto filename = import_c.filename.text(source);
     if (!filename.is_empty())
         TRY(out.writeln("#include "sv,
@@ -773,7 +773,7 @@ ErrorOr<void> codegen_import_c(StringBuffer& out,
 ErrorOr<void> codegen_inline_c(StringBuffer& out,
     Context const& context, InlineC const& inline_c)
 {
-    auto source = context.source.text;
+    auto source = context.source;
     TRY(out.write(inline_c.literal.text(source)));
 
     return {};

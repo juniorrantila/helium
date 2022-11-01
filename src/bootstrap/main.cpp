@@ -113,7 +113,10 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         expressions.dump(source_file.text);
     }
 
-    auto context = He::Context { source_file, expressions };
+    auto context = He::Context {
+        source_file.text,
+        expressions,
+    };
     bench.start();
     auto typecheck_result = He::typecheck(context);
     bench.stop_and_show("typecheck");
