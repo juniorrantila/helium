@@ -89,10 +89,13 @@ struct [[gnu::packed]] Token {
         return { &source.data[start_index], size };
     }
 
+    // FIXME: Remove this.
     constexpr void set_end_index(u32 index)
     {
         size = index - start_index;
     }
+
+    // FIXME: Remove this.
     constexpr u32 end_index() const { return start_index + size; }
 
     constexpr bool is(TokenType type) const
@@ -116,7 +119,7 @@ struct [[gnu::packed]] Token {
     }
 
     u32 start_index { 0 };
-    u16 size { 0 };
+    u32 size : 24 { 0 }; // FIXME: Remove this.
     TokenType type { TokenType::Invalid };
 };
 using Tokens = Vector<Token>;
