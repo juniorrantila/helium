@@ -50,7 +50,7 @@ struct Error {
 
     u32 line_in_file() const { return m_line_in_file; }
 
-    void show() const asm("Error$show");
+    void show() const;
 
 private:
     constexpr Error(c_string message, c_string function,
