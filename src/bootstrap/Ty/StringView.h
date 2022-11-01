@@ -17,7 +17,8 @@ struct StringView {
 
     constexpr StringView() = default;
 
-    static constexpr StringView from_c_string(c_string data)
+    [[gnu::flatten]] static constexpr StringView from_c_string(
+        c_string data)
     {
         return StringView(data, __builtin_strlen(data));
     }
@@ -28,7 +29,8 @@ struct StringView {
     {
     }
 
-    constexpr bool operator==(StringView other) const
+    [[gnu::flatten]] constexpr bool operator==(
+        StringView other) const
     {
         if (size != other.size)
             return false;
@@ -49,7 +51,8 @@ struct StringView {
         return data[index];
     }
 
-    constexpr u32 unchecked_copy_to(char* other, u32 size) const
+    [[gnu::flatten]] constexpr u32 unchecked_copy_to(char* other,
+        u32 size) const
     {
         if (data == other)
             return size;
@@ -58,14 +61,15 @@ struct StringView {
         return size;
     }
 
-    constexpr u32 unchecked_copy_to(char* __restrict other) const
+    [[gnu::flatten]] constexpr u32 unchecked_copy_to(
+        char* __restrict other) const
     {
         return strncpy(other, *this);
     }
 
 private:
-    static constexpr u32 strncpy(char* __restrict to,
-        StringView from)
+    [[gnu::flatten]] static constexpr u32 strncpy(
+        char* __restrict to, StringView from)
     {
         if (from.data == to)
             return from.size;
