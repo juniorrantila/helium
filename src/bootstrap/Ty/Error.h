@@ -5,10 +5,10 @@
 namespace Ty {
 
 struct Error {
-    c_string m_message;
-    c_string m_function;
-    c_string m_file;
-    u32 m_line_in_file;
+    c_string m_message { nullptr };
+    c_string m_function { nullptr };
+    c_string m_file { nullptr };
+    u32 m_line_in_file { 0 };
 
     static Error from_string_literal(c_string message,
         c_string function = __builtin_FUNCTION(),
