@@ -21,7 +21,7 @@ ErrorOr<MappedFile> MappedFile::open(c_string path)
 {
     auto fd = TRY(Core::System::open(path, O_RDONLY));
     auto should_close_file = true;
-    Defer close_file = [=] {
+    Defer close_file = [&] {
         if (should_close_file)
             (void)Core::System::close(fd);
     };
