@@ -52,6 +52,8 @@ static constexpr Token lex_ampersand_or_ref_mut(StringView source,
 using LexItemResult = ErrorOr<Token, LexError>;
 static LexItemResult lex_single_item(StringView source, u32 start);
 
+static void prefetch_once(char const* location);
+
 LexResult lex(StringView source)
 {
     auto tokens = TRY(Tokens::create());
@@ -60,16 +62,20 @@ LexResult lex(StringView source)
     TRY(tokens.reserve(guesstimated_size));
 
     for (u32 start = 0; start < source.size;) {
+        prefetch_once(&source[start]);
         auto character = source[start];
         if (is_whitespace(character)) {
             start++;
             continue;
         }
+        prefetch_once(&source[start + 1]);
         if (start + 1 < source.size && source[start] == '/'
             && source[start + 1] == '/') {
-            for (; start < source.size; start++)
+            for (; start < source.size; start++) {
+                prefetch_once(&source[start]);
                 if (source[start] == '\n')
                     break;
+            }
             continue;
         }
 
@@ -83,6 +89,7 @@ LexResult lex(StringView source)
 
 static LexItemResult lex_single_item(StringView source, u32 start)
 {
+    prefetch_once(&source[start]);
     auto character = source[start];
 
     if (character == '[')
@@ -178,7 +185,8 @@ static LexItemResult lex_single_item(StringView source, u32 start)
             return token;
         }
 
-        return LexError { "invalid builtin function"sv, start + 1 };
+        [[unlikely]] return LexError { "invalid builtin function"sv,
+            start + 1 };
     }
 
     if (character == '&')
@@ -253,6 +261,7 @@ static constexpr Token lex_minus_or_arrow(StringView source,
 {
     if (start + 1 > source.size)
         return { TokenType::Minus, start, start + 1 };
+    prefetch_once(&source[start + 1]);
     char character = source[start + 1];
     if (character == '>')
         return { TokenType::Arrow, start, start + 2 };
@@ -264,6 +273,9 @@ static constexpr Token lex_ampersand_or_ref_mut(StringView source,
 {
     std::string_view source_view = { source.data, source.size };
     if (start + 1 < source_view.size()) {
+        prefetch_once(&source[start + 1]);
+        prefetch_once(&source[start + 2]);
+        prefetch_once(&source[start + 3]);
         if (source_view.substr(start + 1, 3) == "mut"sv)
             return { TokenType::RefMut, start, start + 4 };
     }
@@ -274,6 +286,7 @@ static constexpr Token lex_less_or_less_than_equal(
     StringView source, u32 start)
 {
     if (start + 1 < source.size) {
+        prefetch_once(&source[start + 1]);
         if (source[start + 1] == '=')
             return { TokenType::LessThanOrEqual, start, start + 2 };
     }
@@ -284,9 +297,14 @@ static constexpr Token lex_greater_or_greater_than_equal(
     StringView source, u32 start)
 {
     if (start + 1 < source.size) {
-        if (source[start + 1] == '=')
-            return { TokenType::GreaterThanOrEqual, start,
-                start + 2 };
+        prefetch_once(&source[start + 1]);
+        if (source[start + 1] == '=') {
+            return {
+                TokenType::GreaterThanOrEqual,
+                start,
+                start + 2,
+            };
+        }
     }
     return { TokenType::GreaterThan, start, start + 1 };
 }
@@ -296,6 +314,7 @@ static constexpr Token lex_assign_or_equals(StringView source,
 {
     if (start + 1 > source.size)
         return { TokenType::Assign, start, start + 1 };
+    prefetch_once(&source[start + 1]);
     char character = source[start + 1];
     if (character == '=')
         return { TokenType::Equals, start, start + 2 };
@@ -304,12 +323,16 @@ static constexpr Token lex_assign_or_equals(StringView source,
 
 static constexpr Token lex_string(StringView source, u32 start)
 {
+    const u32 size = source.size;
     u32 end = start;
-    for (; end < source.size; end++) {
-        if (!is_delimiter(source[end]))
-            continue;
-        break;
+    // clang-format off
+    for (; end < size; end++) [[likely]] {
+        prefetch_once(&source[end]);
+        if (is_delimiter(source[end])) [[likely]] {
+            break;
+        }
     }
+    // clang-format on
     return { TokenType::Identifier, start, end };
 }
 
@@ -317,19 +340,24 @@ static constexpr Token lex_quoted(StringView source, u32 start)
 {
     auto quote = source[start];
     u32 end = start + 1;
-    for (; end < source.size; end++) {
+    // clang-format off
+    for (; end < source.size; end++) [[likely]] {
+        prefetch_once(&source[end]);
         char character = source[end];
         if (character != quote)
             continue;
         break;
     }
+    // clang-format on
     return { TokenType::Quoted, start, end + 1 };
 }
 
 static constexpr Token lex_identifier(StringView source, u32 start)
 {
     u32 end = start + 1;
-    for (; end < source.size; end++) {
+    // clang-format off
+    for (; end < source.size; end++) [[likely]] {
+        prefetch_once(&source[end]);
         char character = source[end];
         if (is_letter(character))
             continue;
@@ -337,23 +365,27 @@ static constexpr Token lex_identifier(StringView source, u32 start)
             continue;
         break;
     }
+    // clang-format on
     return { TokenType::Identifier, start, end };
 }
 
 static constexpr Token lex_number(StringView source, u32 start)
 {
     u32 end = start;
-    for (; end < source.size; end++) {
+    // clang-format off
+    for (; end < source.size; end++) [[likely]] {
+        prefetch_once(&source[end]);
         char character = source[end];
         if (character == '.')
             continue;
-        if (!is_number(source[end]))
+        if (!is_number(character))
             break;
     }
+    // clang-format on
     return { TokenType::Number, start, end };
 }
 
-static constexpr bool is_delimiter(char character)
+[[gnu::flatten]] static constexpr bool is_delimiter(char character)
 {
     if (is_whitespace(character))
         return true;
@@ -380,7 +412,7 @@ static constexpr bool is_identifier_character(char character)
     return is_letter(character) || character == '$';
 }
 
-static constexpr bool is_whitespace(char character)
+[[]] static constexpr bool is_whitespace(char character)
 {
     switch (character) {
     case ' ': return true;
@@ -406,6 +438,20 @@ static constexpr bool is_letter(char character)
     case 'a' ... 'z': return true;
     default: return false;
     }
+}
+
+#define _MM_HINT_NTA 0
+#define _MM_HINT_T0 1
+#define _MM_HINT_T1 2
+#define _MM_HINT_T2 3
+#define _MM_HINT_ENTA 4
+#define _MM_HINT_ET0 5
+#define _MM_HINT_ET1 6
+#define _MM_HINT_ET2 7
+
+static void prefetch_once(char const* location)
+{
+    _mm_prefetch(location, _MM_HINT_NTA);
 }
 
 }
