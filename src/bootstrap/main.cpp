@@ -63,6 +63,24 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
                 = Core::BenchEnableShowOnStopAndShow::Yes;
         }));
 
+    auto stop_after_lex = false;
+    TRY(argument_parser.add_flag("--lex"sv, "-l"sv,
+        "stop program after lexing"sv, [&] {
+            stop_after_lex = true;
+        }));
+
+    auto stop_after_parse = false;
+    TRY(argument_parser.add_flag("--parse"sv, "-p"sv,
+        "stop program after parsing"sv, [&] {
+            stop_after_parse = true;
+        }));
+
+    auto stop_after_typecheck = false;
+    TRY(argument_parser.add_flag("--typecheck"sv, "-t"sv,
+        "stop program after typecheck"sv, [&] {
+            stop_after_typecheck = true;
+        }));
+
     c_string source_file_path = nullptr;
     TRY(argument_parser.add_positional_argument("file"sv,
         [&](auto path) {
@@ -100,6 +118,8 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
             token.dump(source_file.text);
         }
     }
+    if (stop_after_lex)
+        return 0;
 
     bench.start();
     auto parse_result = He::parse(tokens);
@@ -112,6 +132,8 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     if (dump_expressions) {
         expressions.dump(source_file.text);
     }
+    if (stop_after_parse)
+        return 0;
 
     auto context = He::Context {
         source_file.text,
@@ -125,6 +147,8 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         return 1;
     }
     auto typechecked_expressions = typecheck_result.release_value();
+    if (stop_after_typecheck)
+        return 0;
 
     char temporary_file[] = "/tmp/XXXXXX.c";
     int output_file = STDOUT_FILENO;
