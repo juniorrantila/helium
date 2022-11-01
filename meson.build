@@ -17,6 +17,7 @@ if not meson.is_subproject()
       '-Wno-gnu-case-range', 
       '-Wno-gnu-conditional-omitted-operand', 
       '-Wno-gnu-statement-expression', 
+      '-Wno-gnu-zero-variadic-macro-arguments',
       '-Wno-user-defined-literals',
     ], language: ['c', 'cpp'])
 endif
