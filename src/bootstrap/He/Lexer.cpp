@@ -30,29 +30,30 @@ ErrorOr<void> LexError::show(SourceFile source) const
     return {};
 }
 
-static constexpr bool is_whitespace(char character);
-static constexpr bool is_number(char character);
-static constexpr bool is_letter(char character);
-static constexpr bool is_delimiter(char character);
-static constexpr bool is_identifier_character(char character);
-static constexpr Token lex_string(StringView source, u32 start);
-static constexpr Token lex_quoted(StringView source, u32 start);
-static constexpr Token lex_identifier(StringView source, u32 start);
-static constexpr Token lex_number(StringView source, u32 start);
-static constexpr Token lex_minus_or_arrow(StringView source,
+namespace {
+
+constexpr bool is_whitespace(char character);
+constexpr bool is_number(char character);
+constexpr bool is_letter(char character);
+constexpr bool is_delimiter(char character);
+constexpr bool is_identifier_character(char character);
+constexpr Token lex_string(StringView source, u32 start);
+constexpr Token lex_quoted(StringView source, u32 start);
+constexpr Token lex_identifier(StringView source, u32 start);
+constexpr Token lex_number(StringView source, u32 start);
+constexpr Token lex_minus_or_arrow(StringView source, u32 start);
+constexpr Token lex_less_or_less_than_equal(StringView source,
     u32 start);
-static constexpr Token lex_less_or_less_than_equal(
-    StringView source, u32 start);
-static constexpr Token lex_greater_or_greater_than_equal(
-    StringView source, u32 start);
-static constexpr Token lex_assign_or_equals(StringView source,
+constexpr Token lex_greater_or_greater_than_equal(StringView source,
     u32 start);
-static constexpr Token lex_ampersand_or_ref_mut(StringView source,
+constexpr Token lex_assign_or_equals(StringView source, u32 start);
+constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start);
 
 using LexItemResult = ErrorOr<Token, LexError>;
-static LexItemResult lex_single_item(StringView source, u32 start);
+LexItemResult lex_single_item(StringView source, u32 start);
 
+}
 
 LexResult lex(StringView source)
 {
@@ -87,7 +88,9 @@ LexResult lex(StringView source)
     return tokens;
 }
 
-static LexItemResult lex_single_item(StringView source, u32 start)
+namespace {
+
+LexItemResult lex_single_item(StringView source, u32 start)
 {
     Mem::mark_read_once(&source[start]);
     auto character = source[start];
@@ -256,8 +259,7 @@ static LexItemResult lex_single_item(StringView source, u32 start)
     return LexError { "unknown token"sv, start };
 }
 
-static constexpr Token lex_minus_or_arrow(StringView source,
-    u32 start)
+constexpr Token lex_minus_or_arrow(StringView source, u32 start)
 {
     if (start + 1 > source.size)
         return { TokenType::Minus, start, start + 1 };
@@ -268,7 +270,7 @@ static constexpr Token lex_minus_or_arrow(StringView source,
     return { TokenType::Minus, start, start + 1 };
 }
 
-static constexpr Token lex_ampersand_or_ref_mut(StringView source,
+constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start)
 {
     if (start + 1 < source.size) {
@@ -279,8 +281,8 @@ static constexpr Token lex_ampersand_or_ref_mut(StringView source,
     return { TokenType::Ampersand, start, start + 1 };
 }
 
-static constexpr Token lex_less_or_less_than_equal(
-    StringView source, u32 start)
+constexpr Token lex_less_or_less_than_equal(StringView source,
+    u32 start)
 {
     if (start + 1 < source.size) {
         Mem::mark_read_once(&source[start + 1]);
@@ -290,8 +292,8 @@ static constexpr Token lex_less_or_less_than_equal(
     return { TokenType::LessThan, start, start + 1 };
 }
 
-static constexpr Token lex_greater_or_greater_than_equal(
-    StringView source, u32 start)
+constexpr Token lex_greater_or_greater_than_equal(StringView source,
+    u32 start)
 {
     if (start + 1 < source.size) {
         Mem::mark_read_once(&source[start + 1]);
@@ -306,8 +308,7 @@ static constexpr Token lex_greater_or_greater_than_equal(
     return { TokenType::GreaterThan, start, start + 1 };
 }
 
-static constexpr Token lex_assign_or_equals(StringView source,
-    u32 start)
+constexpr Token lex_assign_or_equals(StringView source, u32 start)
 {
     if (start + 1 > source.size)
         return { TokenType::Assign, start, start + 1 };
@@ -318,7 +319,7 @@ static constexpr Token lex_assign_or_equals(StringView source,
     return { TokenType::Assign, start, start + 1 };
 }
 
-static constexpr Token lex_string(StringView source, u32 start)
+constexpr Token lex_string(StringView source, u32 start)
 {
     const u32 size = source.size;
     u32 end = start;
@@ -333,7 +334,7 @@ static constexpr Token lex_string(StringView source, u32 start)
     return { TokenType::Identifier, start, end };
 }
 
-static constexpr Token lex_quoted(StringView source, u32 start)
+constexpr Token lex_quoted(StringView source, u32 start)
 {
     auto quote = source[start];
     u32 end = start + 1;
@@ -349,7 +350,7 @@ static constexpr Token lex_quoted(StringView source, u32 start)
     return { TokenType::Quoted, start, end + 1 };
 }
 
-static constexpr Token lex_identifier(StringView source, u32 start)
+constexpr Token lex_identifier(StringView source, u32 start)
 {
     u32 end = start + 1;
     // clang-format off
@@ -366,7 +367,7 @@ static constexpr Token lex_identifier(StringView source, u32 start)
     return { TokenType::Identifier, start, end };
 }
 
-static constexpr Token lex_number(StringView source, u32 start)
+constexpr Token lex_number(StringView source, u32 start)
 {
     u32 end = start;
     // clang-format off
@@ -382,7 +383,7 @@ static constexpr Token lex_number(StringView source, u32 start)
     return { TokenType::Number, start, end };
 }
 
-[[gnu::flatten]] static constexpr bool is_delimiter(char character)
+[[gnu::flatten]] constexpr bool is_delimiter(char character)
 {
     if (is_whitespace(character))
         return true;
@@ -400,16 +401,18 @@ static constexpr Token lex_number(StringView source, u32 start)
     case ')': return true;
     case '[': return true;
     case ']': return true;
+    case '{': return true;
+    case '}': return true;
     }
     return false;
 }
 
-static constexpr bool is_identifier_character(char character)
+constexpr bool is_identifier_character(char character)
 {
     return is_letter(character) || character == '$';
 }
 
-[[]] static constexpr bool is_whitespace(char character)
+constexpr bool is_whitespace(char character)
 {
     switch (character) {
     case ' ': return true;
@@ -420,7 +423,7 @@ static constexpr bool is_identifier_character(char character)
     return false;
 }
 
-static constexpr bool is_number(char character)
+constexpr bool is_number(char character)
 {
     switch (character) {
     case '0' ... '9': return true;
@@ -428,7 +431,7 @@ static constexpr bool is_number(char character)
     }
 }
 
-static constexpr bool is_letter(char character)
+constexpr bool is_letter(char character)
 {
     switch (character) {
     case 'A' ... 'Z': return true;
@@ -437,5 +440,6 @@ static constexpr bool is_letter(char character)
     }
 }
 
+}
 
 }
