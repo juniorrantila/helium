@@ -9,12 +9,6 @@ struct StringView {
     char const* data;
     u32 size;
 
-    constexpr StringView(std::string_view other)
-        : data(other.data())
-        , size(other.size())
-    {
-    }
-
     constexpr StringView() = default;
 
     [[gnu::flatten]] static constexpr StringView from_c_string(
