@@ -373,7 +373,7 @@ public:
         return Expression {
             ExpressionType::Invalid,
             start,
-            end,
+            end + 1,
         };
     }
 
