@@ -123,7 +123,8 @@ ParseResult parse(Tokens const& tokens)
 
         TRY(errors.append_or_short({
             "unexpected token",
-            nullptr,
+            "expected one of [import_c, inline_c, fn, "
+            "c_fn, pub, let, var]",
             token,
         }));
         start++;
@@ -167,7 +168,7 @@ namespace {
     if (close_paren.is_not(TokenType::CloseParen)) {
         TRY(errors.append_or_short({
             "expected ')'",
-            "did you forget a parenthesis?",
+            "did you forget a closing parenthesis?",
             close_paren,
         }));
         return Expression::garbage(start, close_paren_index);
@@ -371,7 +372,7 @@ ParseSingleItemResult parse_import_c(ParseErrors& errors,
     if (left_paren.is_not(TokenType::OpenParen)) {
         TRY(errors.append_or_short({
             "expected '('",
-            "did you forget a parenthesis?",
+            "did you forget a opening parenthesis?",
             left_paren,
         }));
         return Expression::garbage(start, left_paren_index);
@@ -393,7 +394,7 @@ ParseSingleItemResult parse_import_c(ParseErrors& errors,
     if (right_paren.is_not(TokenType::CloseParen)) {
         TRY(errors.append_or_short({
             "expected ')'",
-            "did you forget a parenthesis?",
+            "did you forget a closing parenthesis?",
             left_paren,
         }));
         return Expression::garbage(start, right_paren_index);
@@ -439,7 +440,7 @@ ParseSingleItemResult parse_pub_specifier(ParseErrors& errors,
             expressions, tokens, fn_index);
     }
     TRY(errors.append_or_short({
-        "expected one of ['fn', 'c_fn', 'let', 'var']",
+        "expected one of [fn, c_fn, let, var]",
         nullptr,
         fn,
     }));
@@ -1341,7 +1342,7 @@ ParseSingleItemResult parse_rvalue(ParseErrors& errors,
         }
 
         TRY(errors.append_or_short({
-            "expected ';' or '{'",
+            "expected ';'",
             "did you forget a semicolon?",
             tokens[end],
         }));
