@@ -440,18 +440,11 @@ static constexpr bool is_letter(char character)
     }
 }
 
-#define _MM_HINT_NTA 0
-#define _MM_HINT_T0 1
-#define _MM_HINT_T1 2
-#define _MM_HINT_T2 3
-#define _MM_HINT_ENTA 4
-#define _MM_HINT_ET0 5
-#define _MM_HINT_ET1 6
-#define _MM_HINT_ET2 7
-
 static void prefetch_once(char const* location)
 {
-    _mm_prefetch(location, _MM_HINT_NTA);
+    constexpr auto const read_only = 0;
+    constexpr auto const low_locality = 0;
+    __builtin_prefetch(location, read_only, low_locality);
 }
 
 }
