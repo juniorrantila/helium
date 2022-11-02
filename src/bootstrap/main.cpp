@@ -64,21 +64,27 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         }));
 
     auto stop_after_lex = false;
-    TRY(argument_parser.add_flag("--lex"sv, "-l"sv,
+    TRY(argument_parser.add_flag("--stop-after-lex"sv, "-sl"sv,
         "stop program after lexing"sv, [&] {
             stop_after_lex = true;
         }));
 
     auto stop_after_parse = false;
-    TRY(argument_parser.add_flag("--parse"sv, "-p"sv,
+    TRY(argument_parser.add_flag("--stop-after-parse"sv, "-sp"sv,
         "stop program after parsing"sv, [&] {
             stop_after_parse = true;
         }));
 
     auto stop_after_typecheck = false;
-    TRY(argument_parser.add_flag("--typecheck"sv, "-t"sv,
-        "stop program after typecheck"sv, [&] {
+    TRY(argument_parser.add_flag("--stop-after-typecheck"sv,
+        "-st"sv, "stop program after typecheck"sv, [&] {
             stop_after_typecheck = true;
+        }));
+
+    auto stop_after_codegen = false;
+    TRY(argument_parser.add_flag("--stop-after-codegen"sv, "-sc"sv,
+        "stop program after typecheck"sv, [&] {
+            stop_after_codegen = true;
         }));
 
     c_string source_file_path = nullptr;
@@ -159,6 +165,8 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     bench.start();
     auto code = TRY(He::codegen(context, typechecked_expressions));
     bench.stop_and_show("codegen");
+    if (stop_after_codegen)
+        return 0;
 
     bench.start();
     TRY(Core::System::write(output_file, code));
