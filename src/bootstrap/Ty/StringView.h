@@ -67,6 +67,11 @@ struct StringView {
         return strncpy(other, *this);
     }
 
+    constexpr StringView sub_view(u32 start, u32 size) const
+    {
+        return { &data[start], size };
+    }
+
 private:
     [[gnu::flatten]] static constexpr u32 strncpy(
         char* __restrict to, StringView from)

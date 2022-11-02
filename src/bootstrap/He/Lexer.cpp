@@ -271,12 +271,11 @@ static constexpr Token lex_minus_or_arrow(StringView source,
 static constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start)
 {
-    std::string_view source_view = { source.data, source.size };
     if (start + 1 < source_view.size()) {
         prefetch_once(&source[start + 1]);
         prefetch_once(&source[start + 2]);
         prefetch_once(&source[start + 3]);
-        if (source_view.substr(start + 1, 3) == "mut"sv)
+        if (source.sub_view(start + 1, 3) == "mut"sv)
             return { TokenType::RefMut, start, start + 4 };
     }
     return { TokenType::Ampersand, start, start + 1 };
