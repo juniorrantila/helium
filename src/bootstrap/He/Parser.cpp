@@ -340,8 +340,8 @@ ParseSingleItemResult parse_if_statement(ParseErrors& errors,
 ParseSingleItemResult parse_while_statement(ParseErrors& errors,
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    auto condition
-        = TRY(parse_rvalue(errors, expressions, tokens, start + 1));
+    auto condition = TRY(
+        parse_if_rvalue(errors, expressions, tokens, start + 1));
     auto block_start_index = condition.end_token_index();
     auto block_start = tokens[block_start_index];
     if (block_start.is_not(TokenType::OpenCurly)) {
@@ -1234,8 +1234,6 @@ ParseSingleItemResult parse_rvalue(ParseErrors& errors,
     for (; end < tokens.size();) {
         if (tokens[end].is(TokenType::Semicolon))
             break;
-        if (tokens[end].is(TokenType::OpenCurly))
-            break;
 
         if (tokens[end].is(TokenType::InlineC)) {
             auto inline_c = TRY(
@@ -1341,6 +1339,14 @@ ParseSingleItemResult parse_rvalue(ParseErrors& errors,
             continue;
         }
 
+        if (expressions[rvalue.expressions].is_empty()) {
+            TRY(errors.append_or_short({
+                "expected a value",
+                nullptr,
+                tokens[end],
+            }));
+            return Expression::garbage(start, end);
+        }
         TRY(errors.append_or_short({
             "expected ';'",
             "did you forget a semicolon?",
