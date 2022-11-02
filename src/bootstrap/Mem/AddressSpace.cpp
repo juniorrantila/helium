@@ -9,10 +9,12 @@ namespace Mem::Internal {
 ErrorOr<void> init(uintptr_t base, uintptr_t size)
 {
     auto page_size = TRY(Core::System::page_size());
+    auto flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT;
+#if __linux__
+    flags |= MAP_FIXED_NOREPLACE;
+#endif
     TRY(Core::System::mmap((void*)base, size,
-        PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT
-            | MAP_FIXED_NOREPLACE));
+        PROT_READ | PROT_WRITE, flags));
     bool should_unmap_region = true;
     Defer unmap_region = [&] {
         if (should_unmap_region) {
