@@ -12,9 +12,12 @@ struct SmallVector {
     constexpr SmallVector() = default;
 
     constexpr SmallVector(SmallVector&& other)
-        : m_data(std::move(other.m_data))
-        , m_size(other.m_size)
+        : m_size(other.m_size)
     {
+        for (u32 i = 0; i < m_size; i++) {
+            new (slot(i)) T(std::move(*other.slot(i)));
+            other.slot(i)->~T();
+        }
         other.invalidate();
     }
 

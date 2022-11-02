@@ -28,6 +28,11 @@ struct Vector {
         return Vector { data, starting_capacity };
     }
 
+    constexpr Vector()
+        : m_capacity(inline_capacity)
+    {
+    }
+
     constexpr Vector(Vector&& other)
         : m_data(other.m_data)
         , m_size(other.m_size)
@@ -159,11 +164,6 @@ struct Vector {
 
 private:
     constexpr static auto inline_capacity = 8;
-
-    constexpr Vector()
-        : m_capacity(inline_capacity)
-    {
-    }
 
     static constexpr u32 storage_size()
     {

@@ -2,6 +2,7 @@
 #include "Expression.h"
 #include "SourceFile.h"
 #include "Token.h"
+#include "Ty/SmallVector.h"
 #include <Ty/ErrorOr.h>
 
 namespace He {
@@ -40,7 +41,45 @@ struct ParseError {
     ErrorOr<void> show(SourceFile source) const;
 };
 
-using ParseResult = ErrorOr<ParsedExpressions, ParseError>;
+struct ParseErrors {
+
+    constexpr ParseErrors() = default;
+
+    constexpr ParseErrors(Error error)
+        : basic_error(error)
+    {
+    }
+
+    constexpr ParseErrors(SmallVector<ParseError>&& errors)
+        : parse_errors(std::move(errors))
+    {
+    }
+
+    constexpr ParseErrors(ParseErrors&& other)
+        : basic_error(other.basic_error)
+        , parse_errors(std::move(other.parse_errors))
+    {
+    }
+
+    constexpr bool has_error() const
+    {
+        return !parse_errors.is_empty() || !basic_error.is_empty();
+    }
+
+    ErrorOr<void, ParseErrors> append_or_short(ParseError error)
+    {
+        if (parse_errors.append(error).is_error())
+            return std::move(*this);
+        return {};
+    }
+
+    ErrorOr<void> show(SourceFile source) const;
+
+    Error basic_error {};
+    SmallVector<ParseError> parse_errors {};
+};
+
+using ParseResult = ErrorOr<ParsedExpressions, ParseErrors>;
 ParseResult parse(Tokens const& tokens);
 
 }

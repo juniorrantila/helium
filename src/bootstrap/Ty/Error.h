@@ -10,6 +10,8 @@ struct Error {
     c_string m_file { nullptr };
     u32 m_line_in_file { 0 };
 
+    constexpr Error() = default;
+
     static Error from_string_literal(c_string message,
         c_string function = __builtin_FUNCTION(),
         c_string file = __builtin_FILE(),
@@ -49,6 +51,12 @@ struct Error {
     }
 
     u32 line_in_file() const { return m_line_in_file; }
+
+    bool is_empty() const
+    {
+        return m_message == nullptr && m_function == nullptr
+            && m_file == nullptr;
+    }
 
     void show() const;
 

@@ -368,7 +368,23 @@ public:
 
     constexpr ExpressionType type() const { return m_type; }
 
+    constexpr static Expression garbage(u32 start, u32 end)
+    {
+        return Expression {
+            ExpressionType::Invalid,
+            start,
+            end,
+        };
+    }
+
 private:
+    constexpr Expression(ExpressionType type, u32 start, u32 end)
+        : start_token_index(start)
+        , end_token_offset(end - start)
+        , m_type(type)
+    {
+    }
+
     ExpressionType m_type { ExpressionType::Invalid };
 };
 
