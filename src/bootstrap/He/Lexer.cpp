@@ -273,11 +273,20 @@ constexpr Token lex_minus_or_arrow(StringView source, u32 start)
 constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start)
 {
-    if (start + 1 < source.size) {
-        Mem::mark_values_read_once(&source[start + 1], 3);
-        if (source.sub_view(start + 1, 3) == "mut"sv)
-            return { TokenType::RefMut, start, start + 4 };
+    if (start + 1 >= source.size) {
+        return { TokenType::Ampersand, start, start + 1 };
     }
+
+    Mem::mark_values_read_once(&source[start + 1], 4);
+    if (is_whitespace(source[start + 4])
+        && source.sub_view(start + 1, 3) == "mut"sv) {
+        return {
+            TokenType::RefMut,
+            start,
+            start + 4,
+        };
+    }
+
     return { TokenType::Ampersand, start, start + 1 };
 }
 
