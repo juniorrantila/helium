@@ -7,6 +7,7 @@
 #include "TypecheckedExpression.h"
 #include <Core/File.h>
 #include <Core/Threads.h>
+#include <Mem/Locality.h>
 #include <Ty/Defer.h>
 #include <Ty/StringBuffer.h>
 
@@ -71,15 +72,6 @@ ErrorOr<StringBuffer> codegen(Context const& context,
 
 namespace {
 
-template <typename T>
-void prefetch_once(T const* value)
-{
-    for (u32 i = 0; i < sizeof(T); i++) {
-        char const* data = &((char const*)value)[i];
-        _mm_prefetch(data, 0);
-    }
-}
-
 ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
     Context const& context)
 {
@@ -88,7 +80,7 @@ ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
     auto const& public_constants
         = expressions.top_level_public_constants;
     for (auto const& constant : public_constants) {
-        prefetch_once(&constant);
+        Mem::mark_read_once(&constant);
         TRY(codegen_public_constant_declaration(out, context,
             constant));
     }
@@ -96,7 +88,7 @@ ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
     auto const& private_constants
         = expressions.top_level_private_constants;
     for (auto const& constant : private_constants) {
-        prefetch_once(&constant);
+        Mem::mark_read_once(&constant);
         TRY(codegen_private_constant_declaration(out, context,
             constant));
     }
@@ -104,7 +96,7 @@ ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
     auto const& public_variables
         = expressions.top_level_public_variables;
     for (auto const& variable : public_variables) {
-        prefetch_once(&variable);
+        Mem::mark_read_once(&variable);
         TRY(codegen_public_variable_declaration(out, context,
             variable));
     }
@@ -112,7 +104,7 @@ ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
     auto const& private_variables
         = expressions.top_level_private_variables;
     for (auto const& variable : private_variables) {
-        prefetch_once(&variable);
+        Mem::mark_read_once(&variable);
         TRY(codegen_private_variable_declaration(out, context,
             variable));
     }
@@ -254,7 +246,7 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
         TRY(out.write("static "sv, type, " "sv, name));
 
         auto const& parameters = expressions[function.parameters];
-        prefetch_once(&parameters);
+        Mem::mark_read_once(&parameters);
         TRY(codegen_parameters(out, context, parameters));
         TRY(out.writeln(";"sv));
     }
@@ -268,22 +260,22 @@ ErrorOr<void> codegen_structures(StringBuffer& out,
     auto const& expressions = context.expressions;
 
     for (auto const& type : expressions.enum_declarations) {
-        prefetch_once(&type);
+        Mem::mark_read_once(&type);
         TRY(codegen_enum_declaration(out, context, type));
     }
 
     for (auto const& type : expressions.struct_declarations) {
-        prefetch_once(&type);
+        Mem::mark_read_once(&type);
         TRY(codegen_struct_declaration(out, context, type));
     }
 
     for (auto const& type : expressions.union_declarations) {
-        prefetch_once(&type);
+        Mem::mark_read_once(&type);
         TRY(codegen_union_declaration(out, context, type));
     }
 
     for (auto const& type : expressions.variant_declarations) {
-        prefetch_once(&type);
+        Mem::mark_read_once(&type);
         TRY(codegen_variant_declaration(out, context, type));
     }
 
@@ -297,26 +289,26 @@ ErrorOr<void> codegen_functions(StringBuffer& out,
 
     auto const& public_functions = expressions.public_functions;
     for (auto const& function : public_functions) {
-        prefetch_once(&function);
+        Mem::mark_read_once(&function);
         TRY(codegen_public_function(out, context, function));
     }
 
     auto const& private_functions = expressions.private_functions;
     for (auto const& function : private_functions) {
-        prefetch_once(&function);
+        Mem::mark_read_once(&function);
         TRY(codegen_private_function(out, context, function));
     }
 
     auto const& public_c_functions = expressions.public_c_functions;
     for (auto const& function : public_c_functions) {
-        prefetch_once(&function);
+        Mem::mark_read_once(&function);
         TRY(codegen_public_c_function(out, context, function));
     }
 
     auto const& private_c_functions
         = expressions.private_c_functions;
     for (auto const& function : private_c_functions) {
-        prefetch_once(&function);
+        Mem::mark_read_once(&function);
         TRY(codegen_private_c_function(out, context, function));
     }
 
