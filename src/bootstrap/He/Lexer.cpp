@@ -1,6 +1,7 @@
 #include "Lexer.h"
 #include "Token.h"
 #include "Util.h"
+#include <Mem/Locality.h>
 #include <Ty/Error.h>
 #include <Ty/Try.h>
 #include <iostream>
@@ -52,7 +53,6 @@ static constexpr Token lex_ampersand_or_ref_mut(StringView source,
 using LexItemResult = ErrorOr<Token, LexError>;
 static LexItemResult lex_single_item(StringView source, u32 start);
 
-static void prefetch_once(char const* location);
 
 LexResult lex(StringView source)
 {
@@ -62,17 +62,17 @@ LexResult lex(StringView source)
     TRY(tokens.reserve(guesstimated_size));
 
     for (u32 start = 0; start < source.size;) {
-        prefetch_once(&source[start]);
+        Mem::mark_read_once(&source[start]);
         auto character = source[start];
         if (is_whitespace(character)) {
             start++;
             continue;
         }
-        prefetch_once(&source[start + 1]);
+        Mem::mark_read_once(&source[start + 1]);
         if (start + 1 < source.size && source[start] == '/'
             && source[start + 1] == '/') {
             for (; start < source.size; start++) {
-                prefetch_once(&source[start]);
+                Mem::mark_read_once(&source[start]);
                 if (source[start] == '\n')
                     break;
             }
@@ -89,7 +89,7 @@ LexResult lex(StringView source)
 
 static LexItemResult lex_single_item(StringView source, u32 start)
 {
-    prefetch_once(&source[start]);
+    Mem::mark_read_once(&source[start]);
     auto character = source[start];
 
     if (character == '[')
@@ -261,7 +261,7 @@ static constexpr Token lex_minus_or_arrow(StringView source,
 {
     if (start + 1 > source.size)
         return { TokenType::Minus, start, start + 1 };
-    prefetch_once(&source[start + 1]);
+    Mem::mark_read_once(&source[start + 1]);
     char character = source[start + 1];
     if (character == '>')
         return { TokenType::Arrow, start, start + 2 };
@@ -271,10 +271,8 @@ static constexpr Token lex_minus_or_arrow(StringView source,
 static constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start)
 {
-    if (start + 1 < source_view.size()) {
-        prefetch_once(&source[start + 1]);
-        prefetch_once(&source[start + 2]);
-        prefetch_once(&source[start + 3]);
+    if (start + 1 < source.size) {
+        Mem::mark_values_read_once(&source[start + 1], 3);
         if (source.sub_view(start + 1, 3) == "mut"sv)
             return { TokenType::RefMut, start, start + 4 };
     }
@@ -285,7 +283,7 @@ static constexpr Token lex_less_or_less_than_equal(
     StringView source, u32 start)
 {
     if (start + 1 < source.size) {
-        prefetch_once(&source[start + 1]);
+        Mem::mark_read_once(&source[start + 1]);
         if (source[start + 1] == '=')
             return { TokenType::LessThanOrEqual, start, start + 2 };
     }
@@ -296,7 +294,7 @@ static constexpr Token lex_greater_or_greater_than_equal(
     StringView source, u32 start)
 {
     if (start + 1 < source.size) {
-        prefetch_once(&source[start + 1]);
+        Mem::mark_read_once(&source[start + 1]);
         if (source[start + 1] == '=') {
             return {
                 TokenType::GreaterThanOrEqual,
@@ -313,7 +311,7 @@ static constexpr Token lex_assign_or_equals(StringView source,
 {
     if (start + 1 > source.size)
         return { TokenType::Assign, start, start + 1 };
-    prefetch_once(&source[start + 1]);
+    Mem::mark_read_once(&source[start + 1]);
     char character = source[start + 1];
     if (character == '=')
         return { TokenType::Equals, start, start + 2 };
@@ -326,7 +324,7 @@ static constexpr Token lex_string(StringView source, u32 start)
     u32 end = start;
     // clang-format off
     for (; end < size; end++) [[likely]] {
-        prefetch_once(&source[end]);
+        Mem::mark_read_once(&source[end]);
         if (is_delimiter(source[end])) [[likely]] {
             break;
         }
@@ -341,7 +339,7 @@ static constexpr Token lex_quoted(StringView source, u32 start)
     u32 end = start + 1;
     // clang-format off
     for (; end < source.size; end++) [[likely]] {
-        prefetch_once(&source[end]);
+        Mem::mark_read_once(&source[end]);
         char character = source[end];
         if (character != quote)
             continue;
@@ -356,7 +354,7 @@ static constexpr Token lex_identifier(StringView source, u32 start)
     u32 end = start + 1;
     // clang-format off
     for (; end < source.size; end++) [[likely]] {
-        prefetch_once(&source[end]);
+        Mem::mark_read_once(&source[end]);
         char character = source[end];
         if (is_letter(character))
             continue;
@@ -373,7 +371,7 @@ static constexpr Token lex_number(StringView source, u32 start)
     u32 end = start;
     // clang-format off
     for (; end < source.size; end++) [[likely]] {
-        prefetch_once(&source[end]);
+        Mem::mark_read_once(&source[end]);
         char character = source[end];
         if (character == '.')
             continue;
@@ -439,11 +437,5 @@ static constexpr bool is_letter(char character)
     }
 }
 
-static void prefetch_once(char const* location)
-{
-    constexpr auto const read_only = 0;
-    constexpr auto const low_locality = 0;
-    __builtin_prefetch(location, read_only, low_locality);
-}
 
 }
