@@ -11,9 +11,11 @@ enum class BenchEnableShowOnStopAndShow : bool {
 
 struct Bench {
 
-    constexpr Bench(BenchEnableShowOnStopAndShow display, FILE* output_file = stderr)
+    constexpr Bench(BenchEnableShowOnStopAndShow display,
+        FILE* output_file = stderr)
         : m_out(output_file)
-        , m_should_show_on_stop(display == BenchEnableShowOnStopAndShow::Yes)
+        , m_should_show_on_stop(
+              display == BenchEnableShowOnStopAndShow::Yes)
     {
     }
 
@@ -23,8 +25,8 @@ struct Bench {
         u32 cycles_low = 0;
         u32 cycles_high = 0;
         asm volatile("rdtsc\n"
-                     : "=d"(cycles_high), "=a"(cycles_low)::
-                     "%rbx", "%rcx");
+                     : "=d"(cycles_high), "=a"(cycles_low)::"%rbx",
+                     "%rcx");
         tick = ((u64)cycles_high << 32) | cycles_low;
         return tick;
     }
@@ -35,10 +37,7 @@ struct Bench {
         m_start_cycle = current_tick();
     }
 
-    void stop()
-    {
-        m_stop_cycle = current_tick();
-    }
+    void stop() { m_stop_cycle = current_tick(); }
 
     void stop_and_show(c_string display_message)
     {
@@ -61,10 +60,6 @@ struct Bench {
             cycles /= 1000;
             cycles_postfix = "M";
         }
-        if (cycles > 1000) {
-            cycles /= 1000;
-            cycles_postfix = "G";
-        }
 
         auto const* total_postfix = "";
         if (total > 1000) {
@@ -75,12 +70,9 @@ struct Bench {
             total /= 1000;
             total_postfix = "M";
         }
-        if (total > 1000) {
-            total /= 1000;
-            total_postfix = "G";
-        }
-        (void)fprintf(m_out, "%12s: %3lu%s cycles | total: %lu%s\n",
-            message, cycles, cycles_postfix, total, total_postfix);
+        (void)fprintf(m_out, "%12s: %4d%s cycles | total: %d%s\n",
+            message, (u32)cycles, cycles_postfix, (u32)total,
+            total_postfix);
     }
 
     constexpr u64 start_cycle() const { return m_start_cycle; }
