@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 namespace Ty {
@@ -22,6 +22,8 @@ using f32 = float;
 using f64 = double;
 
 using c_string = char const*;
+
+using nullptr_t = decltype(nullptr);
 
 }
 

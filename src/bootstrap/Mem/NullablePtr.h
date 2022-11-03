@@ -9,7 +9,7 @@ struct NullablePtr {
     using address_space = AddressSpace;
     static constexpr auto null = address_space::size - 1;
 
-    constexpr NullablePtr(std::nullptr_t)
+    constexpr NullablePtr(nullptr_t)
         : m_index(null)
     {
     }
@@ -34,7 +34,7 @@ struct NullablePtr {
         return m_index == other.m_index;
     }
 
-    constexpr bool operator==(std::nullptr_t) const
+    constexpr bool operator==(nullptr_t) const
     {
         return m_index == null;
     }
