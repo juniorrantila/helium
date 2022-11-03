@@ -213,9 +213,12 @@ static ErrorOr<void> move_file(c_string to, c_string from)
 {
     c_string compiler = getenv("CC");
     if (!compiler) {
-        return Error::from_string_literal(
-            "could not fetch compiler, try setting environment "
-            "variable 'CC'");
+        if (system("which cc > /dev/null 2>&1") != 0) {
+            return Error::from_string_literal(
+                "Could not find a C compiler. Try setting the 'CC' "
+                "environment variable");
+        }
+        compiler = "cc";
     }
     c_string argv[] = {
         compiler,

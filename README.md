@@ -42,7 +42,8 @@ to execute the compiler.
 ## Usage
 
 Compilation currently requires a C compiler. Make sure you have one
-installed. Helium will use the one set by the `CC` environment variable.
+installed. Helium will use the one set by the `CC` environment variable
+if it's set, otherwise it defaults to the program `cc`.
 
 ```sh
 helium file.he
