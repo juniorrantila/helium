@@ -70,8 +70,7 @@ LexResult lex(StringView source)
             continue;
         }
         Mem::mark_read_once(&source[start + 1]);
-        if (start + 1 < source.size && source[start] == '/'
-            && source[start + 1] == '/') {
+        if (source.sub_view(start, 2) == "//"sv) {
             for (; start < source.size; start++) {
                 Mem::mark_read_once(&source[start]);
                 if (source[start] == '\n')

@@ -61,8 +61,13 @@ struct StringView {
         return strncpy(other, *this);
     }
 
-    constexpr StringView sub_view(u32 start, u32 size) const
+    [[gnu::always_inline]] constexpr StringView sub_view(u32 start,
+        u32 size) const
     {
+        auto remaining = this->size - start;
+        if (remaining < size) [[unlikely]] {
+            size = remaining;
+        }
         return { &data[start], size };
     }
 
