@@ -1,6 +1,7 @@
 #pragma once
 #include "Error.h"
 #include "Move.h"
+#include "Traits.h"
 #include <optional>
 #include <type_traits>
 
@@ -19,29 +20,25 @@ struct [[nodiscard]] ErrorOr {
         other.m_state = State::Moved;
     }
 
-    constexpr ErrorOr(T&& value) requires(
-        !std::is_trivially_copyable_v<T>)
+    constexpr ErrorOr(T&& value) requires(!is_trivially_copyable<T>)
         : m_value(move(value))
         , m_state(State::Value)
     {
     }
 
-    constexpr ErrorOr(T value) requires(
-        std::is_trivially_copyable_v<T>)
+    constexpr ErrorOr(T value) requires(is_trivially_copyable<T>)
         : m_value(value)
         , m_state(State::Value)
     {
     }
 
-    constexpr ErrorOr(E&& error) requires(
-        !std::is_trivially_copyable_v<E>)
+    constexpr ErrorOr(E&& error) requires(!is_trivially_copyable<E>)
         : m_error(move(error))
         , m_state(State::Error)
     {
     }
 
-    constexpr ErrorOr(E error) requires(
-        std::is_trivially_copyable_v<E>)
+    constexpr ErrorOr(E error) requires(is_trivially_copyable<E>)
         : m_error(error)
         , m_state(State::Error)
     {
@@ -49,7 +46,7 @@ struct [[nodiscard]] ErrorOr {
 
     template <typename EE>
     constexpr ErrorOr(EE error) requires(
-        !std::is_same_v<E, Error> && std::is_constructible_v<E, EE>)
+        !is_same<E, Error> && std::is_constructible_v<E, EE>)
         : m_error(E(error))
         , m_state(State::Error)
     {
@@ -100,21 +97,19 @@ template <typename E>
 struct [[nodiscard]] ErrorOr<void, E> {
     constexpr ErrorOr() = default;
 
-    constexpr ErrorOr(E error) requires(
-        std::is_trivially_copyable_v<E>)
+    constexpr ErrorOr(E error) requires(is_trivially_copyable<E>)
         : m_error(error)
     {
     }
 
-    constexpr ErrorOr(E&& error) requires(
-        !std::is_trivially_copyable_v<E>)
+    constexpr ErrorOr(E&& error) requires(!is_trivially_copyable<E>)
         : m_error(move(error))
     {
     }
 
     template <typename EE>
     constexpr ErrorOr(EE error) requires(
-        !std::is_same_v<E, Error> && std::is_constructible_v<E, EE>)
+        !is_same<E, Error> && std::is_constructible_v<E, EE>)
         : m_error(EE(error))
     {
     }

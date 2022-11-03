@@ -10,8 +10,7 @@ struct SmallMap {
     constexpr SmallMap() = default;
 
     constexpr ErrorOr<void> append(Key key, Value value) requires(
-        std::is_trivially_copyable_v<Key>and
-            std::is_trivially_copyable_v<Value>)
+        is_trivially_copyable<Key>and is_trivially_copyable<Value>)
     {
         TRY(m_keys.append(key));
         TRY(m_values.append(value));
@@ -20,8 +19,8 @@ struct SmallMap {
     }
 
     constexpr ErrorOr<void> append(Key&& key, Value value) requires(
-        !std::is_trivially_copyable_v<
-            Key> and std::is_trivially_copyable_v<Value>)
+        !is_trivially_copyable<
+            Key> and is_trivially_copyable<Value>)
     {
         TRY(m_keys.append(move(key)));
         TRY(m_values.append(value));
@@ -30,8 +29,8 @@ struct SmallMap {
     }
 
     constexpr ErrorOr<void> append(Key key, Value&& value) requires(
-        std::is_trivially_copyable_v<
-            Key> and !std::is_trivially_copyable_v<Value>)
+        is_trivially_copyable<
+            Key> and !is_trivially_copyable<Value>)
     {
         TRY(m_keys.append(key));
         TRY(m_values.append(move(value)));
@@ -41,8 +40,8 @@ struct SmallMap {
 
     constexpr ErrorOr<void>
     append(Key&& key, Value&& value) requires(
-        !std::is_trivially_copyable_v<
-            Key> and !std::is_trivially_copyable_v<Value>)
+        !is_trivially_copyable<
+            Key> and !is_trivially_copyable<Value>)
     {
         TRY(m_keys.append(move(key)));
         TRY(m_values.append(move(value)));

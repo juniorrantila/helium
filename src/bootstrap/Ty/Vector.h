@@ -5,7 +5,6 @@
 #include "Move.h"
 #include "Try.h"
 #include "View.h"
-#include <type_traits>
 
 void* he_malloc(size_t);
 void* he_realloc(void*, size_t);
@@ -60,28 +59,28 @@ struct Vector {
     }
 
     ALWAYS_INLINE constexpr Id<T> unchecked_append(
-        T&& value) requires(!std::is_trivially_copyable_v<T>)
+        T&& value) requires(!is_trivially_copyable<T>)
     {
         new (current_slot()) T(move(value));
         return Id<T>(m_size++);
     }
 
     ALWAYS_INLINE constexpr Id<T> unchecked_append(
-        T value) requires(std::is_trivially_copyable_v<T>)
+        T value) requires(is_trivially_copyable<T>)
     {
         new (current_slot()) T(value);
         return Id<T>(m_size++);
     }
 
     ALWAYS_INLINE constexpr ErrorOr<Id<T>> append(
-        T&& value) requires(!std::is_trivially_copyable_v<T>)
+        T&& value) requires(!is_trivially_copyable<T>)
     {
         TRY(expand_if_needed());
         return unchecked_append(move(value));
     }
 
     ALWAYS_INLINE constexpr ErrorOr<Id<T>> append(T value) requires(
-        std::is_trivially_copyable_v<T>)
+        is_trivially_copyable<T>)
     {
         TRY(expand_if_needed());
         return unchecked_append(value);
@@ -206,14 +205,14 @@ private:
     }
 
     constexpr void destroy_elements() const
-        requires(!std::is_trivially_destructible_v<T>)
+        requires(!is_trivially_destructible<T>)
     {
         for (u32 i = 0; i < m_size; i++)
             data()[i].~T();
     }
 
     ALWAYS_INLINE constexpr void destroy_elements() const
-        requires(std::is_trivially_destructible_v<T>)
+        requires(is_trivially_destructible<T>)
     {
     }
 

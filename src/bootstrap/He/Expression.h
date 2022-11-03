@@ -1,6 +1,7 @@
 #pragma once
 #include "Token.h"
 #include <Ty/Move.h>
+#include <Ty/Traits.h>
 #include <Ty/Vector.h>
 #include <stdio.h>
 
@@ -431,7 +432,7 @@ public:
     }                                                      \
     constexpr ErrorOr<Id<T>> append(T value)               \
     {                                                      \
-        static_assert(std::is_trivially_copyable_v<T>);    \
+        static_assert(is_trivially_copyable<T>);           \
         return name.append(value);                         \
     }                                                      \
     Vector<T> name
@@ -444,7 +445,7 @@ public:
     }                                                      \
     constexpr ErrorOr<Id<T>> append(T&& value)             \
     {                                                      \
-        static_assert(!std::is_trivially_copyable_v<T>);   \
+        static_assert(!is_trivially_copyable<T>);          \
         return name.append(move(value));                   \
     }                                                      \
     Vector<T> name

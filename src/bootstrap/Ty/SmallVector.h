@@ -4,7 +4,6 @@
 #include "Id.h"
 #include "Move.h"
 #include "View.h"
-#include <type_traits>
 
 namespace Ty {
 
@@ -31,7 +30,7 @@ struct SmallVector {
     }
 
     constexpr ErrorOr<Id<T>> append(T&& value) requires(
-        !std::is_trivially_copyable_v<T>)
+        !is_trivially_copyable<T>)
     {
         if (!is_valid())
             return Error::from_string_literal(
@@ -42,7 +41,7 @@ struct SmallVector {
     }
 
     constexpr ErrorOr<Id<T>> append(T value) requires(
-        std::is_trivially_copyable_v<T>)
+        is_trivially_copyable<T>)
     {
         if (!is_valid())
             return Error::from_string_literal(
@@ -89,14 +88,14 @@ struct SmallVector {
 
 private:
     constexpr void destroy_elements() const
-        requires(!std::is_trivially_destructible_v<T>)
+        requires(!is_trivially_destructible<T>)
     {
         for (u32 i = 0; i < m_size; i++)
             slot(i)->~T();
     }
 
     constexpr void destroy_elements() const
-        requires(std::is_trivially_destructible_v<T>)
+        requires(is_trivially_destructible<T>)
     {
     }
 
