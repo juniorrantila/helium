@@ -2,6 +2,7 @@
 #include "Base.h"
 #include "ErrorOr.h"
 #include "Id.h"
+#include "Move.h"
 #include "View.h"
 #include <type_traits>
 
@@ -15,7 +16,7 @@ struct SmallVector {
         : m_size(other.m_size)
     {
         for (u32 i = 0; i < m_size; i++) {
-            new (slot(i)) T(std::move(*other.slot(i)));
+            new (slot(i)) T(move(*other.slot(i)));
             other.slot(i)->~T();
         }
         other.invalidate();
@@ -36,7 +37,7 @@ struct SmallVector {
             return Error::from_string_literal(
                 "SmallVector filled, you need to increase the "
                 "capacity");
-        new (current_slot()) T(std::move(value));
+        new (current_slot()) T(move(value));
         return Id<T>(m_size++);
     }
 

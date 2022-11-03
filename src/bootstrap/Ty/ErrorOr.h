@@ -1,5 +1,6 @@
 #pragma once
 #include "Error.h"
+#include "Move.h"
 #include <optional>
 #include <type_traits>
 
@@ -20,7 +21,7 @@ struct [[nodiscard]] ErrorOr {
 
     constexpr ErrorOr(T&& value) requires(
         !std::is_trivially_copyable_v<T>)
-        : m_value(std::move(value))
+        : m_value(move(value))
         , m_state(State::Value)
     {
     }
@@ -34,7 +35,7 @@ struct [[nodiscard]] ErrorOr {
 
     constexpr ErrorOr(E&& error) requires(
         !std::is_trivially_copyable_v<E>)
-        : m_error(std::move(error))
+        : m_error(move(error))
         , m_state(State::Error)
     {
     }
@@ -71,12 +72,12 @@ struct [[nodiscard]] ErrorOr {
     T release_value()
     {
         m_state = State::Moved;
-        return std::move(m_value);
+        return move(m_value);
     }
     E release_error()
     {
         m_state = State::Moved;
-        return std::move(m_error);
+        return move(m_error);
     }
 
     T const& value() const { return m_value; }
@@ -107,7 +108,7 @@ struct [[nodiscard]] ErrorOr<void, E> {
 
     constexpr ErrorOr(E&& error) requires(
         !std::is_trivially_copyable_v<E>)
-        : m_error(std::move(error))
+        : m_error(move(error))
     {
     }
 
@@ -121,7 +122,7 @@ struct [[nodiscard]] ErrorOr<void, E> {
     constexpr bool is_error() const { return m_error.has_value(); }
 
     void release_value() const { }
-    E release_error() { return std::move(m_error.value()); }
+    E release_error() { return move(m_error.value()); }
 
     E const& error() const { return m_error.value(); }
 

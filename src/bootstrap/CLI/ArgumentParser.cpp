@@ -1,5 +1,6 @@
 #include "ArgumentParser.h"
 #include <Mem/Sizes.h>
+#include <Ty/Move.h>
 
 namespace CLI {
 
@@ -43,7 +44,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                     argument, "\""sv));
                 TRY(out.writeln("\nSee help for more info ("sv,
                     program_name_view, " --help)"sv));
-                return ArgumentParserError { std::move(out) };
+                return ArgumentParserError { move(out) };
             }
             c_string value = argv[++i];
             auto result = option_callbacks[id.raw()](value);
@@ -58,7 +59,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                 TRY(out.writeln("\nSee help for more info ("sv,
                     program_name_view, " --help)"sv));
 
-                return ArgumentParserError { std::move(out) };
+                return ArgumentParserError { move(out) };
             }
         } else if (auto id
                    = long_option_callback_ids.find(argument);
@@ -69,7 +70,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                     argument, "\"\n"sv));
                 TRY(out.writeln("See help for more info ("sv,
                     program_name_view, " --help)"sv));
-                return ArgumentParserError { std::move(out) };
+                return ArgumentParserError { move(out) };
             }
             c_string value = argv[++i];
             auto result = option_callbacks[id.raw()](value);
@@ -84,7 +85,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                 TRY(out.writeln("See help for more info ("sv,
                     program_name_view, "\" --help)"sv));
 
-                return ArgumentParserError { std::move(out) };
+                return ArgumentParserError { move(out) };
             }
         } else if (used_positional_arguments
             < positional_argument_callbacks.size()) {
@@ -104,7 +105,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                 TRY(out.writeln("See help for more info ("sv,
                     program_name_view, " --help)"sv));
 
-                return ArgumentParserError { std::move(out) };
+                return ArgumentParserError { move(out) };
             }
         } else {
             auto out = TRY(StringBuffer::create(1 * Mem::KiB));
@@ -114,7 +115,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
             TRY(out.writeln("\nSee help for more info ("sv,
                 program_name_view, " --help)"sv));
 
-            return ArgumentParserError { std::move(out) };
+            return ArgumentParserError { move(out) };
         }
     }
 
@@ -143,7 +144,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
         TRY(out.writeln("\nSee help for more info ("sv,
             program_name_view, " --help)"sv));
 
-        return ArgumentParserError { std::move(out) };
+        return ArgumentParserError { move(out) };
     }
 
     return {};

@@ -1,4 +1,5 @@
 #pragma once
+#include "Move.h"
 #include "SmallVector.h"
 #include "Try.h"
 
@@ -22,7 +23,7 @@ struct SmallMap {
         !std::is_trivially_copyable_v<
             Key> and std::is_trivially_copyable_v<Value>)
     {
-        TRY(m_keys.append(std::move(key)));
+        TRY(m_keys.append(move(key)));
         TRY(m_values.append(value));
 
         return {};
@@ -33,7 +34,7 @@ struct SmallMap {
             Key> and !std::is_trivially_copyable_v<Value>)
     {
         TRY(m_keys.append(key));
-        TRY(m_values.append(std::move(value)));
+        TRY(m_values.append(move(value)));
 
         return {};
     }
@@ -43,8 +44,8 @@ struct SmallMap {
         !std::is_trivially_copyable_v<
             Key> and !std::is_trivially_copyable_v<Value>)
     {
-        TRY(m_keys.append(std::move(key)));
-        TRY(m_values.append(std::move(value)));
+        TRY(m_keys.append(move(key)));
+        TRY(m_values.append(move(value)));
 
         return {};
     }

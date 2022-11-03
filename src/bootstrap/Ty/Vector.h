@@ -2,6 +2,7 @@
 #include "Base.h"
 #include "ErrorOr.h"
 #include "Id.h"
+#include "Move.h"
 #include "Try.h"
 #include "View.h"
 #include <type_traits>
@@ -41,7 +42,7 @@ struct Vector {
         if (!other.is_hydrated()) {
             for (u32 i = 0; i < m_size; i++) {
                 new (&inline_buffer()[i])
-                    T(std::move(other.inline_buffer()[i]));
+                    T(move(other.inline_buffer()[i]));
                 other.inline_buffer()[i].~T();
             }
         }
@@ -61,7 +62,7 @@ struct Vector {
     ALWAYS_INLINE constexpr Id<T> unchecked_append(
         T&& value) requires(!std::is_trivially_copyable_v<T>)
     {
-        new (current_slot()) T(std::move(value));
+        new (current_slot()) T(move(value));
         return Id<T>(m_size++);
     }
 
@@ -76,7 +77,7 @@ struct Vector {
         T&& value) requires(!std::is_trivially_copyable_v<T>)
     {
         TRY(expand_if_needed());
-        return unchecked_append(std::move(value));
+        return unchecked_append(move(value));
     }
 
     ALWAYS_INLINE constexpr ErrorOr<Id<T>> append(T value) requires(

@@ -1,5 +1,6 @@
 #pragma once
 #include <Ty/Base.h>
+#include <Ty/Move.h>
 #include <Ty/SmallMap.h>
 #include <Ty/SmallVector.h>
 #include <Ty/StringBuffer.h>
@@ -13,7 +14,7 @@ struct ArgumentParserError {
     ErrorOr<void> show() const;
 
     ArgumentParserError(StringBuffer&& buffer)
-        : m_buffer(std::move(buffer))
+        : m_buffer(move(buffer))
         , m_state(State::Buffer)
     {
     }
@@ -29,7 +30,7 @@ struct ArgumentParserError {
     {
         switch (other.m_state) {
         case State::Buffer: {
-            new (&m_buffer) StringBuffer(std::move(other.m_buffer));
+            new (&m_buffer) StringBuffer(move(other.m_buffer));
         } break;
         case State::Error: {
             m_error = other.m_error;
@@ -79,7 +80,7 @@ struct ArgumentParser {
     {
         TRY(flags.append({ long_name, short_name, explanation }));
         auto id = flag_callbacks.size();
-        TRY(flag_callbacks.append(std::move(callback)));
+        TRY(flag_callbacks.append(move(callback)));
         TRY(long_flag_callback_ids.append(long_name, id));
         TRY(short_flag_callback_ids.append(short_name, id));
 
@@ -98,7 +99,7 @@ struct ArgumentParser {
             placeholder,
         }));
         auto id = option_callbacks.size();
-        TRY(option_callbacks.append(std::move(callback)));
+        TRY(option_callbacks.append(move(callback)));
         TRY(long_option_callback_ids.append(long_name, id));
         TRY(short_option_callback_ids.append(short_name, id));
 
@@ -134,8 +135,7 @@ struct ArgumentParser {
         std::function<ArgumentParserResult(c_string)>&& callback)
     {
         TRY(positional_placeholders.append(placeholder));
-        TRY(positional_argument_callbacks.append(
-            std::move(callback)));
+        TRY(positional_argument_callbacks.append(move(callback)));
 
         return {};
     }

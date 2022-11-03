@@ -4,6 +4,7 @@
 #include "Token.h"
 #include "Ty/SmallVector.h"
 #include <Ty/ErrorOr.h>
+#include <Ty/Move.h>
 
 namespace He {
 
@@ -51,13 +52,13 @@ struct ParseErrors {
     }
 
     constexpr ParseErrors(SmallVector<ParseError>&& errors)
-        : parse_errors(std::move(errors))
+        : parse_errors(move(errors))
     {
     }
 
     constexpr ParseErrors(ParseErrors&& other)
         : basic_error(other.basic_error)
-        , parse_errors(std::move(other.parse_errors))
+        , parse_errors(move(other.parse_errors))
     {
     }
 
@@ -69,7 +70,7 @@ struct ParseErrors {
     ErrorOr<void, ParseErrors> append_or_short(ParseError error)
     {
         if (parse_errors.append(error).is_error())
-            return std::move(*this);
+            return move(*this);
         return {};
     }
 

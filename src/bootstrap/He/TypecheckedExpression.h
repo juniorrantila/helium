@@ -2,6 +2,7 @@
 #include "Context.h"
 #include "Lexer.h"
 #include "Parser.h"
+#include <Ty/Move.h>
 #include <Ty/Vector.h>
 
 namespace He {
@@ -455,7 +456,7 @@ public:
     constexpr ErrorOr<Id<T>> append(T&& value)             \
     {                                                      \
         static_assert(!std::is_trivially_copyable_v<T>);   \
-        return name.append(std::move(value));              \
+        return name.append(move(value));                   \
     }                                                      \
     Vector<T> name
 
