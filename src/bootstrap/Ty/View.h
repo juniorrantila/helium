@@ -1,6 +1,6 @@
 #pragma once
 #include "Base.h"
-#include <type_traits>
+#include "Traits.h"
 
 namespace Ty {
 
@@ -35,7 +35,7 @@ private:
 };
 
 template <typename T>
-requires std::is_const_v<T>
+requires is_const<T>
 struct View<T> {
     constexpr View(T const* data, size_t size)
         : m_data(data)
