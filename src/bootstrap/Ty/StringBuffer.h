@@ -77,7 +77,12 @@ struct StringBuffer {
 
     constexpr ErrorOr<void> xwrite(u64 number)
     {
-        char buffer[20];
+        if (number == 0) {
+            TRY(xwrite("0"sv));
+            return {};
+        }
+
+        char buffer[max_chars_in_u64];
         u32 buffer_start = max_chars_in_u64;
 
         while (number != 0) {
@@ -92,6 +97,8 @@ struct StringBuffer {
 
         return {};
     }
+
+    constexpr void clear() { m_size = 0; }
 
     constexpr char const* data() const { return m_data; }
     constexpr u32 size() const { return m_size; }

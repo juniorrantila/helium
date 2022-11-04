@@ -14,28 +14,48 @@ struct ParseError {
         c_string parser_function = __builtin_FUNCTION(),
         c_string parser_file = __builtin_FILE(),
         u32 line_in_parser_file = __builtin_LINE())
-        : message(message)
-        , hint(hint)
-        , parser_function(parser_function)
-        , parser_file(parser_file)
+        : m_message(message)
+        , m_hint(hint)
+        , m_parser_function(parser_function)
+        , m_parser_file(parser_file)
         , offending_token(offending_token)
         , line_in_parser_file(line_in_parser_file)
     {
     }
 
     constexpr ParseError(Error error)
-        : message(error.m_message)
-        , parser_function(error.m_function)
-        , parser_file(error.m_file)
+        : m_message(error.m_message)
+        , m_parser_function(error.m_function)
+        , m_parser_file(error.m_file)
         , offending_token(TokenType::Invalid, 0, 0)
         , line_in_parser_file(error.m_line_in_file)
     {
     }
 
-    c_string message { nullptr };
-    c_string hint { nullptr };
-    c_string parser_function { nullptr };
-    c_string parser_file { nullptr };
+    StringView message() const
+    {
+        return StringView::from_c_string(m_message);
+    }
+
+    StringView hint() const
+    {
+        return StringView::from_c_string(m_hint);
+    }
+
+    StringView parser_function() const
+    {
+        return StringView::from_c_string(m_parser_function);
+    }
+
+    StringView parser_file() const
+    {
+        return StringView::from_c_string(m_parser_file);
+    }
+
+    c_string m_message { nullptr };
+    c_string m_hint { nullptr };
+    c_string m_parser_function { nullptr };
+    c_string m_parser_file { nullptr };
     Token offending_token;
     u32 line_in_parser_file { 0 };
 

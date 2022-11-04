@@ -1,5 +1,6 @@
 #include <CLI/ArgumentParser.h>
 #include <Core/Bench.h>
+#include <Core/File.h>
 #include <Core/MappedFile.h>
 #include <Core/System.h>
 #include <He/Codegen.h>
@@ -11,6 +12,7 @@
 #include <He/Typecheck.h>
 #include <He/TypecheckedExpression.h>
 #include <Main/Main.h>
+#include <Ty/StringBuffer.h>
 
 [[nodiscard]] static ErrorOr<void> move_file(c_string to,
     c_string from);
@@ -118,8 +120,11 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     }
     auto tokens = lex_result.release_value();
     if (dump_tokens) {
+        auto buffer = TRY(StringBuffer::create(24));
         for (u32 i = 0; i < tokens.size(); i++) {
-            std::cerr << i << ' ';
+            TRY(buffer.write(i, " "sv));
+            TRY(Core::File::stderr().write(buffer));
+            buffer.clear();
             auto token = tokens[i];
             token.dump(source_file.text);
         }

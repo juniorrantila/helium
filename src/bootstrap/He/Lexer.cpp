@@ -1,10 +1,11 @@
 #include "Lexer.h"
 #include "Token.h"
 #include "Util.h"
+#include <Core/File.h>
 #include <Mem/Locality.h>
 #include <Ty/Error.h>
+#include <Ty/StringBuffer.h>
 #include <Ty/Try.h>
-#include <iostream>
 
 namespace He {
 
@@ -19,13 +20,15 @@ ErrorOr<void> LexError::show(SourceFile source) const
     auto column_number = maybe_line_and_column->column;
     auto line = Util::fetch_line(source.text, line_number);
 
-    std::cerr << "Lex error: " << message << ' ' << '['
-              << source.file_name << ':' << line_number + 1 << ':'
-              << column_number + 1 << ']' << '\n';
-    std::cerr << line << '\n';
+    auto buffer = TRY(StringBuffer::create(1024));
+    TRY(buffer.write("Lex error: "sv, message, " ["sv,
+        source.file_name, ":"sv, line_number + 1, ":"sv,
+        column_number + 1, "]\n"sv, line, "\n"sv));
     for (u32 column = 0; column < column_number; column++)
-        std::cerr << ' ';
-    std::cerr << '^' << '\n';
+        TRY(buffer.write(" "sv));
+    TRY(buffer.write("^\n"sv));
+
+    TRY(Core::File::stderr().write(buffer));
 
     return {};
 }

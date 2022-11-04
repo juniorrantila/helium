@@ -1,10 +1,12 @@
 #include "Parser.h"
 #include "Context.h"
+#include "Core/File.h"
 #include "Expression.h"
 #include "Token.h"
 #include "Ty/Error.h"
 #include "Util.h"
 #include <Ty/ErrorOr.h>
+#include <Ty/StringBuffer.h>
 #include <Ty/Try.h>
 
 namespace He {
@@ -2922,27 +2924,30 @@ ErrorOr<void> ParseError::show(SourceFile source) const
         offending_token.end_index());
     auto line = Util::fetch_line(source.text, start.line);
 
-    char const* normal = "\x1b[0;0m";
-    char const* red = "\x1b[1;31m";
-    char const* yellow = "\x1b[1;33m";
-    char const* cyan = "\x1b[1;36m";
-    char const* blue = "\x1b[0;34m";
+    auto normal = "\x1b[0;0m"sv;
+    auto red = "\x1b[1;31m"sv;
+    auto yellow = "\x1b[1;33m"sv;
+    auto cyan = "\x1b[1;36m"sv;
+    auto blue = "\x1b[0;34m"sv;
 
-    std::cerr << parser_function << " @ [" << parser_file << normal
-              << ":" << line_in_parser_file << "]:\n"
-              << red << "Error: " << normal << message << " "
-              << "[" << blue << source.file_name << normal << ':'
-              << start.line << ':' << start.column << "]\n";
-    std::cerr << line << '\n';
+    auto buffer = TRY(StringBuffer::create(1024));
+    TRY(buffer.writeln(parser_function(), " @ ["sv, parser_file(),
+        normal, ":"sv, line_in_parser_file, "]:"sv));
+    TRY(buffer.writeln(red, "Error: "sv, normal, message(), " ["sv,
+        blue, source.file_name, normal, ":"sv, start.line + 1,
+        ":"sv, start.column + 1, "]"sv));
+    TRY(buffer.writeln(line));
 
     for (u32 i = 0; i < start.column; i++)
-        std::cerr << ' ';
+        TRY(buffer.write(" "sv));
     for (u32 i = start.column; i < end.column; i++)
-        std::cerr << yellow << '^' << normal;
-    std::cerr << '\n';
+        TRY(buffer.write(yellow, "^"sv, normal));
+    TRY(buffer.writeln());
 
-    if (hint)
-        std::cerr << cyan << "Hint: " << normal << hint << '\n';
+    if (m_hint)
+        TRY(buffer.writeln(cyan, "Hint: "sv, normal, hint()));
+
+    TRY(Core::File::stderr().write(buffer));
 
     return {};
 }
@@ -2955,7 +2960,7 @@ ErrorOr<void> ParseErrors::show(SourceFile source) const
     }
     for (auto const& error : parse_errors) {
         TRY(error.show(source));
-        std::cerr << std::endl;
+        TRY(Core::File::stderr().write("\n"sv));
     }
     return {};
 }
