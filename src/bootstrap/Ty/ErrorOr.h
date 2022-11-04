@@ -1,8 +1,8 @@
 #pragma once
 #include "Error.h"
 #include "Move.h"
+#include "Optional.h"
 #include "Traits.h"
-#include <optional>
 #include <type_traits>
 
 namespace Ty {
@@ -66,19 +66,20 @@ struct [[nodiscard]] ErrorOr {
         return m_state == State::Error;
     }
 
-    T release_value()
+    constexpr T release_value()
     {
         m_state = State::Moved;
         return move(m_value);
     }
-    E release_error()
+
+    constexpr E release_error()
     {
         m_state = State::Moved;
         return move(m_error);
     }
 
-    T const& value() const { return m_value; }
-    E const& error() const { return m_error; }
+    constexpr T const& value() const { return m_value; }
+    constexpr E const& error() const { return m_error; }
 
 private:
     union {
@@ -97,7 +98,7 @@ template <typename E>
 struct [[nodiscard]] ErrorOr<void, E> {
     constexpr ErrorOr() = default;
 
-    constexpr ErrorOr(E error) requires(is_trivially_copyable<E>)
+    constexpr ErrorOr(E error) requires is_trivially_copyable<E>
         : m_error(error)
     {
     }
@@ -116,13 +117,13 @@ struct [[nodiscard]] ErrorOr<void, E> {
 
     constexpr bool is_error() const { return m_error.has_value(); }
 
-    void release_value() const { }
-    E release_error() { return move(m_error.value()); }
+    constexpr void release_value() const { }
+    constexpr E release_error() { return m_error.release_value(); }
 
-    E const& error() const { return m_error.value(); }
+    constexpr E const& error() const { return m_error.value(); }
 
 private:
-    std::optional<E> m_error {};
+    Optional<E> m_error {};
 };
 
 }
