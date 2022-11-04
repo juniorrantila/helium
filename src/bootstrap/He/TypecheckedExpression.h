@@ -402,7 +402,9 @@ public:
     constexpr Id<CheckedBlock> parent() const { return m_parent; }
 
 private:
-    CheckedExpressionType m_type { ExpressionType::Invalid };
+    CheckedExpressionType m_type {
+        CheckedExpressionType::CheckedInvalid
+    };
     Id<CheckedBlock> m_parent;
 };
 
