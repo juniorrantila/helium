@@ -2918,10 +2918,31 @@ parse_moved_value(ParseErrors& errors, ParsedExpressions&,
 
 ErrorOr<void> ParseError::show(SourceFile source) const
 {
-    auto start = *Util::line_and_column_for(source.text,
-        offending_token.start_index);
-    auto end = *Util::line_and_column_for(source.text,
-        offending_token.end_index());
+    auto start_index = offending_token.start_index;
+    auto end_index = offending_token.end_index();
+
+    auto start = TRY(
+        Util::line_and_column_for(source.text, start_index)
+            .or_else([] {
+                return Core::File::stderr()
+                    .writeln(
+                        "Could not fetch line and column for error"sv)
+                    .on_success(Util::LineAndColumn {
+                        .line = 0,
+                        .column = 0,
+                    });
+            }));
+
+    auto end = TRY(
+        Util::line_and_column_for(source.text, end_index).or_else([] {
+            return Core::File::stderr()
+                .writeln(
+                    "Could not fetch line and column for error"sv)
+                .on_success(Util::LineAndColumn {
+                    .line = 0,
+                    .column = 0,
+                });
+        }));
     auto line = Util::fetch_line(source.text, start.line);
 
     auto normal = "\x1b[0;0m"sv;
@@ -2930,24 +2951,22 @@ ErrorOr<void> ParseError::show(SourceFile source) const
     auto cyan = "\x1b[1;36m"sv;
     auto blue = "\x1b[0;34m"sv;
 
-    auto buffer = TRY(StringBuffer::create(1024));
-    TRY(buffer.writeln(parser_function(), " @ ["sv, parser_file(),
+    auto& out = Core::File::stderr();
+    TRY(out.writeln(parser_function(), " @ ["sv, parser_file(),
         normal, ":"sv, line_in_parser_file, "]:"sv));
-    TRY(buffer.writeln(red, "Error: "sv, normal, message(), " ["sv,
+    TRY(out.writeln(red, "Error: "sv, normal, message(), " ["sv,
         blue, source.file_name, normal, ":"sv, start.line + 1,
         ":"sv, start.column + 1, "]"sv));
-    TRY(buffer.writeln(line));
+    TRY(out.writeln(line));
 
     for (u32 i = 0; i < start.column; i++)
-        TRY(buffer.write(" "sv));
+        TRY(out.write(" "sv));
     for (u32 i = start.column; i < end.column; i++)
-        TRY(buffer.write(yellow, "^"sv, normal));
-    TRY(buffer.writeln());
+        TRY(out.write(yellow, "^"sv, normal));
+    TRY(out.writeln());
 
     if (m_hint)
-        TRY(buffer.writeln(cyan, "Hint: "sv, normal, hint()));
-
-    TRY(Core::File::stderr().write(buffer));
+        TRY(out.writeln(cyan, "Hint: "sv, normal, hint()));
 
     return {};
 }

@@ -158,22 +158,22 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
                                : Core::File::stdout();
     auto program_name_view
         = StringView::from_c_string(program_name);
-    (void)out.write("USAGE: "sv, program_name_view,
-        " [flags|options] "sv);
+    out.write("USAGE: "sv, program_name_view, " [flags|options] "sv)
+        .ignore();
     for (auto positional_argument : positional_placeholders)
-        (void)out.write(positional_argument, " "sv);
-    (void)out.write("\n\n"sv);
-    (void)out.writeln("FLAGS:"sv);
+        out.write(positional_argument, " "sv).ignore();
+    out.write("\n\n"sv).ignore();
+    out.writeln("FLAGS:"sv).ignore();
     for (auto flag : flags) {
         auto pad = flag.short_name.size == 2 ? " "sv : ""sv;
         auto bytes = out.write("        "sv, flag.short_name,
                             ", "sv, pad, flag.long_name)
                          .release_value();
         for (; bytes < 40; bytes++)
-            (void)out.write(" "sv);
-        (void)out.writeln(flag.explanation);
+            out.write(" "sv).ignore();
+        out.writeln(flag.explanation).ignore();
     }
-    (void)out.writeln("\nOPTIONS:"sv);
+    out.writeln("\nOPTIONS:"sv).ignore();
     for (auto option : options) {
         auto pad = option.short_name.size == 2 ? " "sv : ""sv;
         auto bytes = out.write("        "sv, option.short_name,
@@ -181,11 +181,11 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
                             option.placeholder, "> "sv)
                          .release_value();
         for (; bytes < 40; bytes++)
-            (void)out.write(" "sv);
-        (void)out.writeln(option.explanation);
+            out.write(" "sv).ignore();
+        out.writeln(option.explanation).ignore();
     }
-    (void)out.writeln();
-    (void)out.flush();
+    out.writeln().ignore();
+    out.flush().ignore();
 
     _Exit(exit_code);
 }

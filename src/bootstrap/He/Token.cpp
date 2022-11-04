@@ -16,14 +16,15 @@ void Token::dump(StringView source) const
     end.line += 1;
     end.column += 1;
     auto& out = Core::File::stderr();
-    (void)out.write("Token ["sv);
+    out.write("Token ["sv).ignore();
     auto name = token_type_string(type);
     for (auto size = name.size; size < 12; size++)
-        (void)out.write(" "sv);
-    (void)out.write(token_type_string(type), " '"sv,
-        text == "\n"sv ? "\\n"sv : text, "'"sv);
+        out.write(" "sv).ignore();
+    out.write(token_type_string(type), " '"sv,
+           text == "\n"sv ? "\\n"sv : text, "'"sv)
+        .ignore();
 
-    (void)out.writeln("]"sv);
+    out.writeln("]"sv).ignore();
 }
 
 static StringView token_type_string(TokenType type)

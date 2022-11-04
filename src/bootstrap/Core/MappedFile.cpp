@@ -23,7 +23,7 @@ ErrorOr<MappedFile> MappedFile::open(c_string path)
     auto should_close_file = true;
     Defer close_file = [&] {
         if (should_close_file)
-            (void)Core::System::close(fd);
+            Core::System::close(fd).ignore();
     };
     auto file_stat = TRY(Core::System::fstat(fd));
     if (!file_stat.is_regular())
@@ -40,7 +40,7 @@ MappedFile::~MappedFile()
 {
     if (is_valid()) {
         munmap((void*)m_data, m_size);
-        (void)Core::System::close(m_fd);
+        Core::System::close(m_fd).ignore();
         invalidate();
     }
 }

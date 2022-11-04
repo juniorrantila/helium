@@ -1,12 +1,13 @@
 #pragma once
 #include "Base.h"
+#include "Forward.h"
 #include "Traits.h"
 #include <new>
 
 namespace Ty {
 
 template <typename T>
-struct Optional {
+struct [[nodiscard]] Optional {
 
     constexpr Optional() = default;
 
@@ -29,11 +30,81 @@ struct Optional {
         new (storage()) T(other.release_value());
     }
 
-    constexpr ~Optional()
+    constexpr ~Optional() { clear_if_needed(); }
+
+    constexpr Optional& operator=(
+        T value) requires is_trivially_copyable<T>
+    {
+        clear_if_needed();
+        new (storage()) T(value);
+        m_has_value = true;
+        return *this;
+    }
+
+    constexpr Optional& operator=(T&& value) requires(
+        !is_trivially_copyable<T>)
+    {
+        clear_if_needed();
+        new (storage()) T(move(value));
+        m_has_value = true;
+        return *this;
+    }
+
+    constexpr Optional& operator=(
+        Optional value) requires is_trivially_copyable<T>
+    {
+        clear_if_needed();
+        new (this) Optional(value);
+        return *this;
+    }
+
+    constexpr Optional& operator=(Optional&& value) requires(
+        !is_trivially_copyable<T>)
+    {
+        clear_if_needed();
+        new (this) Optional(move(value));
+        m_has_value = true;
+        return *this;
+    }
+
+    template <typename E>
+    constexpr ErrorOr<T, E> or_throw(
+        E error) requires is_trivially_copyable<E>
     {
         if (m_has_value)
-            value().~T();
-        m_has_value = false;
+            return release_value();
+        return error;
+    }
+
+    template <typename E>
+    constexpr ErrorOr<T, E> or_throw(E&& error) requires(
+        !is_trivially_copyable<E>)
+    {
+        if (m_has_value)
+            return release_value();
+        return error;
+    }
+
+    template <typename F>
+    constexpr decltype(auto) or_else(F callback) requires
+        requires(F callback)
+    {
+        callback();
+    }
+    {
+        if (!has_value())
+            return callback();
+        using Return = decltype(callback());
+        return Return(release_value());
+    }
+
+    template <typename U>
+    constexpr decltype(auto) or_else(U value) requires(
+        !requires(U value) { value(); })
+    {
+        if (!has_value())
+            return value;
+        return U(release_value());
     }
 
     constexpr T& value() { return *storage(); }
@@ -48,10 +119,25 @@ struct Optional {
     constexpr bool has_value() const { return m_has_value; }
 
     constexpr T* operator->() { return storage(); }
-
     constexpr T const* operator->() const { return storage(); }
 
+    constexpr T operator*() { return release_value(); }
+
+    explicit constexpr operator bool() { return has_value(); }
+
 private:
+    constexpr void clear_if_needed()
+    {
+        if (m_has_value)
+            clear();
+    }
+
+    constexpr void clear()
+    {
+        value().~T();
+        m_has_value = false;
+    }
+
     constexpr T* storage()
     {
         return reinterpret_cast<T*>(m_storage);
@@ -66,7 +152,7 @@ private:
 };
 
 template <typename T>
-struct Optional<T*> {
+struct [[nodiscard]] Optional<T*> {
 
     constexpr Optional() = default;
 
@@ -76,6 +162,11 @@ struct Optional<T*> {
     }
 
     constexpr ~Optional() { m_value = nullptr; }
+
+    constexpr Optional& operator=(Optional other)
+    {
+        m_value = other.m_value;
+    }
 
     constexpr T*& value() { return m_value; }
     constexpr T const* const& value() const { return m_value; }
@@ -92,6 +183,37 @@ struct Optional<T*> {
     constexpr T* operator->() { return value(); }
 
     constexpr T const* operator->() const { return value(); }
+
+    constexpr T operator*() { return release_value(); }
+
+    explicit constexpr operator bool() { return has_value(); }
+
+    template <typename E>
+    constexpr ErrorOr<T, E> or_throw(
+        E error) requires is_trivially_copyable<E>
+    {
+        if (has_value())
+            return release_value();
+        return error;
+    }
+
+    template <typename E>
+    constexpr ErrorOr<T, E> or_throw(E&& error) requires(
+        !is_trivially_copyable<E>)
+    {
+        if (has_value())
+            return release_value();
+        return error;
+    }
+
+    template <typename F>
+    constexpr decltype(auto) or_else(F callback)
+    {
+        if (!has_value())
+            return callback();
+        using Return = decltype(callback());
+        return Return(release_value());
+    }
 
 private:
     T* m_value { nullptr };

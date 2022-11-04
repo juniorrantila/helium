@@ -18,7 +18,7 @@ ErrorOr<void> init(uintptr_t base, uintptr_t size)
     bool should_unmap_region = true;
     Defer unmap_region = [&] {
         if (should_unmap_region) {
-            (void)Core::System::munmap((void*)base, size);
+            Core::System::munmap((void*)base, size).ignore();
         }
     };
     TRY(Core::System::mprotect((void*)(base + size - page_size),

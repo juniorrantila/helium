@@ -20,15 +20,13 @@ ErrorOr<void> LexError::show(SourceFile source) const
     auto column_number = maybe_line_and_column->column;
     auto line = Util::fetch_line(source.text, line_number);
 
-    auto buffer = TRY(StringBuffer::create(1024));
-    TRY(buffer.write("Lex error: "sv, message, " ["sv,
+    auto& out = Core::File::stderr();
+    TRY(out.writeln("Lex error: "sv, message, " ["sv,
         source.file_name, ":"sv, line_number + 1, ":"sv,
-        column_number + 1, "]\n"sv, line, "\n"sv));
+        column_number + 1, "]\n"sv, line));
     for (u32 column = 0; column < column_number; column++)
-        TRY(buffer.write(" "sv));
-    TRY(buffer.write("^\n"sv));
-
-    TRY(Core::File::stderr().write(buffer));
+        TRY(out.write(" "sv));
+    TRY(out.writeln("^"sv));
 
     return {};
 }

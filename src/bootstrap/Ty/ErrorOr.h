@@ -3,11 +3,10 @@
 #include "Move.h"
 #include "Optional.h"
 #include "Traits.h"
-#include <type_traits>
 
 namespace Ty {
 
-template <typename T, typename E = Error>
+template <typename T, typename E>
 struct [[nodiscard]] ErrorOr {
     constexpr ErrorOr(ErrorOr&& other)
         : m_state(other.m_state)
@@ -46,7 +45,7 @@ struct [[nodiscard]] ErrorOr {
 
     template <typename EE>
     constexpr ErrorOr(EE error) requires(
-        !is_same<E, Error> && std::is_constructible_v<E, EE>)
+        !is_same<E, Error> && is_constructible<E, EE>)
         : m_error(E(error))
         , m_state(State::Error)
     {
@@ -81,6 +80,34 @@ struct [[nodiscard]] ErrorOr {
     constexpr T const& value() const { return m_value; }
     constexpr E const& error() const { return m_error; }
 
+    template <typename F>
+    decltype(auto) or_else(F callback)
+    {
+        if (is_error())
+            return callback();
+        using Return = decltype(callback());
+        return Return(release_value());
+    }
+
+    template <typename U>
+    constexpr decltype(auto) or_else(U value) requires(
+        !requires(U value) { value(); })
+    {
+        if (is_error())
+            return value;
+        return U(release_value());
+    }
+
+    template <typename U>
+    ErrorOr<U, E> on_success(U success_value)
+    {
+        if (is_error())
+            return release_error();
+        return success_value;
+    }
+
+    constexpr void ignore() const { }
+
 private:
     union {
         T m_value;
@@ -110,7 +137,7 @@ struct [[nodiscard]] ErrorOr<void, E> {
 
     template <typename EE>
     constexpr ErrorOr(EE error) requires(
-        !is_same<E, Error> && std::is_constructible_v<E, EE>)
+        !is_same<E, Error> && is_constructible<E, EE>)
         : m_error(EE(error))
     {
     }
@@ -121,6 +148,34 @@ struct [[nodiscard]] ErrorOr<void, E> {
     constexpr E release_error() { return m_error.release_value(); }
 
     constexpr E const& error() const { return m_error.value(); }
+
+    template <typename F>
+    decltype(auto) or_else(F callback) const
+    {
+        if (is_error())
+            return callback();
+        using Return = decltype(callback());
+        return Return();
+    }
+
+    template <typename U>
+    constexpr decltype(auto) or_else(U value) const
+        requires(!requires(U value) { value(); })
+    {
+        if (is_error())
+            return value;
+        return U();
+    }
+
+    template <typename U>
+    ErrorOr<U, E> on_success(U success_value)
+    {
+        if (is_error())
+            return release_error();
+        return success_value;
+    }
+
+    constexpr void ignore() const { }
 
 private:
     Optional<E> m_error {};

@@ -124,6 +124,7 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
             auto chars = TRY(Core::File::stderr().write(i, " "sv));
             for (; chars < 5; chars++)
                 TRY(Core::File::stderr().write(" "sv));
+            TRY(Core::File::stderr().flush());
             auto token = tokens[i];
             token.dump(source_file.text);
         }

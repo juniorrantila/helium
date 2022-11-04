@@ -1,6 +1,6 @@
 #pragma once
+#include <Ty/Optional.h>
 #include <Ty/StringView.h>
-#include <optional>
 
 namespace Util {
 
@@ -9,7 +9,7 @@ struct LineAndColumn {
     u32 column;
 };
 
-constexpr std::optional<LineAndColumn> line_and_column_for(
+constexpr Optional<LineAndColumn> line_and_column_for(
     StringView source, u32 index)
 {
     if (index >= source.size)
