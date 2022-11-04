@@ -2955,7 +2955,7 @@ ErrorOr<void> ParseError::show(SourceFile source) const
 ErrorOr<void> ParseErrors::show(SourceFile source) const
 {
     if (parse_errors.is_empty()) {
-        basic_error.show();
+        TRY(Core::File::stderr().writeln(basic_error));
         return {};
     }
     for (auto const& error : parse_errors) {

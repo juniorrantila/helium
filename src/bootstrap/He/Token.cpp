@@ -1,6 +1,6 @@
 #include "Token.h"
 #include "Util.h"
-#include <iostream>
+#include <Core/File.h>
 
 namespace He {
 
@@ -15,14 +15,15 @@ void Token::dump(StringView source) const
     auto end = *Util::line_and_column_for(source, end_index());
     end.line += 1;
     end.column += 1;
-    std::cerr << "Token"sv << '[';
-    auto old_width = std::cerr.width(12);
-    std::cerr << token_type_string(type);
-    std::cerr << ' ';
-    std::cerr << '\'' << (text == "\n"sv ? "\\n"sv : text) << '\'';
+    auto& out = Core::File::stderr();
+    (void)out.write("Token ["sv);
+    auto name = token_type_string(type);
+    for (auto size = name.size; size < 12; size++)
+        (void)out.write(" "sv);
+    (void)out.write(token_type_string(type), " '"sv,
+        text == "\n"sv ? "\\n"sv : text, "'"sv);
 
-    std::cerr << ']' << '\n';
-    std::cerr.width(old_width);
+    (void)out.writeln("]"sv);
 }
 
 static StringView token_type_string(TokenType type)

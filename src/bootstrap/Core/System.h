@@ -6,6 +6,7 @@
 #include <spawn.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #ifndef _GNU_SOURCE

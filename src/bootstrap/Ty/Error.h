@@ -1,6 +1,7 @@
 #pragma once
 #include "Base.h"
 #include "StringView.h"
+#include <errno.h>
 
 namespace Ty {
 
@@ -57,8 +58,6 @@ struct Error {
         return m_message == nullptr && m_function == nullptr
             && m_file == nullptr;
     }
-
-    void show() const;
 
 private:
     constexpr Error(c_string message, c_string function,

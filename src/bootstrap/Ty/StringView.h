@@ -1,7 +1,5 @@
 #pragma once
 #include "Base.h"
-#include <iostream>
-#include <string_view>
 
 namespace Ty {
 
@@ -86,12 +84,6 @@ private:
 constexpr StringView operator""sv(c_string data, size_t size)
 {
     return StringView(data, size);
-}
-
-inline std::ostream& operator<<(std::ostream& os, StringView view)
-{
-    return std::operator<<(os,
-        std::string_view(view.data, view.size));
 }
 
 }

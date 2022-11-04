@@ -26,7 +26,7 @@ struct StringBuffer {
         return StringBuffer();
     }
 
-    StringBuffer()
+    constexpr StringBuffer()
         : m_data(m_storage)
         , m_capacity(inline_capacity)
     {
@@ -55,49 +55,38 @@ struct StringBuffer {
     }
 
     template <typename... Args>
-    constexpr ErrorOr<void> write(Args... args) requires(
+    constexpr ErrorOr<u32> write(Args... args) requires(
         sizeof...(Args) > 1)
     {
         constexpr auto args_size = sizeof...(Args);
-        ErrorOr<void> results[args_size] = {
+        ErrorOr<u32> results[args_size] = {
             write(args)...,
         };
+        u32 written = 0;
         for (u32 i = 0; i < args_size; i++)
-            TRY(results[i]);
-        return {};
+            written += TRY(results[i]);
+        return written;
     }
 
     template <typename... Args>
-    constexpr ErrorOr<void> writeln(Args... args)
+    constexpr ErrorOr<u32> writeln(Args... args)
     {
-        TRY(write(args..., "\n"sv));
-        return {};
+        return TRY(write(args..., "\n"sv));
     }
 
-    constexpr ErrorOr<void> write(StringView string)
-    {
-        if (m_size + string.size >= m_capacity)
-            return Error::from_string_literal("buffer filled");
-        m_size += string.unchecked_copy_to(&m_data[m_size]);
-
-        return {};
-    }
-
-    constexpr ErrorOr<void> writeln(StringView string)
+    constexpr ErrorOr<u32> write(StringView string)
     {
         if (m_size + string.size >= m_capacity)
             return Error::from_string_literal("buffer filled");
-        m_size += string.unchecked_copy_to(&m_data[m_size]);
-        TRY(write("\n"sv));
-
-        return {};
+        auto size = string.unchecked_copy_to(&m_data[m_size]);
+        m_size += size;
+        return size;
     }
 
-    constexpr ErrorOr<void> write(u64 number)
+    constexpr ErrorOr<u32> write(u64 number)
     {
         if (number == 0) {
-            TRY(write("0"sv));
-            return {};
+            return TRY(write("0"sv));
         }
 
         char buffer[max_chars_in_u64];
@@ -111,15 +100,25 @@ struct StringBuffer {
 
         u32 buffer_size = max_chars_in_u64 - buffer_start;
 
-        TRY(write({ &buffer[buffer_start], buffer_size }));
+        return TRY(write({ &buffer[buffer_start], buffer_size }));
+    }
 
-        return {};
+    constexpr ErrorOr<u32> write(Error error)
+    {
+        auto size
+            = TRY(write(error.function(), ": "sv, error.message()));
+        size += TRY(writeln(" ["sv, error.file(), ":"sv,
+            error.line_in_file(), "]"sv));
+
+        return size;
     }
 
     constexpr void clear() { m_size = 0; }
 
     constexpr char const* data() const { return m_data; }
     constexpr u32 size() const { return m_size; }
+    constexpr u32 capacity() const { return m_capacity; }
+    constexpr u32 size_left() const { return m_capacity - m_size; }
 
     constexpr StringView view() const { return { m_data, m_size }; }
 

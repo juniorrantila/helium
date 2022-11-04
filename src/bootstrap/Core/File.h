@@ -12,13 +12,15 @@ struct MappedFile;
 struct File {
     static File& stdout()
     {
-        static auto file = File::from(STDOUT_FILENO, false);
+        thread_local static auto file
+            = File::from(STDOUT_FILENO, false);
         return file;
     }
 
     static File& stderr()
     {
-        static auto file = File::from(STDERR_FILENO, false);
+        thread_local static auto file
+            = File::from(STDERR_FILENO, false);
         return file;
     }
 
@@ -47,6 +49,7 @@ struct File {
     ~File()
     {
         if (is_valid()) {
+            (void)flush();
             if (m_should_close)
                 close();
             invalidate();
@@ -58,30 +61,99 @@ struct File {
     ErrorOr<size_t> nonatomic_writev(struct iovec const*,
         size_t count) const;
 
-    ErrorOr<size_t> write(void const* data, size_t size) const
+    template <typename... Args>
+    constexpr ErrorOr<size_t> write(Args const&... args) requires(
+        sizeof...(Args) > 1)
     {
-        return TRY(Core::System::write(m_fd, data, size));
+        constexpr auto args_size = sizeof...(Args);
+        ErrorOr<size_t> results[args_size] = {
+            write(args)...,
+        };
+        u32 written = 0;
+        for (u32 i = 0; i < args_size; i++)
+            written += TRY(move(results[i]));
+
+        if (m_fd == STDERR_FILENO)
+            TRY(flush());
+
+        return written;
     }
 
-    ErrorOr<size_t> write(StringBuffer const& string) const
+    template <typename... Args>
+    constexpr ErrorOr<u32> writeln(Args... args)
     {
-        return TRY(Core::System::write(m_fd, string));
+        return TRY(write(args..., "\n"sv));
     }
 
-    ErrorOr<size_t> write(MappedFile const& file) const
+    ErrorOr<size_t> write(void const* data, size_t size)
     {
-        return TRY(Core::System::write(m_fd, file));
+        return TRY(buffer_or_write(
+            StringView { (c_string)data, (u32)size }));
     }
 
-    ErrorOr<size_t> write(StringView string) const
+    ErrorOr<size_t> write(StringBuffer const& string)
     {
-        return TRY(Core::System::write(m_fd, string));
+        return TRY(buffer_or_write(string.view()));
+    }
+
+    ErrorOr<size_t> write(MappedFile const& file)
+    {
+        return TRY(buffer_or_write(file.view()));
+    }
+
+    ErrorOr<size_t> write(StringView string)
+    {
+        return TRY(buffer_or_write(string));
+    }
+
+    ErrorOr<size_t> write(u64 number)
+    {
+        return TRY(buffer_or_write(number));
+    }
+
+    ErrorOr<size_t> write(Error error)
+    {
+        return TRY(buffer_or_write(error));
+    }
+
+    ErrorOr<void> flush()
+    {
+        TRY(Core::System::write(m_fd, buffer.view()));
+        buffer.clear();
+
+        return {};
     }
 
     bool is_tty() const { return Core::System::isatty(m_fd); }
 
 private:
     constexpr File() = default;
+
+    constexpr ErrorOr<size_t> buffer_or_write(StringView string)
+    {
+        if (buffer.capacity() <= string.size)
+            return TRY(Core::System::write(m_fd, string));
+        if (buffer.size_left() <= string.size)
+            TRY(flush());
+        return TRY(buffer.write(string));
+    }
+
+    constexpr ErrorOr<size_t> buffer_or_write(u64 number)
+    {
+        constexpr auto max_characters_in_u64 = 20;
+        if (buffer.size_left() <= max_characters_in_u64)
+            TRY(flush());
+        return TRY(buffer.write(number));
+    }
+
+    constexpr ErrorOr<size_t> buffer_or_write(Error error)
+    {
+        auto written
+            = TRY(write(error.function(), ": "sv, error.message()));
+        written += TRY(writeln(" ["sv, error.file(), ":"sv,
+            error.line_in_file(), "]"sv));
+        return written;
+    }
 
     static ErrorOr<size_t> writev_max_count();
 
@@ -94,6 +166,7 @@ private:
     constexpr bool is_valid() const { return m_fd >= 0; }
     constexpr void invalidate() { m_fd = 0; }
 
+    StringBuffer buffer {};
     int m_fd { -1 };
     bool m_should_close { false };
 };

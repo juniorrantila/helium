@@ -4,6 +4,7 @@
 #include <Ty/Try.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/uio.h>
 #include <unistd.h>

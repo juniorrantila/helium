@@ -85,7 +85,7 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
 
     auto stop_after_codegen = false;
     TRY(argument_parser.add_flag("--stop-after-codegen"sv, "-sc"sv,
-        "stop program after typecheck"sv, [&] {
+        "stop program after codegen"sv, [&] {
             stop_after_codegen = true;
         }));
 
@@ -120,14 +120,14 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     }
     auto tokens = lex_result.release_value();
     if (dump_tokens) {
-        auto buffer = TRY(StringBuffer::create(24));
         for (u32 i = 0; i < tokens.size(); i++) {
-            TRY(buffer.write(i, " "sv));
-            TRY(Core::File::stderr().write(buffer));
-            buffer.clear();
+            auto chars = TRY(Core::File::stderr().write(i, " "sv));
+            for (; chars < 5; chars++)
+                TRY(Core::File::stderr().write(" "sv));
             auto token = tokens[i];
             token.dump(source_file.text);
         }
+        TRY(Core::File::stderr().flush());
     }
     if (stop_after_lex)
         return 0;
@@ -142,6 +142,7 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     auto expressions = parse_result.release_value();
     if (dump_expressions) {
         expressions.dump(source_file.text);
+        TRY(Core::File::stderr().flush());
     }
     if (stop_after_parse)
         return 0;
@@ -189,9 +190,10 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         auto remove_result = Core::System::remove(temporary_file);
         if (remove_result.is_error()) {
             auto error_message = remove_result.error().message();
-            (void)fprintf(stderr, "remove '%s': %.*s\n",
-                temporary_file, error_message.size,
-                error_message.data);
+            auto file_name_view
+                = StringView::from_c_string(temporary_file);
+            TRY(Core::File::stderr().writeln("remove '"sv,
+                file_name_view, "': "sv, error_message));
         }
         return 0;
     }

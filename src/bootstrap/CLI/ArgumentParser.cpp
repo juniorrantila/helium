@@ -1,4 +1,5 @@
 #include "ArgumentParser.h"
+#include <Core/File.h>
 #include <Mem/Sizes.h>
 #include <Ty/Move.h>
 
@@ -8,10 +9,10 @@ ErrorOr<void> ArgumentParserError::show() const
 {
     switch (m_state) {
     case State::Buffer: {
-        std::cerr << m_buffer.view();
+        TRY(Core::File::stderr().write(m_buffer));
     } break;
     case State::Error: {
-        m_error.show();
+        TRY(Core::File::stderr().write(m_error));
     } break;
     case State::Invalid: break;
     }
@@ -153,23 +154,39 @@ ArgumentParserResult ArgumentParser::run(int argc,
 void ArgumentParser::print_usage_and_exit(c_string program_name,
     int exit_code) const
 {
-    auto& out = exit_code != 0 ? std::cerr : std::cout;
-    out << "USAGE: " << program_name << " [flags|options] ";
+    auto& out = exit_code != 0 ? Core::File::stderr()
+                               : Core::File::stdout();
+    auto program_name_view
+        = StringView::from_c_string(program_name);
+    (void)out.write("USAGE: "sv, program_name_view,
+        " [flags|options] "sv);
     for (auto positional_argument : positional_placeholders)
-        out << positional_argument << " ";
-    out << std::endl << std::endl;
-    out << "FLAGS:" << std::endl;
+        (void)out.write(positional_argument, " "sv);
+    (void)out.write("\n\n"sv);
+    (void)out.writeln("FLAGS:"sv);
     for (auto flag : flags) {
-        out << '\t' << flag.short_name << ", " << flag.long_name
-            << "\t\t " << flag.explanation << std::endl;
+        auto pad = flag.short_name.size == 2 ? " "sv : ""sv;
+        auto bytes = out.write("        "sv, flag.short_name,
+                            ", "sv, pad, flag.long_name)
+                         .release_value();
+        for (; bytes < 40; bytes++)
+            (void)out.write(" "sv);
+        (void)out.writeln(flag.explanation);
     }
-    out << std::endl;
-    out << "OPTIONS:" << std::endl;
+    (void)out.writeln("\nOPTIONS:"sv);
     for (auto option : options) {
-        out << '\t' << option.short_name << ", " << option.long_name
-            << "\t <" << option.placeholder << ">\t\t "
-            << option.explanation << std::endl;
+        auto pad = option.short_name.size == 2 ? " "sv : ""sv;
+        auto bytes = out.write("        "sv, option.short_name,
+                            ", "sv, pad, option.long_name, "  <"sv,
+                            option.placeholder, "> "sv)
+                         .release_value();
+        for (; bytes < 40; bytes++)
+            (void)out.write(" "sv);
+        (void)out.writeln(option.explanation);
     }
-    exit(exit_code);
+    (void)out.writeln();
+    (void)out.flush();
+
+    _Exit(exit_code);
 }
 }
