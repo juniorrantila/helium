@@ -128,6 +128,14 @@ struct StringBuffer {
 
     constexpr StringView view() const { return { m_data, m_size }; }
 
+    constexpr void replace_all(char thing, char with)
+    {
+        for (auto& c : *this) {
+            if (c == thing)
+                c = with;
+        }
+    }
+
 private:
     static constexpr auto max_chars_in_u64 = 20;
     static constexpr auto inline_capacity = 1024;
