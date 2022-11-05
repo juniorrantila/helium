@@ -1,5 +1,6 @@
 #pragma once
 #include "Base.h"
+#include "Forward.h"
 
 namespace Ty {
 
@@ -90,6 +91,9 @@ struct StringView {
     {
         return { &data[amount], size - amount };
     }
+
+    ErrorOr<Vector<StringView>> split_on(char character) const;
+    ErrorOr<Vector<u32>> find_all(char character) const;
 
 private:
     [[gnu::flatten]] static constexpr u32 strncpy(
