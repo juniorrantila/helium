@@ -156,6 +156,9 @@ struct Vector {
         return m_data ?: inline_buffer();
     }
 
+    constexpr T const& last() const { return data()[m_size - 1]; }
+    constexpr T& last() { return data()[m_size - 1]; }
+
     ALWAYS_INLINE constexpr u32 size() const { return m_size; }
 
     constexpr bool is_empty() const { return m_size == 0; }
