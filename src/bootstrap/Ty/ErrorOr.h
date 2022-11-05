@@ -51,6 +51,12 @@ struct [[nodiscard]] ErrorOr {
     {
     }
 
+    constexpr ErrorOr()
+        : m_value(T())
+        , m_state(State::Value)
+    {
+    }
+
     constexpr ~ErrorOr()
     {
         switch (m_state) {
