@@ -19,7 +19,7 @@ bootstrap_exe = executable('helium', [
   ])
 
 bootstrap_gen = generator(bootstrap_exe,
-  output: '@BASENAME@.c',
-  arguments: ['@INPUT@', '-S', '-o', '@OUTPUT@'],
+  output: ['@PLAINNAME@.c', '@PLAINNAME@.h'],
+  arguments: ['@INPUT@', '-S', '-o', '@OUTPUT0@', '-oh', '@OUTPUT1@'],
   depends: bootstrap_exe,
   )

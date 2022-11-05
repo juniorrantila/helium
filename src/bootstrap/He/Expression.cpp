@@ -352,6 +352,13 @@ void Return::dump(ParsedExpressions const& expressions,
     out.write(")"sv).ignore();
 }
 
+void Import::dump(ParsedExpressions const&, StringView source,
+    u32) const
+{
+    auto& out = Core::File::stderr();
+    out.write("Import("sv, filename.text(source), ")"sv).ignore();
+}
+
 void ImportC::dump(ParsedExpressions const&, StringView source,
     u32) const
 {

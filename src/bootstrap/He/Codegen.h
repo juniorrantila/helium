@@ -6,6 +6,9 @@
 
 namespace He {
 
+ErrorOr<StringBuffer> codegen_header(Context const&,
+    TypecheckedExpressions const&);
+
 ErrorOr<StringBuffer> codegen(Context const&,
     TypecheckedExpressions const&);
 

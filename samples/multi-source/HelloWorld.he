@@ -1,0 +1,10 @@
+@import_c("stdio.h");
+
+pub fn hello_world() -> void {
+    hello_world_implementation();
+}
+
+// NOTE: This can only be called from within this file.
+fn hello_world_implementation() -> void {
+    printf("Hello, World!\n");
+}

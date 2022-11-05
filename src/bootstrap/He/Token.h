@@ -63,6 +63,7 @@ enum class TokenType : u8 {
 
     // Builtin functions
     Embed,
+    Import,
     ImportC,
     SizeOf,
     Uninitialized,

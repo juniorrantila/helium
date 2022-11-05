@@ -25,3 +25,5 @@ executable('watchf', bootstrap_gen.process('watchf.he'), c_args: [
     '-D_POSIX_C_SOURCE'
   ])
 endif
+
+subdir('multi-source')

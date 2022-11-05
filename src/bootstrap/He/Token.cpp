@@ -87,6 +87,7 @@ static StringView token_type_string(TokenType type)
         CASE_RETURN(Variant);
 
         CASE_RETURN(Embed);
+        CASE_RETURN(Import);
         CASE_RETURN(ImportC);
         CASE_RETURN(SizeOf);
         CASE_RETURN(Uninitialized);

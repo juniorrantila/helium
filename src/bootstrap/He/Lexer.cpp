@@ -178,6 +178,11 @@ LexItemResult lex_single_item(StringView source, u32 start)
             return token;
         }
 
+        if (value == "import"sv) {
+            token.type = TokenType::Import;
+            return token;
+        }
+
         if (value == "import_c"sv) {
             token.type = TokenType::ImportC;
             return token;

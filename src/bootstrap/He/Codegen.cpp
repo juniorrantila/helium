@@ -43,6 +43,42 @@ ErrorOr<void> codegen_functions(StringBuffer& out, Context const&);
 
 ErrorOr<void> codegen_prelude(StringBuffer& out);
 
+ErrorOr<void> codegen_imports(StringBuffer& out, Context const&);
+
+ErrorOr<void> codegen_top_level_inline_cs(StringBuffer& out,
+    Context const&);
+
+ErrorOr<void> forward_declare_top_level_public_variables(
+    StringBuffer& out, Context const&);
+
+ErrorOr<void> forward_declare_top_level_public_constants(
+    StringBuffer& out, Context const&);
+
+ErrorOr<void> forward_declare_public_functions(StringBuffer& out,
+    Context const&);
+
+}
+
+ErrorOr<StringBuffer> codegen_header(Context const& context,
+    TypecheckedExpressions const&)
+{
+    auto out = TRY(StringBuffer::create(64 * Mem::MiB));
+
+    TRY(out.writeln("#pragma once"sv));
+    TRY(codegen_imports(out, context)); // FIXME: Remove this.
+    TRY(codegen_top_level_inline_cs(out,
+        context)); // Since they might include type definitions.
+
+    // FIXME: There is currently no separation of public and private
+    // structure definitions
+    TRY(forward_declare_structures(out, context));
+    TRY(forward_declare_public_functions(out, context));
+    TRY(codegen_structures(out, context));
+
+    TRY(forward_declare_top_level_public_constants(out, context));
+    TRY(forward_declare_top_level_public_variables(out, context));
+
+    return out;
 }
 
 ErrorOr<StringBuffer> codegen(Context const& context,
@@ -51,18 +87,12 @@ ErrorOr<StringBuffer> codegen(Context const& context,
     auto out = TRY(StringBuffer::create(256 * Mem::MiB));
 
     TRY(codegen_prelude(out));
-
-    for (auto import_c : context.expressions.import_cs) {
-        TRY(out.writeln("#include "sv,
-            import_c.filename.text(context.source)));
-    }
-
-    for (auto inline_c : context.expressions.top_level_inline_cs) {
-        TRY(out.write(inline_c.literal.text(context.source)));
-    }
+    TRY(codegen_imports(out, context));
+    TRY(codegen_top_level_inline_cs(out, context));
 
     TRY(forward_declare_structures(out, context));
     TRY(forward_declare_functions(out, context));
+
     TRY(codegen_structures(out, context));
     TRY(codegen_top_level_variables(out, context));
     TRY(codegen_functions(out, context));
@@ -71,6 +101,96 @@ ErrorOr<StringBuffer> codegen(Context const& context,
 }
 
 namespace {
+
+ErrorOr<void> forward_declare_public_functions(StringBuffer& out,
+    Context const& context)
+{
+    auto const& expressions = context.expressions;
+    auto source = context.source;
+
+    auto const& public_functions = expressions.public_functions;
+    for (auto function : public_functions) {
+        auto type = function.return_type.text(source);
+        auto name = function.name.text(source);
+        TRY(out.write(type, " "sv, name));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
+        TRY(out.writeln(";"sv));
+    }
+
+    auto const& public_c_functions = expressions.public_functions;
+    for (auto function : public_c_functions) {
+        auto type = function.return_type.text(source);
+        auto name = function.name.text(source);
+        TRY(out.write(type, " "sv, name));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
+        TRY(out.writeln(";"sv));
+    }
+
+    return {};
+}
+
+ErrorOr<void> codegen_imports(StringBuffer& out,
+    Context const& context)
+{
+    auto const& expressions = context.expressions;
+
+    for (auto const& import_c : expressions.import_cs) {
+        Mem::mark_read_once(&import_c);
+        TRY(codegen_import_c(out, context, import_c));
+    }
+
+    for (auto const& import_he : expressions.import_hes) {
+        Mem::mark_read_once(&import_he);
+        TRY(codegen_import_he(out, context, import_he));
+    }
+
+    return {};
+}
+
+ErrorOr<void> codegen_top_level_inline_cs(StringBuffer& out,
+    Context const& context)
+{
+    for (auto inline_c : context.expressions.top_level_inline_cs) {
+        TRY(out.write(inline_c.literal.text(context.source)));
+    }
+    return {};
+}
+
+ErrorOr<void> forward_declare_top_level_public_variables(
+    StringBuffer& out, Context const& context)
+{
+    auto const& expressions = context.expressions;
+    auto source = context.source;
+
+    auto const& variables = expressions.top_level_public_variables;
+    for (auto variable : variables) {
+        auto type = variable.type.text(source);
+        auto name = variable.name.text(source);
+        TRY(out.writeln("extern "sv, type, " "sv, name, ";"sv));
+    }
+
+    return {};
+}
+
+ErrorOr<void> forward_declare_top_level_public_constants(
+    StringBuffer& out, Context const& context)
+{
+    auto const& expressions = context.expressions;
+    auto source = context.source;
+
+    auto const& constants = expressions.top_level_public_constants;
+    for (auto constant : constants) {
+        auto type = constant.type.text(source);
+        auto name = constant.name.text(source);
+        TRY(out.writeln("extern "sv, type, " "sv, name, ";"sv));
+    }
+
+    return {};
+}
 
 ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
     Context const& context)
@@ -770,14 +890,24 @@ ErrorOr<void> codegen_return_statement(StringBuffer& out,
     return {};
 }
 
+ErrorOr<void> codegen_import_he(StringBuffer& out,
+    Context const& context, Import const& import_he)
+{
+    auto source = context.source;
+    auto quoted_filename = import_he.filename.text(source);
+    auto filename
+        = quoted_filename.sub_view(1, quoted_filename.size - 2);
+    TRY(out.writeln("#include \""sv, filename, ".h\""sv));
+
+    return {};
+}
+
 ErrorOr<void> codegen_import_c(StringBuffer& out,
     Context const& context, ImportC const& import_c)
 {
     auto source = context.source;
     auto filename = import_c.filename.text(source);
-    if (!filename.is_empty())
-        TRY(out.writeln("#include "sv,
-            import_c.filename.text(source)));
+    TRY(out.writeln("#include "sv, filename));
 
     return {};
 }

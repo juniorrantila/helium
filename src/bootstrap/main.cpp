@@ -38,6 +38,12 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
             output_path = path;
         }));
 
+    c_string header_output_path = nullptr;
+    TRY(argument_parser.add_option("--output-header"sv, "-oh"sv,
+        "path"sv, "header file output path"sv, [&](auto path) {
+            header_output_path = path;
+        }));
+
     auto dump_tokens = false;
     TRY(argument_parser.add_flag("--dump-tokens"sv, "-dt"sv,
         "dump tokens"sv, [&] {
@@ -169,6 +175,7 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         output_file
             = TRY(Core::System::mkstemps(temporary_file, 2));
     }
+
     bench.start();
     auto code = TRY(He::codegen(context, typechecked_expressions));
     bench.stop_and_show("codegen");
@@ -200,8 +207,27 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     }
 
     bench.start();
+    auto header
+        = TRY(He::codegen_header(context, typechecked_expressions));
+    bench.stop_and_show("codegen header");
+
+    auto output_path_view = StringView::from_c_string(output_path);
+    auto header_name_fallback = TRY(StringBuffer::create(
+        output_path_view.size + ".h\0"sv.size));
+    TRY(header_name_fallback.write(output_path_view, ".h\0"sv));
+
+    header_output_path
+        = header_output_path ?: header_name_fallback.view().data;
+
+    auto header_file
+        = TRY(Core::File::open_for_writing(header_output_path));
+    bench.start();
+    TRY(header_file.write(header));
+    bench.stop_and_show("write header");
+
+    bench.start();
     TRY(move_file(output_path, temporary_file));
-    bench.stop_and_show("move file");
+    bench.stop_and_show("move source");
 
     return 0;
 }

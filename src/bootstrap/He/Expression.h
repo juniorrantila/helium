@@ -45,6 +45,7 @@ struct ParsedExpressions;
     X(PublicCFunction, public_c_function)                       \
     X(PublicFunction, public_function)                          \
                                                                 \
+    X(Import, import_he)                                        \
     X(ImportC, import_c)                                        \
     X(InlineC, inline_c)                                        \
                                                                 \
@@ -299,6 +300,13 @@ struct Return {
 struct FunctionCall {
     Token name {};
     Id<Expressions> arguments;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct Import {
+    Token filename {};
 
     void dump(ParsedExpressions const&, StringView source,
         u32 indent) const;

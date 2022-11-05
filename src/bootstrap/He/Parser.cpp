@@ -45,6 +45,13 @@ ParseResult parse(Tokens const& tokens)
             continue; // Ignore leading and trailing new lines.
         auto token = tokens[start];
 
+        if (token.is(TokenType::Import)) {
+            auto import_c = TRY(parse_import_he(errors, expressions,
+                tokens, start));
+            start = import_c.end_token_index();
+            continue;
+        }
+
         if (token.is(TokenType::ImportC)) {
             auto import_c = TRY(
                 parse_import_c(errors, expressions, tokens, start));
@@ -364,6 +371,61 @@ ParseSingleItemResult parse_while_statement(ParseErrors& errors,
         block.release_as_block(),
     }));
     return Expression(while_, start, end);
+}
+
+ParseSingleItemResult parse_import_he(ParseErrors& errors,
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto left_paren_index = start + 1;
+    auto left_paren = tokens[left_paren_index];
+    if (left_paren.is_not(TokenType::OpenParen)) {
+        TRY(errors.append_or_short({
+            "expected '('",
+            "did you forget a opening parenthesis?",
+            left_paren,
+        }));
+        return Expression::garbage(start, left_paren_index);
+    }
+
+    auto header_index = left_paren_index + 1;
+    auto header = tokens[header_index];
+    if (header.is_not(TokenType::Quoted)) {
+        TRY(errors.append_or_short({
+            "expected quoted string",
+            "did you forget the quotes around the module name?",
+            header,
+        }));
+        return Expression::garbage(start, header_index);
+    }
+
+    auto right_paren_index = header_index + 1;
+    auto right_paren = tokens[right_paren_index];
+    if (right_paren.is_not(TokenType::CloseParen)) {
+        TRY(errors.append_or_short({
+            "expected ')'",
+            "did you forget a closing parenthesis?",
+            left_paren,
+        }));
+        return Expression::garbage(start, right_paren_index);
+    }
+
+    auto semicolon_index = right_paren_index + 1;
+    auto semicolon = tokens[semicolon_index];
+    if (semicolon.is_not(TokenType::Semicolon)) {
+        TRY(errors.append_or_short({
+            "expected ';'",
+            "did you forget a semicolon?",
+            header,
+        }));
+        return Expression::garbage(start, semicolon_index);
+    }
+
+    auto import_he = TRY(expressions.append(Import {
+        header,
+    }));
+
+    // NOTE: Swallow semicolon.
+    return Expression(import_he, start, semicolon_index + 1);
 }
 
 ParseSingleItemResult parse_import_c(ParseErrors& errors,
