@@ -1,6 +1,8 @@
-@import_c("Lexer.h");
-@import_c("SourceFile.h");
-@import_c("Token.h");
+@import("Lexer.he");
+@import("Token.he");
+@import("Token.he");
+@import("SourceFile.he");
+@import_c("Ty/StringView.h");
 @import_c("fcntl.h");
 @import_c("stdio.h");
 @import_c("stdlib.h");
@@ -8,12 +10,11 @@
 @import_c("sys/mman.h");
 @import_c("sys/stat.h");
 @import_c("unistd.h");
-@import_c("Ty/StringView.h");
 
 inline_c typedef c_string* c_string_array;
 pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
     if argc < 2 {
-        let program_name = inline_c argv[0];
+        let program_name = argv[0];
         usage(program_name, 1);
     }
     let source_path = StringView$from_c_string(argv[1]);

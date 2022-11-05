@@ -1,7 +1,23 @@
-@import_c("Token.h");
 @import_c("stdlib.h");
 
-inline_c typedef Tokens* TokensP;
+let TokenType = enum {
+    Identifier,
+};
+
+let Token = struct {
+    start_index: u32,
+    size: u16,
+    type: TokenType,
+};
+inline_c typedef struct Token* TokenP;
+
+let Tokens = struct {
+    data: TokenP,
+    size: u32,
+    capacity: u32,
+};
+inline_c typedef struct Tokens* TokensP;
+
 pub fn tokens_init(tokens: TokensP) -> i32 {
     let starting_capacity = 1024;
     var data = malloc(starting_capacity);

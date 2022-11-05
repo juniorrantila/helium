@@ -1,0 +1,6 @@
+let SourceFile = struct {
+    name: c_string,
+    text: c_string,
+    name_size: u32,
+    text_size: u32,
+};

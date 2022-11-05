@@ -1,6 +1,7 @@
 
 selfhost_exe = executable('helium', [
     bootstrap_gen.process('Lexer.he'),
+    bootstrap_gen.process('SourceFile.he'),
     bootstrap_gen.process('Token.he'),
     bootstrap_gen.process('main.he'),
   ],
@@ -11,7 +12,8 @@ selfhost_exe = executable('helium', [
     '-Wno-gnu-empty-initializer',
     '-Wno-dollar-in-identifier-extension',
     '-Wno-duplicate-decl-specifier',
-    '-Wno-language-extension-token'
+    '-Wno-language-extension-token',
+    '-Wno-pedantic',
   ],
   include_directories: '.',
   dependencies: [

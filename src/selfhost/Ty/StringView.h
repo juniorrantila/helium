@@ -10,6 +10,6 @@ static inline StringView StringView$from_c_string(c_string data)
 {
     return (StringView) {
         .data = data,
-        .size = __builtin_strlen(data),
+        .size = (u32)__builtin_strlen(data),
     };
 }
