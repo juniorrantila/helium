@@ -1,6 +1,6 @@
 @import("HelloWorld.he");
 
 pub c_fn main() -> c_int {
-    hello_world();
+    samples$multi_source$HelloWorld$hello_world();
     return 0;
 }

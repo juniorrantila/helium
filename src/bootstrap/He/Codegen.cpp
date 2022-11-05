@@ -28,11 +28,11 @@ FORWARD_DECLARE_CODEGEN(Parameters, parameters);
 
 #undef FORWARD_DECLARE_CODEGEN
 
-ErrorOr<void> forward_declare_structures(StringBuffer& out,
-    Context const&);
+ErrorOr<void> forward_declare_structures_short_spelling(
+    StringBuffer& out, Context const&);
 
-ErrorOr<void> forward_declare_functions(StringBuffer& out,
-    Context const&);
+ErrorOr<void> forward_declare_functions_short_spelling(
+    StringBuffer& out, Context const&);
 
 ErrorOr<void> codegen_structures(StringBuffer& out, Context const&);
 
@@ -54,8 +54,8 @@ ErrorOr<void> forward_declare_top_level_public_variables(
 ErrorOr<void> forward_declare_top_level_public_constants(
     StringBuffer& out, Context const&);
 
-ErrorOr<void> forward_declare_public_functions(StringBuffer& out,
-    Context const&);
+ErrorOr<void> forward_declare_public_functions_long_spelling(
+    StringBuffer& out, Context const&);
 
 }
 
@@ -66,13 +66,15 @@ ErrorOr<StringBuffer> codegen_header(Context const& context,
 
     TRY(out.writeln("#pragma once"sv));
     TRY(codegen_imports(out, context)); // FIXME: Remove this.
-    TRY(codegen_top_level_inline_cs(out,
-        context)); // Since they might include type definitions.
+
+    // Since they might include type definitions.
+    TRY(codegen_top_level_inline_cs(out, context));
 
     // FIXME: There is currently no separation of public and private
     // structure definitions
-    TRY(forward_declare_structures(out, context));
-    TRY(forward_declare_public_functions(out, context));
+    TRY(forward_declare_structures_short_spelling(out, context));
+    TRY(forward_declare_public_functions_long_spelling(out,
+        context));
     TRY(codegen_structures(out, context));
 
     TRY(forward_declare_top_level_public_constants(out, context));
@@ -90,8 +92,8 @@ ErrorOr<StringBuffer> codegen(Context const& context,
     TRY(codegen_imports(out, context));
     TRY(codegen_top_level_inline_cs(out, context));
 
-    TRY(forward_declare_structures(out, context));
-    TRY(forward_declare_functions(out, context));
+    TRY(forward_declare_structures_short_spelling(out, context));
+    TRY(forward_declare_functions_short_spelling(out, context));
 
     TRY(codegen_structures(out, context));
     TRY(codegen_top_level_variables(out, context));
@@ -101,37 +103,6 @@ ErrorOr<StringBuffer> codegen(Context const& context,
 }
 
 namespace {
-
-ErrorOr<void> forward_declare_public_functions(StringBuffer& out,
-    Context const& context)
-{
-    auto const& expressions = context.expressions;
-    auto source = context.source;
-
-    auto const& public_functions = expressions.public_functions;
-    for (auto function : public_functions) {
-        auto type = function.return_type.text(source);
-        auto name = function.name.text(source);
-        TRY(out.write(type, " "sv, name));
-
-        auto const& parameters = expressions[function.parameters];
-        TRY(codegen_parameters(out, context, parameters));
-        TRY(out.writeln(";"sv));
-    }
-
-    auto const& public_c_functions = expressions.public_functions;
-    for (auto function : public_c_functions) {
-        auto type = function.return_type.text(source);
-        auto name = function.name.text(source);
-        TRY(out.write(type, " "sv, name));
-
-        auto const& parameters = expressions[function.parameters];
-        TRY(codegen_parameters(out, context, parameters));
-        TRY(out.writeln(";"sv));
-    }
-
-    return {};
-}
 
 ErrorOr<void> codegen_imports(StringBuffer& out,
     Context const& context)
@@ -283,8 +254,8 @@ typedef char const* c_string;
     return {};
 }
 
-ErrorOr<void> forward_declare_structures(StringBuffer& out,
-    Context const& context)
+ErrorOr<void> forward_declare_structures_short_spelling(
+    StringBuffer& out, Context const& context)
 {
     auto const& expressions = context.expressions;
 
@@ -321,10 +292,42 @@ ErrorOr<void> forward_declare_structures(StringBuffer& out,
     return {};
 }
 
-ErrorOr<void> forward_declare_functions(StringBuffer& out,
-    Context const& context)
+ErrorOr<void> forward_declare_public_functions_long_spelling(
+    StringBuffer& out, Context const& context)
 {
     auto const& expressions = context.expressions;
+    auto namespace_ = context.namespace_;
+
+    auto const& public_functions = expressions.public_functions;
+    for (auto function : public_functions) {
+        auto type = function.return_type.text(context.source);
+        auto name = function.name.text(context.source);
+        TRY(out.write(type, " "sv, namespace_, "$"sv, name));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
+        TRY(out.writeln(";"sv));
+    }
+
+    auto const& public_c_functions = expressions.public_c_functions;
+    for (auto function : public_c_functions) {
+        auto type = function.return_type.text(context.source);
+        auto name = function.name.text(context.source);
+        TRY(out.write(type, " "sv, name));
+
+        auto const& parameters = expressions[function.parameters];
+        TRY(codegen_parameters(out, context, parameters));
+        TRY(out.writeln(";"sv));
+    }
+
+    return {};
+}
+
+ErrorOr<void> forward_declare_functions_short_spelling(
+    StringBuffer& out, Context const& context)
+{
+    auto const& expressions = context.expressions;
+    auto namespace_ = context.namespace_;
 
     auto const& public_functions = expressions.public_functions;
     for (auto function : public_functions) {
@@ -334,7 +337,8 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
 
         auto const& parameters = expressions[function.parameters];
         TRY(codegen_parameters(out, context, parameters));
-        TRY(out.writeln(";"sv));
+        TRY(out.write("asm(\""sv, namespace_, "$"sv, name,
+            "\");"sv));
     }
 
     auto const& private_functions = expressions.private_functions;
@@ -348,7 +352,7 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
         TRY(out.writeln(";"sv));
     }
 
-    auto const& public_c_functions = expressions.public_functions;
+    auto const& public_c_functions = expressions.public_c_functions;
     for (auto function : public_c_functions) {
         auto type = function.return_type.text(context.source);
         auto name = function.name.text(context.source);
@@ -359,7 +363,8 @@ ErrorOr<void> forward_declare_functions(StringBuffer& out,
         TRY(out.writeln(";"sv));
     }
 
-    auto const& private_c_functions = expressions.private_functions;
+    auto const& private_c_functions
+        = expressions.private_c_functions;
     for (auto function : private_c_functions) {
         auto type = function.return_type.text(context.source);
         auto name = function.name.text(context.source);
@@ -810,12 +815,12 @@ ErrorOr<void> codegen_public_function(StringBuffer& out,
     auto source = context.source;
     auto const& expressions = context.expressions;
 
-    TRY(out.write(function.return_type.text(source), " "sv,
-        function.name.text(source)));
-    TRY(codegen_parameters(out, context,
-        expressions[function.parameters]));
-    TRY(codegen_block(out, context,
-        context.expressions[function.block]));
+    auto name = function.name.text(source);
+    auto return_type = function.return_type.text(source);
+    auto const& parameters = expressions[function.parameters];
+    TRY(out.write(return_type, " "sv, name));
+    TRY(codegen_parameters(out, context, parameters));
+    TRY(codegen_block(out, context, expressions[function.block]));
 
     return {};
 }

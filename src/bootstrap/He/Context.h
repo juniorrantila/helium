@@ -6,6 +6,7 @@ namespace He {
 
 struct Context {
     StringView source;
+    StringView namespace_;
     ParsedExpressions const& expressions;
 };
 

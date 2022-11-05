@@ -28,20 +28,20 @@ pub c_fn main(argc: c_int, argv: c_string_array) -> c_int {
     };
 
     var lexer = Lexer {};
-    if lexer_init(&mut lexer, source_file) < 0 {
+    if src$selfhost$Lexer$lexer_init(&mut lexer, source_file) < 0 {
         fprintf(stderr, "could not init lexer\n");
         MappedFile$close(mapped_file);
         return 1;
     }
 
-    if lexer_run(&mut lexer) < 0 {
+    if src$selfhost$Lexer$lexer_run(&mut lexer) < 0 {
         fprintf(stderr, "could not run lexer\n");
-        lexer_deinit(&mut lexer);
+        src$selfhost$Lexer$lexer_deinit(&mut lexer);
         MappedFile$close(mapped_file);
         return 1;
     }
 
-    lexer_deinit(&mut lexer);
+    src$selfhost$Lexer$lexer_deinit(&mut lexer);
     MappedFile$close(mapped_file);
 
     return 0;

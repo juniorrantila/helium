@@ -11,7 +11,7 @@ inline_c typedef struct Lexer* LexerP;
 pub fn lexer_init(lexer: LexerP, source: SourceFile) -> i32 
 {
     var tokens = Tokens {};
-    if tokens_init(&mut tokens) < 0 {
+    if src$selfhost$Token$tokens_init(&mut tokens) < 0 {
         return -1;
     }
     inline_c *lexer = (Lexer) {
@@ -24,7 +24,7 @@ pub fn lexer_init(lexer: LexerP, source: SourceFile) -> i32
 
 pub fn lexer_deinit(lexer: LexerP) -> void {
     var tokens = inline_c lexer->tokens;
-    tokens_deinit(&mut tokens);
+    src$selfhost$Token$tokens_deinit(&mut tokens);
 }
 
 pub fn lexer_run(lexer: LexerP) -> i32 {

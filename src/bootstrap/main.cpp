@@ -20,6 +20,8 @@
 [[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path);
 
+static ErrorOr<StringBuffer> namespace_from_path(StringView path);
+
 ErrorOr<int> Main::main(int argc, c_string argv[])
 {
     auto argument_parser = CLI::ArgumentParser();
@@ -154,8 +156,11 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     if (stop_after_parse)
         return 0;
 
+    auto namespace_
+        = TRY(namespace_from_path(source_file.file_name));
     auto context = He::Context {
         source_file.text,
+        namespace_.view(),
         expressions,
     };
     bench.start();
@@ -270,6 +275,28 @@ static ErrorOr<void> move_file(c_string to, c_string from)
             "could not compile source");
 
     return {};
+}
+
+static ErrorOr<StringBuffer> namespace_from_path(StringView path)
+{
+    auto namespace_ = TRY(StringBuffer::create(path.size));
+
+    while (path.starts_with("../"sv))
+        path = path.shrink_from_start("../"sv.size);
+
+    auto parts = TRY(path.split_on('/'));
+    for (u32 i = 0; i < parts.size() - 1;) {
+        if (parts[i + 1] == ".."sv) {
+            i += 2;
+            continue;
+        }
+        TRY(namespace_.write(parts[i], "$"sv));
+        i++;
+    }
+    TRY(namespace_.write(parts.last().shrink(".he"sv.size)));
+    namespace_.replace_all('-', '_');
+
+    return namespace_;
 }
 
 void* he_malloc(size_t size) { return malloc(size); }
