@@ -69,6 +69,28 @@ struct StringView {
         return { &data[start], size };
     }
 
+    constexpr StringView part(u32 start, u32 end) const
+    {
+        return { &data[start], end - start };
+    }
+
+    constexpr StringView shrink(u32 amount) const
+    {
+        return { data, size - amount };
+    }
+
+    constexpr bool starts_with(StringView other) const
+    {
+        if (size < other.size)
+            return false;
+        return sub_view(0, other.size) == other;
+    }
+
+    constexpr StringView shrink_from_start(u32 amount) const
+    {
+        return { &data[amount], size - amount };
+    }
+
 private:
     [[gnu::flatten]] static constexpr u32 strncpy(
         char* __restrict to, StringView from)
