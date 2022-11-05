@@ -120,6 +120,12 @@ struct StringBuffer {
     constexpr u32 capacity() const { return m_capacity; }
     constexpr u32 size_left() const { return m_capacity - m_size; }
 
+    constexpr char* begin() { return m_data; }
+    constexpr char* end() { return &m_data[m_size]; }
+
+    constexpr c_string begin() const { return m_data; }
+    constexpr c_string end() const { return &m_data[m_size]; }
+
     constexpr StringView view() const { return { m_data, m_size }; }
 
 private:
