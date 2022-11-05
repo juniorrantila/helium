@@ -1,6 +1,6 @@
 
 samples_c_args = [
-    '-std=c2x',
+    '-std=gnu2x',
     '-Wno-gnu-auto-type',
     '-Wno-fixed-enum-extension',
     '-Wno-gnu-empty-initializer',
