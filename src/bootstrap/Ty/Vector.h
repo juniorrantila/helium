@@ -6,8 +6,8 @@
 #include "Try.h"
 #include "View.h"
 
-void* he_malloc(size_t);
-void* he_realloc(void*, size_t);
+void* he_malloc(usize);
+void* he_realloc(void*, usize);
 void he_free(void*);
 
 #define ALWAYS_INLINE [[gnu::always_inline]]

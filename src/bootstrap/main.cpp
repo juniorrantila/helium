@@ -299,14 +299,14 @@ static ErrorOr<StringBuffer> namespace_from_path(StringView path)
     return namespace_;
 }
 
-void* he_malloc(size_t size) { return malloc(size); }
+void* he_malloc(usize size) { return malloc(size); }
 
-void* he_realloc(void* ptr, size_t size)
+void* he_realloc(void* ptr, usize size)
 {
     return realloc(ptr, size);
 }
 
-void* he_calloc(size_t nmemb, size_t size)
+void* he_calloc(usize nmemb, usize size)
 {
     return calloc(nmemb, size);
 }

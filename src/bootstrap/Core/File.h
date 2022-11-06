@@ -58,15 +58,15 @@ struct File {
 
     void close() const;
 
-    ErrorOr<size_t> nonatomic_writev(struct iovec const*,
-        size_t count) const;
+    ErrorOr<usize> nonatomic_writev(struct iovec const*,
+        usize count) const;
 
     template <typename... Args>
-    constexpr ErrorOr<size_t> write(Args const&... args) requires(
+    constexpr ErrorOr<usize> write(Args const&... args) requires(
         sizeof...(Args) > 1)
     {
         constexpr auto args_size = sizeof...(Args);
-        ErrorOr<size_t> results[args_size] = {
+        ErrorOr<usize> results[args_size] = {
             write(args)...,
         };
         u32 written = 0;
@@ -85,33 +85,33 @@ struct File {
         return TRY(write(args..., "\n"sv));
     }
 
-    ErrorOr<size_t> write(void const* data, size_t size)
+    ErrorOr<usize> write(void const* data, usize size)
     {
         return TRY(buffer_or_write(
             StringView { (c_string)data, (u32)size }));
     }
 
-    ErrorOr<size_t> write(StringBuffer const& string)
+    ErrorOr<usize> write(StringBuffer const& string)
     {
         return TRY(buffer_or_write(string.view()));
     }
 
-    ErrorOr<size_t> write(MappedFile const& file)
+    ErrorOr<usize> write(MappedFile const& file)
     {
         return TRY(buffer_or_write(file.view()));
     }
 
-    ErrorOr<size_t> write(StringView string)
+    ErrorOr<usize> write(StringView string)
     {
         return TRY(buffer_or_write(string));
     }
 
-    ErrorOr<size_t> write(u64 number)
+    ErrorOr<usize> write(u64 number)
     {
         return TRY(buffer_or_write(number));
     }
 
-    ErrorOr<size_t> write(Error error)
+    ErrorOr<usize> write(Error error)
     {
         return TRY(buffer_or_write(error));
     }
@@ -129,7 +129,7 @@ struct File {
 private:
     constexpr File() = default;
 
-    constexpr ErrorOr<size_t> buffer_or_write(StringView string)
+    constexpr ErrorOr<usize> buffer_or_write(StringView string)
     {
         if (buffer.capacity() <= string.size)
             return TRY(Core::System::write(m_fd, string));
@@ -138,7 +138,7 @@ private:
         return TRY(buffer.write(string));
     }
 
-    constexpr ErrorOr<size_t> buffer_or_write(u64 number)
+    constexpr ErrorOr<usize> buffer_or_write(u64 number)
     {
         constexpr auto max_characters_in_u64 = 20;
         if (buffer.size_left() <= max_characters_in_u64)
@@ -146,7 +146,7 @@ private:
         return TRY(buffer.write(number));
     }
 
-    constexpr ErrorOr<size_t> buffer_or_write(Error error)
+    constexpr ErrorOr<usize> buffer_or_write(Error error)
     {
         auto written
             = TRY(write(error.function(), ": "sv, error.message()));
@@ -155,7 +155,7 @@ private:
         return written;
     }
 
-    static ErrorOr<size_t> writev_max_count();
+    static ErrorOr<usize> writev_max_count();
 
     constexpr File(int fd, bool should_close)
         : m_fd(fd)

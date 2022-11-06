@@ -3,7 +3,6 @@
 #include "Token.h"
 #include <Ty/ErrorOr.h>
 #include <Ty/StringView.h>
-#include <vector>
 
 namespace He {
 

@@ -38,7 +38,8 @@ private:
 
             asm volatile("cpuid"
                          : "=a"(info.threads), "=b"(info.cores),
-                         "=c"(info.unknown), "=d"(info.current_thread)
+                         "=c"(info.unknown),
+                         "=d"(info.current_thread)
                          : "0"(11), "2"(0)
                          :);
 

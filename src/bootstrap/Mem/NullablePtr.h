@@ -1,6 +1,5 @@
 #pragma once
 #include "AddressSpace.h"
-#include <cstddef>
 
 namespace Mem {
 
@@ -16,7 +15,7 @@ struct NullablePtr {
 
     static constexpr NullablePtr from_raw(T* raw)
     {
-        return { ((uintptr_t)(raw)-address_space::base) };
+        return { ((uptr)(raw)-address_space::base) };
     }
 
     static constexpr NullablePtr from(u32 index)

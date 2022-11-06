@@ -107,7 +107,7 @@ private:
     }
 };
 
-constexpr StringView operator""sv(c_string data, size_t size)
+constexpr StringView operator""sv(c_string data, usize size)
 {
     return StringView(data, size);
 }

@@ -3,7 +3,6 @@
 #include <Ty/Move.h>
 #include <Ty/Traits.h>
 #include <Ty/Vector.h>
-#include <stdio.h>
 
 namespace He {
 

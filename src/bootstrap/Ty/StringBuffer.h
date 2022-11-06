@@ -4,7 +4,7 @@
 #include "Try.h"
 #include "Vector.h"
 
-void* he_malloc(size_t);
+void* he_malloc(usize);
 void he_free(void*);
 
 namespace Ty {

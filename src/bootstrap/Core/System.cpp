@@ -23,7 +23,7 @@ ErrorOr<Stat> fstat(int fd)
     return Stat(st);
 }
 
-ErrorOr<size_t> write(int fd, void const* data, size_t size)
+ErrorOr<usize> write(int fd, void const* data, usize size)
 {
     auto bytes = ::write(fd, data, size);
     if (bytes < 0)
@@ -31,22 +31,22 @@ ErrorOr<size_t> write(int fd, void const* data, size_t size)
     return bytes;
 }
 
-ErrorOr<size_t> write(int fd, StringView string)
+ErrorOr<usize> write(int fd, StringView string)
 {
     return TRY(write(fd, string.data, string.size));
 }
 
-ErrorOr<size_t> write(int fd, MappedFile const& file)
+ErrorOr<usize> write(int fd, MappedFile const& file)
 {
     return TRY(write(fd, file.m_data, file.m_size));
 }
 
-ErrorOr<size_t> write(int fd, StringBuffer const& string)
+ErrorOr<usize> write(int fd, StringBuffer const& string)
 {
     return TRY(write(fd, string.data(), string.size()));
 }
 
-ErrorOr<size_t> writev(int fd, struct iovec const* iovec, int count)
+ErrorOr<usize> writev(int fd, struct iovec const* iovec, int count)
 {
     auto bytes_written = ::writev(fd, iovec, count);
     if (bytes_written < 0)
@@ -54,27 +54,27 @@ ErrorOr<size_t> writev(int fd, struct iovec const* iovec, int count)
     return bytes_written;
 }
 
-ErrorOr<void> munmap(void const* addr, size_t size)
+ErrorOr<void> munmap(void const* addr, usize size)
 {
     if (::munmap((void*)addr, size) < 0)
         return Error::from_errno();
     return {};
 }
 
-ErrorOr<u8*> mmap(size_t size, int prot, int flags, int fd,
+ErrorOr<u8*> mmap(usize size, int prot, int flags, int fd,
     off_t offset)
 {
     return TRY(mmap(nullptr, size, prot, flags, fd, offset));
 }
 
-ErrorOr<void> mprotect(void* addr, size_t len, int prot)
+ErrorOr<void> mprotect(void* addr, usize len, int prot)
 {
     if (::mprotect(addr, len, prot) < 0)
         return Error::from_errno();
     return {};
 }
 
-ErrorOr<u8*> mmap(void* addr, size_t size, int prot, int flags,
+ErrorOr<u8*> mmap(void* addr, usize size, int prot, int flags,
     int fd, off_t offset)
 {
     auto* ptr = ::mmap(addr, size, prot, flags, fd, offset);

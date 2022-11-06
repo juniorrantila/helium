@@ -26,7 +26,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
     c_string program_name = argv[0];
     auto program_name_view
         = StringView::from_c_string(program_name);
-    size_t used_positional_arguments = 0;
+    usize used_positional_arguments = 0;
     for (int i = 1; i < argc; i++) {
         auto argument = StringView::from_c_string(argv[i]);
         if (auto id = short_flag_callback_ids.find(argument);
@@ -135,7 +135,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                 placeholder));
         } else {
             TRY(out.writeln("Missing positional arguments: "sv));
-            for (size_t i = used_positional_arguments;
+            for (usize i = used_positional_arguments;
                  i < positional_placeholders.size(); i++) {
                 auto placeholder = positional_placeholders[i];
                 TRY(out.writeln("\t"sv, placeholder));

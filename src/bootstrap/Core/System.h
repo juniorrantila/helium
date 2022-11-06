@@ -15,19 +15,18 @@ extern char** environ;
 
 namespace Core::System {
 
-ErrorOr<size_t> write(int fd, MappedFile const& file);
-ErrorOr<size_t> write(int fd, StringBuffer const& string);
-ErrorOr<size_t> write(int fd, StringView string);
-ErrorOr<size_t> write(int fd, void const* data, size_t size);
-ErrorOr<size_t> writev(int fd, struct iovec const* iovec,
-    int count);
+ErrorOr<usize> write(int fd, MappedFile const& file);
+ErrorOr<usize> write(int fd, StringBuffer const& string);
+ErrorOr<usize> write(int fd, StringView string);
+ErrorOr<usize> write(int fd, void const* data, usize size);
+ErrorOr<usize> writev(int fd, struct iovec const* iovec, int count);
 ErrorOr<void> fsync(int fd);
-ErrorOr<void> munmap(void const* addr, size_t size);
-ErrorOr<u8*> mmap(size_t size, int prot, int flags, int fd = -1,
+ErrorOr<void> munmap(void const* addr, usize size);
+ErrorOr<u8*> mmap(usize size, int prot, int flags, int fd = -1,
     off_t offset = 0);
-ErrorOr<u8*> mmap(void* addr, size_t size, int prot, int flags,
+ErrorOr<u8*> mmap(void* addr, usize size, int prot, int flags,
     int fd = -1, off_t offset = 0);
-ErrorOr<void> mprotect(void* addr, size_t len, int prot);
+ErrorOr<void> mprotect(void* addr, usize len, int prot);
 
 struct Stat {
     constexpr Stat(struct stat st)

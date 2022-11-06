@@ -6,7 +6,7 @@
 
 namespace Mem::Internal {
 
-ErrorOr<void> init(uintptr_t base, uintptr_t size)
+ErrorOr<void> init(uptr base, uptr size)
 {
     auto page_size = TRY(Core::System::page_size());
     auto flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT;
@@ -27,7 +27,7 @@ ErrorOr<void> init(uintptr_t base, uintptr_t size)
     return {};
 }
 
-ErrorOr<void> deinit(uintptr_t base, uintptr_t size)
+ErrorOr<void> deinit(uptr base, uptr size)
 {
     TRY(Core::System::munmap((void*)base, size));
     return {};

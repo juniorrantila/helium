@@ -4,10 +4,7 @@
 namespace Core {
 
 struct Threads {
-    static u32 in_machine()
-    {
-        return Hardware::the().threads();
-    }
+    static u32 in_machine() { return Hardware::the().threads(); }
 };
 
 }
