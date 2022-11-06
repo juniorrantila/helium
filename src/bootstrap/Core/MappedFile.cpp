@@ -10,11 +10,10 @@ namespace Core {
 
 ErrorOr<MappedFile> MappedFile::open(StringView path)
 {
-    auto* path_string = __builtin_strndup(path.data, path.size);
-    Defer free_path_string = [=] {
-        __builtin_free(path_string);
-    };
-    return TRY(open(path_string));
+    auto path_buffer
+        = TRY(StringBuffer::create(path.size + "\0"sv.size));
+    TRY(path_buffer.write(path, "\0"sv));
+    return TRY(open(path_buffer.view().data));
 }
 
 ErrorOr<MappedFile> MappedFile::open(c_string path)
