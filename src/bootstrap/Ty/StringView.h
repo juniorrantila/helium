@@ -1,6 +1,7 @@
 #pragma once
 #include "Base.h"
 #include "Forward.h"
+#include "Traits.h"
 
 namespace Ty {
 

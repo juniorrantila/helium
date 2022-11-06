@@ -1,5 +1,6 @@
 #pragma once
 #include "System.h"
+#include "Ty/Traits.h"
 #include <Ty/ErrorOr.h>
 #include <Ty/Forward.h>
 #include <sys/uio.h>
@@ -62,11 +63,11 @@ struct File {
         usize count) const;
 
     template <typename... Args>
-    constexpr ErrorOr<usize> write(Args const&... args) requires(
+    constexpr ErrorOr<u32> write(Args const&... args) requires(
         sizeof...(Args) > 1)
     {
         constexpr auto args_size = sizeof...(Args);
-        ErrorOr<usize> results[args_size] = {
+        ErrorOr<u32> results[args_size] = {
             write(args)...,
         };
         u32 written = 0;
@@ -85,35 +86,28 @@ struct File {
         return TRY(write(args..., "\n"sv));
     }
 
-    ErrorOr<usize> write(void const* data, usize size)
+    ErrorOr<u32> write(void const* data, usize size)
     {
         return TRY(buffer_or_write(
             StringView { (c_string)data, (u32)size }));
     }
 
-    ErrorOr<usize> write(StringBuffer const& string)
-    {
-        return TRY(buffer_or_write(string.view()));
-    }
-
-    ErrorOr<usize> write(MappedFile const& file)
-    {
-        return TRY(buffer_or_write(file.view()));
-    }
-
-    ErrorOr<usize> write(StringView string)
+    ErrorOr<u32> write(StringView string)
     {
         return TRY(buffer_or_write(string));
     }
 
-    ErrorOr<usize> write(u64 number)
+    template <typename T>
+    requires is_trivially_copyable<T> ErrorOr<u32> write(T value)
     {
-        return TRY(buffer_or_write(number));
+        return TRY(Formatter<T>::write(*this, value));
     }
 
-    ErrorOr<usize> write(Error error)
+    template <typename T>
+    requires(!is_trivially_copyable<T>) ErrorOr<u32> write(
+        T const& value)
     {
-        return TRY(buffer_or_write(error));
+        return TRY(Formatter<T>::write(*this, value));
     }
 
     ErrorOr<void> flush()

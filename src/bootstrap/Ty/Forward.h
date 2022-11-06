@@ -11,6 +11,11 @@ struct ErrorOr;
 template <typename T>
 struct Vector;
 
+struct StringView;
+
+template <typename T>
+struct Formatter;
+
 }
 
 using namespace Ty;

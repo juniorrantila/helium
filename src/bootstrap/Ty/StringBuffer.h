@@ -1,6 +1,9 @@
 #pragma once
 #include "Base.h"
+#include "Concepts.h"
 #include "ErrorOr.h"
+#include "Forward.h"
+#include "Traits.h"
 #include "Try.h"
 #include "Vector.h"
 
@@ -83,34 +86,18 @@ struct StringBuffer {
         return size;
     }
 
-    constexpr ErrorOr<u32> write(u64 number)
+    template <typename T>
+    constexpr ErrorOr<u32> write(
+        T value) requires is_trivially_copyable<T>
     {
-        if (number == 0) {
-            return TRY(write("0"sv));
-        }
-
-        char buffer[max_chars_in_u64];
-        u32 buffer_start = max_chars_in_u64;
-
-        while (number != 0) {
-            buffer_start--;
-            buffer[buffer_start] = number_to_character(number % 10);
-            number /= 10;
-        }
-
-        u32 buffer_size = max_chars_in_u64 - buffer_start;
-
-        return TRY(write({ &buffer[buffer_start], buffer_size }));
+        return TRY(Formatter<T>::write(*this, value));
     }
 
-    constexpr ErrorOr<u32> write(Error error)
+    template <typename T>
+    constexpr ErrorOr<u32> write(T const& value) requires(
+        !is_trivially_copyable<T>)
     {
-        auto size
-            = TRY(write(error.function(), ": "sv, error.message()));
-        size += TRY(writeln(" ["sv, error.file(), ":"sv,
-            error.line_in_file(), "]"sv));
-
-        return size;
+        return TRY(Formatter<T>::write(*this, value));
     }
 
     constexpr void clear() { m_size = 0; }
@@ -164,6 +151,17 @@ private:
     char* m_data { nullptr };
     u32 m_size { 0 };
     u32 m_capacity { 0 };
+};
+
+template <>
+struct Formatter<StringBuffer> {
+    template <typename U>
+    requires Writable<U>
+    static constexpr ErrorOr<u32> write(U& to,
+        StringBuffer const& buffer)
+    {
+        return TRY(to.write(buffer.view()));
+    }
 };
 
 }

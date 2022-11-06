@@ -1,5 +1,6 @@
 #pragma once
 #include <Ty/ErrorOr.h>
+#include <Ty/Formatter.h>
 #include <Ty/StringView.h>
 
 namespace Core {
@@ -35,6 +36,21 @@ private:
     }
 
     constexpr MappedFile() = default;
+};
+
+}
+
+namespace Ty {
+
+template <>
+struct Formatter<Core::MappedFile> {
+    template <typename U>
+    requires Writable<U>
+    static constexpr ErrorOr<u32> write(U& to,
+        Core::MappedFile const& file)
+    {
+        return TRY(to.write(to, file.view()));
+    }
 };
 
 }
