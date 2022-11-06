@@ -13,7 +13,7 @@ struct StringView {
     [[gnu::flatten]] static constexpr StringView from_c_string(
         c_string data)
     {
-        return StringView(data, __builtin_strlen(data));
+        return StringView(data, length_of(data));
     }
 
     constexpr StringView(char const* data, u32 size)
@@ -27,8 +27,12 @@ struct StringView {
     {
         if (size != other.size)
             return false;
-        if (data == other.data)
-            return true;
+
+        if (!is_constant_evaluated()) {
+            if (data == other.data)
+                return true;
+        }
+
         bool same = true;
         // clang-format off
         while (other.size --> 0)
@@ -104,6 +108,14 @@ private:
         for (u32 i = 0; i < from.size; i++)
             to[i] = from[i];
         return from.size;
+    }
+
+    static constexpr u32 length_of(c_string string)
+    {
+        u32 size = 0;
+        for (; string[size] != '\0'; ++size)
+            ;
+        return size;
     }
 };
 
