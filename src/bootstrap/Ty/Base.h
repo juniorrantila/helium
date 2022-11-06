@@ -12,6 +12,9 @@ using u16 = unsigned short;
 using u32 = unsigned int;
 using u64 = unsigned long;
 
+using u128 = unsigned __int128;
+using i128 = signed __int128;
+
 static_assert(sizeof(i8) == 1);
 static_assert(sizeof(i16) == 2);
 static_assert(sizeof(i32) == 4);
