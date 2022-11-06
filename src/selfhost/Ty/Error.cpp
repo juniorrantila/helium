@@ -1,12 +1,11 @@
 #include "Error.h"
-#include <iostream>
+#include <stdio.h>
 #include <string.h>
 
 c_string errno_to_string(int code) { return strerror(code); }
 
 void Error$show(Error error)
 {
-    std::cerr << error.function << ": " << error.message << ' '
-              << '[' << error.file << ':' << error.line_in_file
-              << ']' << std::endl;
+    (void)fprintf(stderr, "%s:%s [%s:%d]", error.function,
+        error.message, error.file, error.line_in_file);
 }
