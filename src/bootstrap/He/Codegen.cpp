@@ -306,7 +306,8 @@ ErrorOr<void> forward_declare_public_functions_long_spelling(
 
         auto const& parameters = expressions[function.parameters];
         TRY(codegen_parameters(out, context, parameters));
-        TRY(out.writeln(";"sv));
+        TRY(out.writeln("asm(\""sv, namespace_, "$"sv, name,
+            "\");"sv));
     }
 
     auto const& public_c_functions = expressions.public_c_functions;
