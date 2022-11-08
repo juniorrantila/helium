@@ -16,6 +16,9 @@ struct StringView;
 template <typename T>
 struct Formatter;
 
+template <typename Signature>
+class Function;
+
 }
 
 using namespace Ty;

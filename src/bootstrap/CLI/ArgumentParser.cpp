@@ -23,129 +23,89 @@ ErrorOr<void> ArgumentParserError::show() const
 ArgumentParserResult ArgumentParser::run(int argc,
     c_string argv[]) const
 {
+    auto err_out = StringBuffer();
+
     c_string program_name = argv[0];
     auto program_name_view
         = StringView::from_c_string(program_name);
-    usize used_positional_arguments = 0;
+    usize used_positionals = 0;
     for (int i = 1; i < argc; i++) {
         auto argument = StringView::from_c_string(argv[i]);
-        if (auto id = short_flag_callback_ids.find(argument);
+        if (auto id = short_flag_ids.find(argument);
             id.is_valid()) {
             flag_callbacks[id.raw()]();
-        } else if (auto id = long_flag_callback_ids.find(argument);
-                   id.is_valid()) {
+            continue;
+        }
+
+        if (auto id = long_flag_ids.find(argument); id.is_valid()) {
             flag_callbacks[id.raw()]();
-        } else if (auto id
-                   = short_option_callback_ids.find(argument);
-                   id.is_valid()) {
+            continue;
+        }
+
+        if (auto id = short_option_ids.find(argument);
+            id.is_valid()) {
             if (i + 1 >= argc) {
-                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-                TRY(out.writeln(
+                TRY(err_out.writeln(
                     "No argument provided for argument \""sv,
                     argument, "\""sv));
-                TRY(out.writeln("\nSee help for more info ("sv,
+                TRY(err_out.writeln("\nSee help for more info ("sv,
                     program_name_view, " --help)"sv));
-                return ArgumentParserError { move(out) };
+                return ArgumentParserError { move(err_out) };
             }
             c_string value = argv[++i];
-            auto result = option_callbacks[id.raw()](value);
-            if (result.is_error()) {
-                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-
-                auto value_view = StringView::from_c_string(value);
-                auto reason = result.error().message();
-                TRY(out.writeln("Invalid value \""sv, value_view,
-                    "\" for argument \""sv, argument, "\""sv));
-                TRY(out.writeln("Reason: "sv, reason));
-                TRY(out.writeln("\nSee help for more info ("sv,
-                    program_name_view, " --help)"sv));
-
-                return ArgumentParserError { move(out) };
-            }
-        } else if (auto id
-                   = long_option_callback_ids.find(argument);
-                   id.is_valid()) {
-            if (i + 1 >= argc) {
-                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-                TRY(out.writeln("No argument provided for \""sv,
-                    argument, "\"\n"sv));
-                TRY(out.writeln("See help for more info ("sv,
-                    program_name_view, " --help)"sv));
-                return ArgumentParserError { move(out) };
-            }
-            c_string value = argv[++i];
-            auto result = option_callbacks[id.raw()](value);
-            if (result.is_error()) {
-                auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-
-                auto value_view = StringView::from_c_string(value);
-                auto reason = result.error().message();
-                TRY(out.writeln("Invalid value \""sv, value_view,
-                    "\" for argument \""sv, argument, "\""sv));
-                TRY(out.writeln("Reason: "sv, reason, "\n"sv));
-                TRY(out.writeln("See help for more info ("sv,
-                    program_name_view, "\" --help)"sv));
-
-                return ArgumentParserError { move(out) };
-            }
-        } else if (used_positional_arguments
-            < positional_argument_callbacks.size()) {
-            auto id = used_positional_arguments++;
-            auto result
-                = positional_argument_callbacks[id](argument.data);
-            if (result.is_error()) {
-                auto out = TRY(StringBuffer::create(1024));
-
-                auto placeholder = positional_placeholders
-                    [used_positional_arguments - 1];
-                TRY(out.writeln("Invalid positional argument \""sv,
-                    argument, "\" for \""sv, placeholder, "\""sv));
-
-                auto reason = result.error().message();
-                TRY(out.writeln("Reason: "sv, reason, "\n"sv));
-                TRY(out.writeln("See help for more info ("sv,
-                    program_name_view, " --help)"sv));
-
-                return ArgumentParserError { move(out) };
-            }
-        } else {
-            auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-
-            TRY(out.writeln("Unrecognised argument: \""sv, argument,
-                "\""sv));
-            TRY(out.writeln("\nSee help for more info ("sv,
-                program_name_view, " --help)"sv));
-
-            return ArgumentParserError { move(out) };
+            option_callbacks[id.raw()](value);
+            continue;
         }
+
+        if (auto id = long_option_ids.find(argument);
+            id.is_valid()) {
+            if (i + 1 >= argc) {
+                TRY(err_out.writeln("No argument provided for \""sv,
+                    argument, "\"\n"sv));
+                TRY(err_out.writeln("See help for more info ("sv,
+                    program_name_view, " --help)"sv));
+                return ArgumentParserError { move(err_out) };
+            }
+            c_string value = argv[++i];
+            option_callbacks[id.raw()](value);
+            continue;
+        }
+
+        if (used_positionals < positional_callbacks.size()) {
+            auto id = used_positionals++;
+            positional_callbacks[id](argument.data);
+            continue;
+        }
+
+        TRY(err_out.writeln("Unrecognized argument: \""sv, argument,
+            "\""sv));
+        TRY(err_out.writeln("\nSee help for more info ("sv,
+            program_name_view, " --help)"sv));
+
+        return ArgumentParserError { move(err_out) };
     }
 
-    if (used_positional_arguments
-        != positional_placeholders.size()) {
-        auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-
-        if (positional_placeholders.size()
-                - used_positional_arguments
+    if (used_positionals != positional_placeholders.size()) {
+        if (positional_placeholders.size() - used_positionals
             == 1) {
             auto out = TRY(StringBuffer::create(1 * Mem::KiB));
-            auto placeholder = positional_placeholders
-                [used_positional_arguments];
+            auto placeholder
+                = positional_placeholders[used_positionals];
 
             TRY(out.writeln("Missing positional argument: "sv,
                 placeholder));
-        } else {
-            TRY(out.writeln("Missing positional arguments: "sv));
-            for (usize i = used_positional_arguments;
-                 i < positional_placeholders.size(); i++) {
-                auto placeholder = positional_placeholders[i];
-                TRY(out.writeln("\t"sv, placeholder));
-            }
+        }
+        TRY(err_out.writeln("Missing positional arguments: "sv));
+        for (usize i = used_positionals;
+             i < positional_placeholders.size(); i++) {
+            auto placeholder = positional_placeholders[i];
+            TRY(err_out.writeln("\t"sv, placeholder));
         }
 
-        TRY(out.writeln("\nSee help for more info ("sv,
+        TRY(err_out.writeln("\nSee help for more info ("sv,
             program_name_view, " --help)"sv));
 
-        return ArgumentParserError { move(out) };
+        return ArgumentParserError { move(err_out) };
     }
 
     return {};
