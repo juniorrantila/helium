@@ -1,6 +1,5 @@
 .DS_Store
-a.c
-a.out
+a.*
 build
 perf.data
 perf.data.old
