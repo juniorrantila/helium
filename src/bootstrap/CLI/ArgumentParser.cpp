@@ -147,6 +147,6 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
     out.writeln().ignore();
     out.flush().ignore();
 
-    _Exit(exit_code);
+    _exit(exit_code);
 }
 }
