@@ -1,7 +1,7 @@
 #pragma once
 #include <Ty/Base.h>
-#include <Ty/Function.h>
 #include <Ty/Move.h>
+#include <Ty/SmallCapture.h>
 #include <Ty/SmallMap.h>
 #include <Ty/SmallVector.h>
 #include <Ty/StringBuffer.h>
@@ -76,7 +76,7 @@ using ArgumentParserResult = ErrorOr<void, ArgumentParserError>;
 struct ArgumentParser {
     ErrorOr<void> add_flag(StringView long_name,
         StringView short_name, StringView explanation,
-        Function<void()>&& callback)
+        SmallCapture<void()>&& callback)
     {
         auto id = flag_callbacks.size();
         TRY(flags.append({ long_name, short_name, explanation }));
@@ -89,7 +89,8 @@ struct ArgumentParser {
 
     ErrorOr<void> add_option(StringView long_name,
         StringView short_name, StringView placeholder,
-        StringView explanation, Function<void(c_string)>&& callback)
+        StringView explanation,
+        SmallCapture<void(c_string)>&& callback)
     {
         auto id = option_callbacks.size();
         TRY(options.append({
@@ -107,7 +108,7 @@ struct ArgumentParser {
     }
 
     ErrorOr<void> add_positional_argument(StringView placeholder,
-        Function<void(c_string)>&& callback)
+        SmallCapture<void(c_string)>&& callback)
     {
         TRY(positional_placeholders.append(placeholder));
         TRY(positional_callbacks.append(move(callback)));
@@ -142,10 +143,11 @@ private:
     SmallMap<StringView, u32> short_option_ids {};
     SmallMap<StringView, u32> long_option_ids {};
 
-    SmallVector<Function<void()>> flag_callbacks {};
-    SmallVector<Function<void(c_string)>> option_callbacks {};
+    SmallVector<SmallCapture<void()>> flag_callbacks {};
+    SmallVector<SmallCapture<void(c_string)>> option_callbacks {};
 
     SmallVector<StringView> positional_placeholders {};
-    SmallVector<Function<void(c_string)>> positional_callbacks {};
+    SmallVector<SmallCapture<void(c_string)>>
+        positional_callbacks {};
 };
 }
