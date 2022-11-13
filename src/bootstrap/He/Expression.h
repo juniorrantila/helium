@@ -18,6 +18,7 @@ struct ParsedExpressions;
     X(PublicVariableDeclaration, public_variable_declaration)   \
                                                                 \
     X(VariableAssignment, variable_assignment)                  \
+    X(MutableReference, mutable_reference)                      \
                                                                 \
     X(StructDeclaration, struct_declaration)                    \
     X(StructInitializer, struct_initializer)                    \
@@ -111,6 +112,13 @@ struct Member {
     Token type {};
 };
 using Members = Vector<Member>;
+
+struct MutableReference {
+    Id<LValue> lvalue;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
 
 struct StructDeclaration {
     Token name {};

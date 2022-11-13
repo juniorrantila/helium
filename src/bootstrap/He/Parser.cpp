@@ -1546,23 +1546,15 @@ ParseSingleItemResult parse_prvalue(ParseErrors& errors,
         }
 
         if (tokens[end].is(TokenType::RefMut)) {
-            auto token = tokens[end];
-            token.set_end_index(token.start_index + 1);
-            auto literal = TRY(expressions.append(Literal {
-                token,
-            }));
-            TRY(expressions[rvalue.expressions].append({
-                literal,
-                end,
-                end + 1,
-            }));
-            end = end + 1;
+            auto refmut = TRY(parse_mutable_reference(errors,
+                expressions, tokens, end + 1));
+            TRY(expressions[rvalue.expressions].append(refmut));
+            end = refmut.end_token_index();
             continue;
         }
 
         if (tokens[end].is(TokenType::Ampersand)) {
             auto token = tokens[end];
-            token.set_end_index(token.start_index + 1);
             auto literal = TRY(expressions.append(Literal {
                 token,
             }));
@@ -1667,6 +1659,17 @@ ParseSingleItemResult parse_prvalue(ParseErrors& errors,
         tokens[end],
     }));
     return Expression::garbage(start, end);
+}
+
+ParseSingleItemResult parse_mutable_reference(ParseErrors& errors,
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto lvalue
+        = TRY(parse_lvalue(errors, expressions, tokens, start));
+    auto ref_id = TRY(expressions.append(MutableReference {
+        lvalue.as_lvalue(),
+    }));
+    return Expression(ref_id, start, lvalue.end_token_index());
 }
 
 ParseSingleItemResult parse_struct_declaration(ParseErrors& errors,

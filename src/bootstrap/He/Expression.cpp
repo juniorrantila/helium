@@ -77,6 +77,15 @@ void VariableAssignment::dump(ParsedExpressions const& expressions,
     out.write(")"sv).ignore();
 }
 
+void MutableReference::dump(ParsedExpressions const& expressions,
+    StringView source, u32 indent) const
+{
+    auto& out = Core::File::stderr();
+    out.write("MutableReference("sv).ignore();
+    expressions[lvalue].dump(expressions, source, indent);
+    out.write(")"sv).ignore();
+}
+
 void StructDeclaration::dump(ParsedExpressions const& expressions,
     StringView source, u32) const
 {

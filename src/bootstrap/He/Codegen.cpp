@@ -621,6 +621,16 @@ ErrorOr<void> codegen_variable_assignment(StringBuffer& out,
     return {};
 }
 
+ErrorOr<void> codegen_mutable_reference(StringBuffer& out,
+    Context const& context, MutableReference const& reference)
+{
+    TRY(out.write("&"sv));
+    TRY(codegen_lvalue(out, context,
+        context.expressions[reference.lvalue]));
+
+    return {};
+}
+
 ErrorOr<void> codegen_struct_declaration(StringBuffer& out,
     Context const& context, StructDeclaration const& struct_)
 {
