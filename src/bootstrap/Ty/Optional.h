@@ -166,6 +166,7 @@ struct [[nodiscard]] Optional<T*> {
     constexpr Optional& operator=(Optional other)
     {
         m_value = other.m_value;
+        return *this;
     }
 
     constexpr T*& value() { return m_value; }
