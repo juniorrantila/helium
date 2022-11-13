@@ -59,7 +59,11 @@ ParseResult parse(Tokens const& tokens)
             continue;
         }
 
-        if (token.is(TokenType::InlineC)) {
+        TokenType inline_cs[] {
+            TokenType::InlineC,
+            TokenType::InlineCBlock,
+        };
+        if (token.is_any_of(inline_cs)) {
             auto inline_c = TRY(
                 parse_inline_c(errors, expressions, tokens, start));
             start = inline_c.end_token_index();
@@ -522,8 +526,8 @@ struct Function {
     static constexpr Function garbage(u32 start, u32 end)
     {
         return {
-            .name = { TokenType::Invalid, 0, 0 },
-            .return_type = { TokenType::Invalid, 0, 0 },
+            .name = { TokenType::Invalid, 0 },
+            .return_type = { TokenType::Invalid, 0 },
             .parameters = Id<Parameters>::invalid(),
             .block = Id<Block>::invalid(),
             .start_token_index = start,
@@ -2952,7 +2956,7 @@ parse_moved_value(ParseErrors& errors, ParsedExpressions&,
 ErrorOr<void> ParseError::show(SourceFile source) const
 {
     auto start_index = offending_token.start_index;
-    auto end_index = offending_token.end_index();
+    auto end_index = offending_token.end_index(source.text);
 
     auto start = TRY(
         Util::line_and_column_for(source.text, start_index)

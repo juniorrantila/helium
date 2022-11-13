@@ -49,6 +49,7 @@ namespace He {
     X(Fn, fn)                                    \
     X(If, if_token)                              \
     X(InlineC, inline_c)                         \
+    X(InlineCBlock, inline_c_block)              \
     X(Let, let_token)                            \
     X(Pub, pub)                                  \
     X(RefMut, ref_mut)                           \
@@ -81,9 +82,8 @@ enum class TokenType : u8 {
 StringView token_type_string(TokenType type);
 
 struct [[gnu::packed]] Token {
-    constexpr Token(TokenType type, u32 start, u32 end)
+    constexpr Token(TokenType type, u32 start)
         : start_index(start)
-        , size(end - start)
         , type(type)
     {
     }
@@ -94,11 +94,14 @@ struct [[gnu::packed]] Token {
 
     StringView text(StringView source) const
     {
-        return { &source.data[start_index], size };
+        return { &source.data[start_index], size(source) };
     }
 
-    // FIXME: Remove this.
-    constexpr u32 end_index() const { return start_index + size; }
+    u32 size(StringView source) const;
+    u32 end_index(StringView source) const
+    {
+        return start_index + size(source);
+    }
 
     constexpr bool is(TokenType type) const
     {
@@ -120,8 +123,7 @@ struct [[gnu::packed]] Token {
         return false;
     }
 
-    u32 start_index { 0 };
-    u32 size : 24 { 0 }; // FIXME: Remove this.
+    u32 start_index : 24 { 0 };
     TokenType type { TokenType::Invalid };
 };
 using Tokens = Vector<Token>;

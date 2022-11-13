@@ -26,5 +26,6 @@ struct LexError {
 
 using LexResult = ErrorOr<Tokens, LexError>;
 LexResult lex(StringView source);
+u32 relex_size(StringView source, Token token);
 
 }

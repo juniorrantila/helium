@@ -33,28 +33,131 @@ ErrorOr<void> LexError::show(SourceFile source) const
 
 namespace {
 
+struct [[gnu::packed]] FatToken {
+    constexpr FatToken(TokenType type, u32 start, u32 end)
+        : start_index(start)
+        , end_index(end)
+        , type(type)
+    {
+    }
+
+    constexpr FatToken() = default;
+
+    void dump(StringView source) const;
+
+    StringView text(StringView source) const
+    {
+        return source.sub_view(start_index,
+            end_index - start_index);
+    }
+
+    constexpr Token thin_token() const
+    {
+        return Token { type, start_index };
+    }
+
+    constexpr u32 size() const { return end_index - start_index; }
+
+    u32 start_index { 0 };
+    u32 end_index { 0 };
+    TokenType type { TokenType::Invalid };
+};
+
 constexpr bool is_whitespace(char character);
 constexpr bool is_number(char character);
 constexpr bool is_letter(char character);
 constexpr bool is_delimiter(char character);
 constexpr bool is_identifier_character(char character);
-constexpr Token lex_string(StringView source, u32 start);
-constexpr Token lex_quoted(StringView source, u32 start);
-constexpr Token lex_identifier(StringView source, u32 start);
-constexpr Token lex_number(StringView source, u32 start);
-constexpr Token lex_minus_or_arrow(StringView source, u32 start);
-constexpr Token lex_less_or_less_than_equal(StringView source,
+constexpr FatToken lex_string(StringView source, u32 start);
+constexpr FatToken lex_quoted(StringView source, u32 start);
+constexpr FatToken lex_identifier(StringView source, u32 start);
+constexpr FatToken lex_number(StringView source, u32 start);
+constexpr FatToken lex_minus_or_arrow(StringView source, u32 start);
+constexpr FatToken lex_less_or_less_than_equal(StringView source,
     u32 start);
-constexpr Token lex_greater_or_greater_than_equal(StringView source,
+constexpr FatToken lex_greater_or_greater_than_equal(
+    StringView source, u32 start);
+constexpr FatToken lex_assign_or_equals(StringView source,
     u32 start);
-constexpr Token lex_assign_or_equals(StringView source, u32 start);
-constexpr Token lex_ampersand_or_ref_mut(StringView source,
+constexpr FatToken lex_ampersand_or_ref_mut(StringView source,
     u32 start);
-constexpr Token lex_inline_c(StringView source, u32 start);
+constexpr FatToken lex_inline_c(StringView source, u32 start);
 
-using LexItemResult = ErrorOr<Token, LexError>;
+constexpr FatToken relex_inline_c(StringView source, u32 start);
+constexpr FatToken relex_inline_c_block(StringView source,
+    u32 start);
+
+using LexItemResult = ErrorOr<FatToken, LexError>;
 LexItemResult lex_single_item(StringView source, u32 start);
 
+}
+
+u32 relex_size(StringView source, Token token)
+{
+    switch (token.type) {
+    case TokenType::OpenBracket: return "["sv.size;
+    case TokenType::CloseBracket: return "]"sv.size;
+    case TokenType::OpenParen: return "("sv.size;
+    case TokenType::CloseParen: return ")"sv.size;
+    case TokenType::OpenCurly: return "{"sv.size;
+    case TokenType::CloseCurly: return "}"sv.size;
+    case TokenType::Ampersand: return "&"sv.size;
+    case TokenType::Comma: return ","sv.size;
+    case TokenType::Assign: return "="sv.size;
+    case TokenType::NewLine: return "\n"sv.size;
+    case TokenType::Number:
+        return lex_number(source, token.start_index).size();
+    case TokenType::Colon: return ":"sv.size;
+    case TokenType::Semicolon: return ";"sv.size;
+    case TokenType::Space: return " "sv.size;
+    case TokenType::Hash: return "#"sv.size;
+    case TokenType::Underscore: return "_"sv.size;
+    case TokenType::QuestionMark: return "?"sv.size;
+    case TokenType::Minus: return "-"sv.size;
+    case TokenType::Plus: return "+"sv.size;
+    case TokenType::Slash: return "/"sv.size;
+    case TokenType::Star: return "*"sv.size;
+    case TokenType::Equals: return "=="sv.size;
+    case TokenType::GreaterThan: return ">"sv.size;
+    case TokenType::GreaterThanOrEqual: return ">="sv.size;
+    case TokenType::LessThan: return "<"sv.size;
+    case TokenType::LessThanOrEqual: return "<="sv.size;
+
+    case TokenType::Dot: return "."sv.size;
+    case TokenType::Arrow: return "->"sv.size;
+
+    case TokenType::Quoted:
+        return lex_quoted(source, token.start_index).size();
+    case TokenType::Identifier:
+        return lex_string(source, token.start_index).size();
+
+    case TokenType::CFn: return "c_fn"sv.size;
+    case TokenType::Fn: return "fn"sv.size;
+    case TokenType::If: return "if"sv.size;
+    case TokenType::InlineC:
+        return relex_inline_c(source, token.start_index).size();
+    case TokenType::InlineCBlock:
+        return relex_inline_c_block(source, token.start_index)
+            .size();
+    case TokenType::Let: return "let"sv.size;
+    case TokenType::Pub: return "pub"sv.size;
+    case TokenType::RefMut: return "&mut"sv.size;
+    case TokenType::Return: return "return"sv.size;
+    case TokenType::Var: return "var"sv.size;
+    case TokenType::While: return "while"sv.size;
+
+    case TokenType::Enum: return "enum"sv.size;
+    case TokenType::Struct: return "struct"sv.size;
+    case TokenType::Union: return "union"sv.size;
+    case TokenType::Variant: return "variant"sv.size;
+
+    case TokenType::Embed: return "embed"sv.size;
+    case TokenType::Import: return "import"sv.size;
+    case TokenType::ImportC: return "import_c"sv.size;
+    case TokenType::SizeOf: return "size_of"sv.size;
+    case TokenType::Uninitialized: return "uninitialized"sv.size;
+    case TokenType::Invalid: return ""sv.size;
+    }
 }
 
 LexResult lex(StringView source)
@@ -82,8 +185,8 @@ LexResult lex(StringView source)
         }
 
         auto token = TRY(lex_single_item(source, start));
-        TRY(tokens.append(token));
-        start = token.end_index();
+        TRY(tokens.append(token.thin_token()));
+        start = token.end_index;
     }
 
     return tokens;
@@ -97,52 +200,55 @@ LexItemResult lex_single_item(StringView source, u32 start)
     auto character = source[start];
 
     if (character == '[')
-        return Token { TokenType::OpenBracket, start, start + 1 };
+        return FatToken { TokenType::OpenBracket, start,
+            start + 1 };
 
     if (character == ']')
-        return Token { TokenType::CloseBracket, start, start + 1 };
+        return FatToken { TokenType::CloseBracket, start,
+            start + 1 };
 
     if (character == '#')
-        return Token { TokenType::Hash, start, start + 1 };
+        return FatToken { TokenType::Hash, start, start + 1 };
 
     if (character == '_')
-        return Token { TokenType::Underscore, start, start + 1 };
+        return FatToken { TokenType::Underscore, start, start + 1 };
 
     if (character == '/')
-        return Token { TokenType::Slash, start, start + 1 };
+        return FatToken { TokenType::Slash, start, start + 1 };
 
     if (character == ',')
-        return Token { TokenType::Comma, start, start + 1 };
+        return FatToken { TokenType::Comma, start, start + 1 };
 
     if (character == '(')
-        return Token { TokenType::OpenParen, start, start + 1 };
+        return FatToken { TokenType::OpenParen, start, start + 1 };
 
     if (character == ')')
-        return Token { TokenType::CloseParen, start, start + 1 };
+        return FatToken { TokenType::CloseParen, start, start + 1 };
 
     if (character == '{')
-        return Token { TokenType::OpenCurly, start, start + 1 };
+        return FatToken { TokenType::OpenCurly, start, start + 1 };
 
     if (character == '}')
-        return Token { TokenType::CloseCurly, start, start + 1 };
+        return FatToken { TokenType::CloseCurly, start, start + 1 };
 
     if (character == '+')
-        return Token { TokenType::Plus, start, start + 1 };
+        return FatToken { TokenType::Plus, start, start + 1 };
 
     if (character == '*')
-        return Token { TokenType::Star, start, start + 1 };
+        return FatToken { TokenType::Star, start, start + 1 };
 
     if (character == '.')
-        return Token { TokenType::Dot, start, start + 1 };
+        return FatToken { TokenType::Dot, start, start + 1 };
 
     if (character == ':')
-        return Token { TokenType::Colon, start, start + 1 };
+        return FatToken { TokenType::Colon, start, start + 1 };
 
     if (character == ';')
-        return Token { TokenType::Semicolon, start, start + 1 };
+        return FatToken { TokenType::Semicolon, start, start + 1 };
 
     if (character == '?')
-        return Token { TokenType::QuestionMark, start, start + 1 };
+        return FatToken { TokenType::QuestionMark, start,
+            start + 1 };
 
     if (character == '=')
         return lex_assign_or_equals(source, start);
@@ -253,7 +359,7 @@ LexItemResult lex_single_item(StringView source, u32 start)
             return token;
         }
         if (value == "inline_c"sv)
-            return lex_inline_c(source, start + token.size);
+            return lex_inline_c(source, start + token.size());
         return token;
     }
 
@@ -263,7 +369,39 @@ LexItemResult lex_single_item(StringView source, u32 start)
     return LexError { "unknown token"sv, start };
 }
 
-constexpr Token lex_inline_c_block(StringView source, u32 start)
+constexpr FatToken relex_inline_c_block(StringView source,
+    u32 start)
+{
+    u32 end = start;
+    for (i32 brace_level = 1; end < source.size; end++) {
+        auto character = source[end];
+        if (character == '{')
+            brace_level++;
+        if (character == '}')
+            brace_level--;
+        if (brace_level == 0 && character == ';')
+            break;
+    }
+    return { TokenType::InlineCBlock, start, end - 1 };
+}
+
+constexpr FatToken relex_inline_c(StringView source, u32 start)
+{
+    auto end = start;
+    for (i32 brace_level = 0; end < source.size; end++) {
+        auto character = source[end];
+        if (character == '{')
+            brace_level++;
+        if (character == '}')
+            brace_level--;
+        if (brace_level == 0 && character == ';')
+            break;
+    }
+
+    return FatToken { TokenType::InlineC, start, end };
+}
+
+constexpr FatToken lex_inline_c_block(StringView source, u32 start)
 {
     u32 brace_level = 1;
     u32 end = start;
@@ -295,10 +433,10 @@ constexpr Token lex_inline_c_block(StringView source, u32 start)
         return { TokenType::Invalid, start, end };
     }
 
-    return { TokenType::InlineC, start, ending_brace_index - 1 };
+    return { TokenType::InlineCBlock, start, ending_brace_index - 1 };
 }
 
-constexpr Token lex_inline_c(StringView source, u32 start)
+constexpr FatToken lex_inline_c(StringView source, u32 start)
 {
     while (is_whitespace(source[start]))
         start++;
@@ -329,10 +467,10 @@ constexpr Token lex_inline_c(StringView source, u32 start)
         return { TokenType::Invalid, start, end };
     }
 
-    return Token { TokenType::InlineC, start, end };
+    return FatToken { TokenType::InlineC, start, end };
 }
 
-constexpr Token lex_minus_or_arrow(StringView source, u32 start)
+constexpr FatToken lex_minus_or_arrow(StringView source, u32 start)
 {
     if (start + 1 > source.size)
         return { TokenType::Minus, start, start + 1 };
@@ -343,7 +481,7 @@ constexpr Token lex_minus_or_arrow(StringView source, u32 start)
     return { TokenType::Minus, start, start + 1 };
 }
 
-constexpr Token lex_ampersand_or_ref_mut(StringView source,
+constexpr FatToken lex_ampersand_or_ref_mut(StringView source,
     u32 start)
 {
     if (start + 1 >= source.size) {
@@ -363,7 +501,7 @@ constexpr Token lex_ampersand_or_ref_mut(StringView source,
     return { TokenType::Ampersand, start, start + 1 };
 }
 
-constexpr Token lex_less_or_less_than_equal(StringView source,
+constexpr FatToken lex_less_or_less_than_equal(StringView source,
     u32 start)
 {
     if (start + 1 < source.size) {
@@ -374,8 +512,8 @@ constexpr Token lex_less_or_less_than_equal(StringView source,
     return { TokenType::LessThan, start, start + 1 };
 }
 
-constexpr Token lex_greater_or_greater_than_equal(StringView source,
-    u32 start)
+constexpr FatToken lex_greater_or_greater_than_equal(
+    StringView source, u32 start)
 {
     if (start + 1 < source.size) {
         Mem::mark_read_once(&source[start + 1]);
@@ -390,7 +528,8 @@ constexpr Token lex_greater_or_greater_than_equal(StringView source,
     return { TokenType::GreaterThan, start, start + 1 };
 }
 
-constexpr Token lex_assign_or_equals(StringView source, u32 start)
+constexpr FatToken lex_assign_or_equals(StringView source,
+    u32 start)
 {
     if (start + 1 > source.size)
         return { TokenType::Assign, start, start + 1 };
@@ -401,7 +540,7 @@ constexpr Token lex_assign_or_equals(StringView source, u32 start)
     return { TokenType::Assign, start, start + 1 };
 }
 
-constexpr Token lex_string(StringView source, u32 start)
+constexpr FatToken lex_string(StringView source, u32 start)
 {
     const u32 size = source.size;
     u32 end = start;
@@ -416,7 +555,7 @@ constexpr Token lex_string(StringView source, u32 start)
     return { TokenType::Identifier, start, end };
 }
 
-constexpr Token lex_quoted(StringView source, u32 start)
+constexpr FatToken lex_quoted(StringView source, u32 start)
 {
     auto quote = source[start];
     u32 end = start + 1;
@@ -432,7 +571,7 @@ constexpr Token lex_quoted(StringView source, u32 start)
     return { TokenType::Quoted, start, end + 1 };
 }
 
-constexpr Token lex_identifier(StringView source, u32 start)
+constexpr FatToken lex_identifier(StringView source, u32 start)
 {
     u32 end = start + 1;
     // clang-format off
@@ -449,7 +588,7 @@ constexpr Token lex_identifier(StringView source, u32 start)
     return { TokenType::Identifier, start, end };
 }
 
-constexpr Token lex_number(StringView source, u32 start)
+constexpr FatToken lex_number(StringView source, u32 start)
 {
     u32 end = start;
     // clang-format off

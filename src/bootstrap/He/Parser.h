@@ -27,7 +27,7 @@ struct ParseError {
         : m_message(error.m_message)
         , m_parser_function(error.m_function)
         , m_parser_file(error.m_file)
-        , offending_token(TokenType::Invalid, 0, 0)
+        , offending_token(TokenType::Invalid, 0)
         , line_in_parser_file(error.m_line_in_file)
     {
     }
