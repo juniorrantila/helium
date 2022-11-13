@@ -13,6 +13,7 @@
 #include <He/TypecheckedExpression.h>
 #include <Main/Main.h>
 #include <Ty/StringBuffer.h>
+#include <stdlib.h> // system
 
 [[nodiscard]] static ErrorOr<void> move_file(c_string to,
     c_string from);
