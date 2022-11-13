@@ -98,12 +98,6 @@ struct [[gnu::packed]] Token {
     }
 
     // FIXME: Remove this.
-    constexpr void set_end_index(u32 index)
-    {
-        size = index - start_index;
-    }
-
-    // FIXME: Remove this.
     constexpr u32 end_index() const { return start_index + size; }
 
     constexpr bool is(TokenType type) const
