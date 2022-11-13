@@ -837,54 +837,22 @@ ParseSingleItemResult parse_return_statement(ParseErrors& errors,
 ParseSingleItemResult parse_inline_c(ParseErrors& errors,
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
-    i32 level = 0;
-    auto block_start_index = start + 1;
-    auto end = block_start_index;
-    if (tokens[block_start_index].is(TokenType::OpenCurly)) {
-        for (; end < tokens.size(); end++) {
-            auto token = tokens[end];
-            if (token.is(TokenType::OpenCurly))
-                level++;
-            if (token.is(TokenType::CloseCurly))
-                level--;
-            if (level == 0)
-                break;
-        }
-        auto token = tokens[start + 1];
-        auto last_token = tokens[end];
-        token.start_index++;
-        token.set_end_index(last_token.end_index() - 1);
-        auto inline_c = TRY(expressions.append(InlineC {
-            token,
-        }));
-        return Expression(inline_c, start, end + 1);
-    }
-
-    for (; end < tokens.size(); end++) {
-        auto token = tokens[end];
-        if (token.is(TokenType::OpenCurly))
-            level++;
-        if (token.is(TokenType::CloseCurly))
-            level--;
-        if (level == 0 && token.is(TokenType::Semicolon))
-            break;
-        if (level < 0) {
-            TRY(errors.append_or_short({
-                "suspicious curly brace",
-                "did you forget a semicolon after inline_c?",
-                token,
-            }));
-            return Expression::garbage(start, end);
-        }
-    }
-    auto token = tokens[start + 1];
-    auto last_token = tokens[end];
-    token.set_end_index(last_token.end_index());
-
+    auto end = start + 1;
     auto inline_c = TRY(expressions.append(InlineC {
-        token,
+        tokens[start],
     }));
-
+    if (tokens[end].is(TokenType::CloseCurly)) {
+        end++;
+    }
+    if (tokens[end].is_not(TokenType::Semicolon)) {
+        TRY(errors.append_or_short(ParseError {
+            "unexpected token",
+            "did you forget a semicolon?",
+            tokens[end],
+        }));
+        return Expression::garbage(start, end);
+    }
+    // NOTE: Swallow semicolon.
     return Expression(inline_c, start, end + 1);
 }
 
@@ -3013,12 +2981,14 @@ ErrorOr<void> ParseError::show(SourceFile source) const
     auto cyan = "\x1b[1;36m"sv;
     auto blue = "\x1b[0;34m"sv;
 
+    auto type = token_type_string(offending_token.type);
+
     auto& out = Core::File::stderr();
     TRY(out.writeln(parser_function(), " @ ["sv, parser_file(),
         normal, ":"sv, line_in_parser_file, "]:"sv));
-    TRY(out.writeln(red, "Error: "sv, normal, message(), " ["sv,
-        blue, source.file_name, normal, ":"sv, start.line + 1,
-        ":"sv, start.column + 1, "]"sv));
+    TRY(out.writeln(red, "Error: "sv, normal, message(), " ("sv,
+        type, ") ["sv, blue, source.file_name, normal, ":"sv,
+        start.line + 1, ":"sv, start.column + 1, "]"sv));
     TRY(out.writeln(line));
 
     for (u32 i = 0; i < start.column; i++)

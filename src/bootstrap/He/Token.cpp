@@ -4,8 +4,6 @@
 
 namespace He {
 
-static StringView token_type_string(TokenType type);
-
 void Token::dump(StringView source) const
 {
     auto text = source.sub_view(start_index, size);
@@ -27,7 +25,7 @@ void Token::dump(StringView source) const
     out.writeln("]"sv).ignore();
 }
 
-static StringView token_type_string(TokenType type)
+StringView token_type_string(TokenType type)
 {
     switch (type) {
 #define CASE_RETURN(variant) \

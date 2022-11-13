@@ -72,6 +72,8 @@ enum class TokenType : u8 {
     Invalid
 };
 
+StringView token_type_string(TokenType type);
+
 struct [[gnu::packed]] Token {
     constexpr Token(TokenType type, u32 start, u32 end)
         : start_index(start)

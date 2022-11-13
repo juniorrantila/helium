@@ -50,6 +50,7 @@ constexpr Token lex_greater_or_greater_than_equal(StringView source,
 constexpr Token lex_assign_or_equals(StringView source, u32 start);
 constexpr Token lex_ampersand_or_ref_mut(StringView source,
     u32 start);
+constexpr Token lex_inline_c(StringView source, u32 start);
 
 using LexItemResult = ErrorOr<Token, LexError>;
 LexItemResult lex_single_item(StringView source, u32 start);
@@ -231,10 +232,6 @@ LexItemResult lex_single_item(StringView source, u32 start)
             token.type = TokenType::If;
             return token;
         }
-        if (value == "inline_c"sv) {
-            token.type = TokenType::InlineC;
-            return token;
-        }
         if (value == "while"sv) {
             token.type = TokenType::While;
             return token;
@@ -255,6 +252,8 @@ LexItemResult lex_single_item(StringView source, u32 start)
             token.type = TokenType::Enum;
             return token;
         }
+        if (value == "inline_c"sv)
+            return lex_inline_c(source, start + token.size);
         return token;
     }
 
@@ -262,6 +261,75 @@ LexItemResult lex_single_item(StringView source, u32 start)
         return lex_identifier(source, start);
 
     return LexError { "unknown token"sv, start };
+}
+
+constexpr Token lex_inline_c_block(StringView source, u32 start)
+{
+    u32 brace_level = 1;
+    u32 end = start;
+    u32 ending_brace_index = end;
+    for (; end < source.size; end++) {
+        auto character = source[end];
+        if (character == '{')
+            brace_level++;
+        if (character == '}') {
+            brace_level--;
+            if (brace_level == 0) {
+                ending_brace_index = end;
+            }
+        }
+        if (brace_level == 0 && character == ';')
+            break;
+        if (brace_level < 0) {
+            // FIXME: Throw error:
+            // TRY(errors.append_or_short({
+            //     "suspicious curly brace",
+            //     "did you forget a semicolon after inline_c?",
+            //     token,
+            // }));
+            return { TokenType::Invalid, start, end };
+        }
+    }
+
+    if (source[end] != ';') {
+        return { TokenType::Invalid, start, end };
+    }
+
+    return { TokenType::InlineC, start, ending_brace_index - 1 };
+}
+
+constexpr Token lex_inline_c(StringView source, u32 start)
+{
+    while (is_whitespace(source[start]))
+        start++;
+    if (source[start] == '{')
+        return lex_inline_c_block(source, start + 1);
+
+    auto end = start;
+    for (i32 brace_level = 0; end < source.size; end++) {
+        auto character = source[end];
+        if (character == '{')
+            brace_level++;
+        if (character == '}')
+            brace_level--;
+        if (brace_level == 0 && character == ';')
+            break;
+        if (brace_level < 0) {
+            // FIXME: Throw error:
+            // TRY(errors.append_or_short({
+            //     "suspicious curly brace",
+            //     "did you forget a semicolon after inline_c?",
+            //     token,
+            // }));
+            return { TokenType::Invalid, start, end + 1 };
+        }
+    }
+
+    if (source[end] != ';') {
+        return { TokenType::Invalid, start, end };
+    }
+
+    return Token { TokenType::InlineC, start, end };
 }
 
 constexpr Token lex_minus_or_arrow(StringView source, u32 start)

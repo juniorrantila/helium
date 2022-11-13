@@ -126,7 +126,8 @@ ErrorOr<void> codegen_top_level_inline_cs(StringBuffer& out,
     Context const& context)
 {
     for (auto inline_c : context.expressions.top_level_inline_cs) {
-        TRY(out.write(inline_c.literal.text(context.source)));
+        TRY(out.writeln(inline_c.literal.text(context.source),
+            ";"sv));
     }
     return {};
 }
@@ -922,7 +923,7 @@ ErrorOr<void> codegen_inline_c(StringBuffer& out,
     Context const& context, InlineC const& inline_c)
 {
     auto source = context.source;
-    TRY(out.write(inline_c.literal.text(source)));
+    TRY(out.writeln(inline_c.literal.text(source), ";"sv));
 
     return {};
 }
