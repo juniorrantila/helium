@@ -71,4 +71,6 @@ ErrorOr<long> sysconf(int name);
 
 ErrorOr<u32> page_size();
 
+Optional<c_string> getenv(c_string name);
+
 }

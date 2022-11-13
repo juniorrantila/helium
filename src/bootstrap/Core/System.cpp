@@ -181,4 +181,12 @@ ErrorOr<u32> page_size()
     return size;
 }
 
+Optional<c_string> getenv(c_string name)
+{
+    c_string env = ::getenv(name);
+    if (!env)
+        return {};
+    return env;
+}
+
 }

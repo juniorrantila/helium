@@ -250,7 +250,7 @@ static ErrorOr<void> move_file(c_string to, c_string from)
 [[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path)
 {
-    c_string compiler = getenv("CC");
+    auto compiler = Core::System::getenv("CC");
     if (!compiler) {
         if (system("which cc > /dev/null 2>&1") != 0) {
             return Error::from_string_literal(
@@ -260,7 +260,7 @@ static ErrorOr<void> move_file(c_string to, c_string from)
         compiler = "cc";
     }
     c_string argv[] = {
-        compiler,
+        compiler.release_value(),
         "-Wno-duplicate-decl-specifier",
         "-o",
         destination_path,
