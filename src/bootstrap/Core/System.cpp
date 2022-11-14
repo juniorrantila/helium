@@ -1,17 +1,15 @@
 #include "System.h"
-#include <stdio.h>
+#include "Syscall.h"
+#include <stdio.h> // remove()
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 namespace Core::System {
 
 ErrorOr<void> fsync(int fd)
 {
-    if (::fsync(fd) < 0)
-        return Error::from_errno();
+    auto rv = syscall(Syscall::fsync, fd);
+    if (rv < 0)
+        return Error::from_syscall(rv);
     return {};
 }
 
@@ -25,10 +23,10 @@ ErrorOr<Stat> fstat(int fd)
 
 ErrorOr<usize> write(int fd, void const* data, usize size)
 {
-    auto bytes = ::write(fd, data, size);
-    if (bytes < 0)
-        return Error::from_errno();
-    return bytes;
+    auto rv = syscall(Syscall::write, fd, data, size);
+    if (rv < 0)
+        return Error::from_syscall(rv);
+    return rv;
 }
 
 ErrorOr<usize> write(int fd, StringView string)
@@ -48,39 +46,42 @@ ErrorOr<usize> write(int fd, StringBuffer const& string)
 
 ErrorOr<usize> writev(int fd, struct iovec const* iovec, int count)
 {
-    auto bytes_written = ::writev(fd, iovec, count);
-    if (bytes_written < 0)
-        return Error::from_errno();
-    return bytes_written;
+    auto rv = syscall(Syscall::writev, fd, iovec, count);
+    if (rv < 0)
+        return Error::from_syscall(rv);
+    return rv;
 }
 
-ErrorOr<void> munmap(void const* addr, usize size)
+ErrorOr<u8*> mmap(void* addr, usize size, int prot, int flags,
+    int fd, long offset)
 {
-    if (::munmap((void*)addr, size) < 0)
-        return Error::from_errno();
-    return {};
+    auto rv = syscall(Syscall::mmap, addr, size, prot, flags, fd,
+        offset);
+    if (rv < 0)
+        return Error::from_syscall(rv);
+    return (u8*)rv;
 }
 
 ErrorOr<u8*> mmap(usize size, int prot, int flags, int fd,
-    off_t offset)
+    long offset)
 {
     return TRY(mmap(nullptr, size, prot, flags, fd, offset));
 }
 
-ErrorOr<void> mprotect(void* addr, usize len, int prot)
+ErrorOr<void> munmap(void const* addr, usize size)
 {
-    if (::mprotect(addr, len, prot) < 0)
-        return Error::from_errno();
+    auto rv = syscall(Syscall::munmap, addr, size);
+    if (rv < 0)
+        return Error::from_syscall(rv);
     return {};
 }
 
-ErrorOr<u8*> mmap(void* addr, usize size, int prot, int flags,
-    int fd, off_t offset)
+ErrorOr<void> mprotect(void* addr, usize len, int prot)
 {
-    auto* ptr = ::mmap(addr, size, prot, flags, fd, offset);
-    if (ptr == MAP_FAILED)
-        return Error::from_errno();
-    return (u8*)ptr;
+    auto rv = syscall(Syscall::mprotect, addr, len, prot);
+    if (rv < 0)
+        return Error::from_syscall(rv);
+    return {};
 }
 
 ErrorOr<void> remove(c_string path)
@@ -97,25 +98,26 @@ ErrorOr<int> open(c_string path, int flags)
             "O_CREAT should not be used with this function "
             "variant");
     }
-    auto fd = ::open(path, flags);
+    auto fd = syscall(Syscall::open, path, flags, 0);
     if (fd < 0)
-        return Error::from_errno();
-    return fd;
+        return Error::from_syscall(fd);
+    return (int)fd;
 }
 
 ErrorOr<int> open(c_string path, int flags, mode_t mode)
 {
-    auto fd = ::open(path, flags | O_CREAT, mode);
+    auto fd = syscall(Syscall::open, path, flags | O_CREAT, mode);
     if (fd < 0)
-        return Error::from_errno();
-    return fd;
+        return Error::from_syscall(fd);
+    return (int)fd;
 }
 
 ErrorOr<void> close(int fd)
 {
     TRY(fsync(fd));
-    if (::close(fd) < 0)
-        return Error::from_errno();
+    auto rv = syscall(Syscall::close, fd);
+    if (rv < 0)
+        return Error::from_syscall(rv);
     return {};
 }
 
@@ -162,7 +164,18 @@ ErrorOr<Status> waitpid(pid_t pid, int options)
     return Status { .raw = status };
 }
 
-bool isatty(int fd) { return ::isatty(fd) == 1; }
+#define TIOCGETD 0x5424
+
+bool isatty(int fd)
+{
+    int line_discipline = 0x1234abcd;
+    // This gets the line discipline of the terminal. When called on
+    // something that isn't a terminal it doesn't change
+    // `line_discipline` and returns -1.
+    auto rv
+        = syscall(Syscall::ioctl, fd, TIOCGETD, &line_discipline);
+    return rv == 0;
+}
 
 ErrorOr<long> sysconf(int name)
 {

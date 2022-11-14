@@ -34,6 +34,19 @@ struct Error {
         };
     }
 
+    static Error from_syscall(iptr rv,
+        c_string function = __builtin_FUNCTION(),
+        c_string file = __builtin_FILE(),
+        u32 line_in_file = __builtin_LINE())
+    {
+        return {
+            errno_to_string((int)-rv),
+            function,
+            file,
+            line_in_file,
+        };
+    }
+
     static c_string errno_to_string(int);
 
     StringView message() const
