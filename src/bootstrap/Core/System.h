@@ -3,11 +3,9 @@
 #include <Ty/ErrorOr.h>
 #include <Ty/IOVec.h>
 #include <Ty/StringBuffer.h>
-#include <fcntl.h>
 #include <spawn.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <unistd.h>
 
 #ifndef _GNU_SOURCE
 extern char** environ;
@@ -78,6 +76,19 @@ namespace Core::System {
 #    define MCL_CURRENT 1
 #    define MCL_FUTURE 2
 #    define MCL_ONFAULT 4
+
+#    define O_ACCMODE 0003
+#    define O_RDONLY 00
+#    define O_WRONLY 01
+#    define O_RDWR 02
+#    define O_CREAT 0100
+#    define O_EXCL 0200
+#    define O_NOCTTY 0400
+#    define O_TRUNC 01000
+#    define O_APPEND 02000
+#    define O_NONBLOCK 04000
+#    define O_SYNC 04010000
+#    define O_ASYNC 020000
 #else
 #    warning "flags unimplemented"
 #endif
