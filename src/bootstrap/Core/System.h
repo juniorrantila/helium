@@ -156,7 +156,7 @@ ErrorOr<long> sysconf(int name);
 
 ErrorOr<u32> page_size();
 
-Optional<c_string> getenv(c_string name);
+Optional<c_string> getenv(StringView name);
 
 ErrorOr<bool> has_program(StringView name);
 

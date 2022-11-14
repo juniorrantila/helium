@@ -250,7 +250,7 @@ static ErrorOr<void> move_file(c_string to, c_string from)
 [[nodiscard]] static ErrorOr<void> compile_source(
     c_string destination_path, c_string source_path)
 {
-    auto compiler = Core::System::getenv("CC");
+    auto compiler = Core::System::getenv("CC"sv);
     if (!compiler) {
         if (!TRY(Core::System::has_program("cc"sv))) {
             return Error::from_string_literal(

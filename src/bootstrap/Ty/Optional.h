@@ -1,6 +1,7 @@
 #pragma once
 #include "Base.h"
 #include "Forward.h"
+#include "Move.h"
 #include "New.h"
 #include "Traits.h"
 

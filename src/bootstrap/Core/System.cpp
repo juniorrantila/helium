@@ -2,7 +2,7 @@
 #include "Syscall.h"
 #include "Ty/Defer.h"
 #include "Ty/StringBuffer.h"
-#include <stdlib.h> // getenv(), mkstemps()
+#include <stdlib.h> // mkstemps()
 
 namespace Core::System {
 
@@ -215,17 +215,24 @@ ErrorOr<u32> page_size()
     return size;
 }
 
-Optional<c_string> getenv(c_string name)
+Optional<c_string> getenv(StringView name)
 {
-    c_string env = ::getenv(name);
-    if (!env)
-        return {};
-    return env;
+    for (u32 i = 0; environ[i] != nullptr; i++) {
+        auto env = StringView::from_c_string(environ[i]);
+        if (env.starts_with(name)) {
+            auto maybe_value_index = env.find_first('=');
+            if (!maybe_value_index.has_value())
+                return "";
+            auto value_index = maybe_value_index.value();
+            return &env[value_index];
+        }
+    }
+    return {};
 }
 
 ErrorOr<bool> has_program(StringView name)
 {
-    auto maybe_path = getenv("PATH");
+    auto maybe_path = getenv("PATH"sv);
     if (!maybe_path.has_value())
         return Error::from_string_literal("PATH not found");
     auto path = StringView::from_c_string(maybe_path.value());
