@@ -102,6 +102,7 @@ struct StringBuffer {
 
     constexpr void clear() { m_size = 0; }
 
+    constexpr char* mutable_data() { return m_data; }
     constexpr char const* data() const { return m_data; }
     constexpr u32 size() const { return m_size; }
     constexpr u32 capacity() const { return m_capacity; }

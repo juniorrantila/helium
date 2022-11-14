@@ -1,6 +1,6 @@
 #pragma once
+#include <Core/File.h>
 #include <Ty/Base.h>
-#include <stdio.h>
 
 namespace Core {
 
@@ -12,7 +12,7 @@ enum class BenchEnableShowOnStopAndShow : bool {
 struct Bench {
 
     constexpr Bench(BenchEnableShowOnStopAndShow display,
-        FILE* output_file = stderr)
+        Core::File& output_file = Core::File::stderr())
         : m_out(output_file)
         , m_should_show_on_stop(
               display == BenchEnableShowOnStopAndShow::Yes)
@@ -70,9 +70,14 @@ struct Bench {
             total /= 1000;
             total_postfix = "M";
         }
-        (void)fprintf(m_out, "%12s: %4d%s cycles | total: %d%s\n",
+
+        auto buffer = StringBuffer();
+        auto bytes = __builtin_snprintf(buffer.mutable_data(),
+            buffer.capacity(), "%12s: %4d%s cycles | total: %d%s\n",
             message, (u32)cycles, cycles_postfix, (u32)total,
             total_postfix);
+        auto view = StringView { buffer.data(), (u32)bytes };
+        m_out.write(view).ignore();
     }
 
     constexpr u64 start_cycle() const { return m_start_cycle; }
@@ -80,7 +85,7 @@ struct Bench {
     constexpr u64 total_cycles() const { return m_total_cycles; }
 
 private:
-    FILE* m_out { nullptr };
+    Core::File& m_out;
     u64 m_start_cycle { 0 };
     u64 m_stop_cycle { 0 };
     u64 m_total_cycles { 0 };
