@@ -2,8 +2,7 @@
 #include "Syscall.h"
 #include "Ty/Defer.h"
 #include "Ty/StringBuffer.h"
-#include <stdio.h> // remove()
-#include <stdlib.h>
+#include <stdlib.h> // getenv(), mkstemps()
 
 namespace Core::System {
 
@@ -96,10 +95,20 @@ ErrorOr<void> mprotect(void* addr, usize len, int prot)
     return {};
 }
 
+#define AT_FDCWD -100
+#define AT_REMOVEDIR 0x200
+
 ErrorOr<void> remove(c_string path)
 {
-    if (::remove(path) < 0)
-        return Error::from_errno();
+    // Assume not directory.
+    auto rv = syscall(Syscall::unlinkat, AT_FDCWD, path, 0);
+    if (rv == -EISDIR) {
+        // Oops, was directory.
+        rv = syscall(Syscall::unlinkat, AT_FDCWD, path,
+            AT_REMOVEDIR);
+    }
+    if (rv < 0)
+        return Error::from_syscall(rv);
     return {};
 }
 
