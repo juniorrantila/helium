@@ -10,8 +10,12 @@ void* he_malloc(usize);
 void* he_realloc(void*, usize);
 void he_free(void*);
 
-#define ALWAYS_INLINE [[gnu::always_inline]]
-#define FLATTEN [[gnu::flatten]]
+#ifndef ALWAYS_INLINE
+#    define ALWAYS_INLINE [[gnu::always_inline]]
+#endif
+#ifndef FLATTEN
+#    define FLATTEN [[gnu::flatten]]
+#endif
 
 namespace Ty {
 

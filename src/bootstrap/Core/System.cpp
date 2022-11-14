@@ -1,5 +1,7 @@
 #include "System.h"
 #include "Syscall.h"
+#include "Ty/Defer.h"
+#include "Ty/StringBuffer.h"
 #include <stdio.h> // remove()
 #include <stdlib.h>
 
@@ -16,8 +18,18 @@ ErrorOr<void> fsync(int fd)
 ErrorOr<Stat> fstat(int fd)
 {
     struct stat st { };
-    if (::fstat(fd, &st) < 0)
-        return Error::from_errno();
+    auto rv = syscall(Syscall::fstat, fd, &st);
+    if (rv < 0)
+        return Error::from_syscall(rv);
+    return Stat(st);
+}
+
+ErrorOr<Stat> stat(c_string path)
+{
+    struct stat st { };
+    auto rv = syscall(Syscall::stat, path, &st);
+    if (rv < 0)
+        return Error::from_syscall(rv);
     return Stat(st);
 }
 
@@ -200,6 +212,32 @@ Optional<c_string> getenv(c_string name)
     if (!env)
         return {};
     return env;
+}
+
+ErrorOr<bool> has_program(StringView name)
+{
+    auto maybe_path = getenv("PATH");
+    if (!maybe_path.has_value())
+        return Error::from_string_literal("PATH not found");
+    auto path = StringView::from_c_string(maybe_path.value());
+
+    auto file_path = StringBuffer();
+    auto paths = TRY(path.split_on(':'));
+    for (auto directory : paths) {
+        Defer clear_file_path = [&] {
+            file_path.clear();
+        };
+
+        TRY(file_path.write(directory, "/"sv, name, "\0"sv));
+
+        auto stat_result = stat(file_path.data());
+        if (stat_result.is_error())
+            continue;
+        auto file = stat_result.release_value();
+        return file.is_executable();
+    }
+
+    return false;
 }
 
 }

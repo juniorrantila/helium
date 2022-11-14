@@ -105,6 +105,12 @@ struct Stat {
         return S_ISREG(raw.st_mode);
     }
 
+    constexpr bool is_executable() const
+    {
+        auto flag = S_IXGRP | S_IXOTH | S_IXUSR;
+        return (raw.st_mode & flag) > 0;
+    }
+
     constexpr off_t size() const { return raw.st_size; }
 
     struct stat raw;
@@ -139,4 +145,7 @@ ErrorOr<long> sysconf(int name);
 ErrorOr<u32> page_size();
 
 Optional<c_string> getenv(c_string name);
+
+ErrorOr<bool> has_program(StringView name);
+
 }

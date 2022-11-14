@@ -13,7 +13,6 @@
 #include <He/TypecheckedExpression.h>
 #include <Main/Main.h>
 #include <Ty/StringBuffer.h>
-#include <stdlib.h> // system
 
 [[nodiscard]] static ErrorOr<void> move_file(c_string to,
     c_string from);
@@ -253,7 +252,7 @@ static ErrorOr<void> move_file(c_string to, c_string from)
 {
     auto compiler = Core::System::getenv("CC");
     if (!compiler) {
-        if (system("which cc > /dev/null 2>&1") != 0) {
+        if (!TRY(Core::System::has_program("cc"sv))) {
             return Error::from_string_literal(
                 "Could not find a C compiler. Try setting the 'CC' "
                 "environment variable");
