@@ -56,7 +56,7 @@ ErrorOr<usize> write(int fd, StringBuffer const& string)
     return TRY(write(fd, string.data(), string.size()));
 }
 
-ErrorOr<usize> writev(int fd, struct iovec const* iovec, int count)
+ErrorOr<usize> writev(int fd, IOVec const* iovec, int count)
 {
     auto rv = syscall(Syscall::writev, fd, iovec, count);
     if (rv < 0)

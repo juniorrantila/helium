@@ -1,11 +1,11 @@
 #pragma once
 #include "MappedFile.h"
 #include <Ty/ErrorOr.h>
+#include <Ty/IOVec.h>
 #include <Ty/StringBuffer.h>
 #include <fcntl.h>
 #include <spawn.h>
 #include <sys/stat.h>
-#include <sys/uio.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -46,6 +46,7 @@ namespace Core::System {
 #    define MAP_ANON MAP_ANONYMOUS
 #    define MAP_HUGE_SHIFT 26
 #    define MAP_HUGE_MASK 0x3f
+#    define MAP_32BIT 0x40
 
 #    define MS_ASYNC 1
 #    define MS_SYNC 4
@@ -85,7 +86,7 @@ ErrorOr<usize> write(int fd, MappedFile const& file);
 ErrorOr<usize> write(int fd, StringBuffer const& string);
 ErrorOr<usize> write(int fd, StringView string);
 ErrorOr<usize> write(int fd, void const* data, usize size);
-ErrorOr<usize> writev(int fd, struct iovec const* iovec, int count);
+ErrorOr<usize> writev(int fd, IOVec const* iovec, int count);
 ErrorOr<void> fsync(int fd);
 ErrorOr<void> munmap(void const* addr, usize size);
 ErrorOr<u8*> mmap(usize size, int prot, int flags, int fd = -1,

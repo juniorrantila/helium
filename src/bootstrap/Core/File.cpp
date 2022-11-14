@@ -1,13 +1,12 @@
 #include "File.h"
 #include "System.h"
 #include <Ty/Defer.h>
+#include <Ty/IOVec.h>
 #include <Ty/Try.h>
-#include <sys/uio.h>
-#include <unistd.h>
 
 namespace Core {
 
-void File::close() const { ::close(m_fd); }
+void File::close() const { System::close(m_fd).ignore(); }
 
 ErrorOr<File> File::open_for_writing(StringView path, mode_t mode)
 {
@@ -36,7 +35,7 @@ namespace {
 constexpr auto min(auto a, auto b) { return a < b ? a : b; }
 }
 
-ErrorOr<usize> File::nonatomic_writev(struct iovec const* iovec,
+ErrorOr<usize> File::nonatomic_writev(IOVec const* iovec,
     usize count) const
 {
     usize total = 0;

@@ -3,8 +3,7 @@
 #include "Ty/Traits.h"
 #include <Ty/ErrorOr.h>
 #include <Ty/Forward.h>
-#include <sys/uio.h>
-#include <unistd.h>
+#include <Ty/IOVec.h>
 
 namespace Core {
 
@@ -59,7 +58,7 @@ struct File {
 
     void close() const;
 
-    ErrorOr<usize> nonatomic_writev(struct iovec const*,
+    ErrorOr<usize> nonatomic_writev(IOVec const*,
         usize count) const;
 
     template <typename... Args>

@@ -2,7 +2,6 @@
 #include <Core/System.h>
 #include <Ty/Defer.h>
 #include <Ty/ErrorOr.h>
-#include <sys/mman.h>
 
 namespace Mem::Internal {
 
