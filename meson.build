@@ -19,6 +19,7 @@ if not meson.is_subproject()
       '-Wno-gnu-statement-expression', 
       '-Wno-gnu-zero-variadic-macro-arguments',
       '-Wno-user-defined-literals',
+      '-nostdinc++'
     ], language: ['c', 'cpp'])
 endif
 
