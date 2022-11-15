@@ -3,6 +3,7 @@
 #include "Ty/Defer.h"
 #include "Ty/StringBuffer.h"
 #include <stdlib.h> // mkstemps()
+#include <unistd.h> // sysconf()
 
 namespace Core::System {
 

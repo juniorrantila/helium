@@ -7,8 +7,15 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#ifndef _GNU_SOURCE
+extern "C" {
 extern char** environ;
+}
+
+#ifndef STDOUT_FILENO
+#    define STDOUT_FILENO 1
+#endif
+#ifndef STDERR_FILENO
+#    define STDERR_FILENO 2
 #endif
 
 namespace Core::System {

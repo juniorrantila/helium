@@ -3,6 +3,7 @@
 #include <Ty/Defer.h>
 #include <Ty/IOVec.h>
 #include <Ty/Try.h>
+#include <unistd.h> // _SC_IOV_MAX
 
 namespace Core {
 
