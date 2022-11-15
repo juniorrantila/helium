@@ -244,7 +244,13 @@ ErrorOr<Status> waitpid(pid_t pid, int options)
     return Status { .raw = status };
 }
 
-#define TIOCGETD 0x5424
+#ifdef __linux__
+#    define TIOCGETD 0x5424
+#elif __APPLE__
+#    define TIOCGETD 0x40047426
+#else
+#    warning "unimplemented"
+#endif
 
 bool isatty(int fd)
 {
@@ -254,6 +260,8 @@ bool isatty(int fd)
     // `line_discipline` and returns -1.
     auto rv
         = syscall(Syscall::ioctl, fd, TIOCGETD, &line_discipline);
+    if (rv == ENOTTY)
+        return false;
     return rv == 0;
 }
 
