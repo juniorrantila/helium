@@ -144,8 +144,9 @@ ErrorOr<void> close(int fd)
 
 ErrorOr<void> unlink(c_string path)
 {
-    if (::unlink(path) < 0)
-        return Error::from_errno();
+    auto rv = syscall(Syscall::unlink, path);
+    if (rv < 0)
+        return Error::from_syscall(rv);
     return {};
 }
 
