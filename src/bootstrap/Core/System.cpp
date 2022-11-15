@@ -256,4 +256,10 @@ ErrorOr<bool> has_program(StringView name)
     return false;
 }
 
+[[noreturn]] void exit(int code)
+{
+    syscall(Syscall::exit, code);
+    __builtin_unreachable();
+}
+
 }

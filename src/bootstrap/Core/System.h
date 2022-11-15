@@ -160,4 +160,6 @@ Optional<c_string> getenv(StringView name);
 
 ErrorOr<bool> has_program(StringView name);
 
+[[noreturn]] void exit(int code);
+
 }
