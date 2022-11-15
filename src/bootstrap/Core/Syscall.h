@@ -1,8 +1,9 @@
 #pragma once
+#include <Ty/Base.h>
 
 namespace Core {
 
-enum class Syscall : long {
+enum class Syscall : iptr {
 #ifdef __linux__ // FIXME: Assumes x86_64
     read = 0,
     write = 1,
@@ -932,9 +933,9 @@ enum class Syscall : long {
 
 #define SYSCALL_CLOBBER_LIST "rcx", "r11", "memory"
 
-ALWAYS_INLINE long syscall_impl(long __number)
+ALWAYS_INLINE iptr syscall_impl(iptr __number)
 {
-    long retcode;
+    iptr retcode;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number)
@@ -942,9 +943,9 @@ ALWAYS_INLINE long syscall_impl(long __number)
     return retcode;
 }
 
-ALWAYS_INLINE long syscall_impl(long __number, long __arg1)
+ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1)
 {
-    long retcode;
+    iptr retcode;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number), "D"(__arg1)
@@ -952,10 +953,10 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1)
     return retcode;
 }
 
-ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
-    long __arg2)
+ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
+    iptr __arg2)
 {
-    long retcode;
+    iptr retcode;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number), "D"(__arg1), "S"(__arg2)
@@ -963,10 +964,10 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
     return retcode;
 }
 
-ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
-    long __arg2, long __arg3)
+ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
+    iptr __arg2, iptr __arg3)
 {
-    long retcode;
+    iptr retcode;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number), "D"(__arg1), "S"(__arg2),
@@ -975,11 +976,11 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
     return retcode;
 }
 
-ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
-    long __arg2, long __arg3, long __arg4)
+ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
+    iptr __arg2, iptr __arg3, iptr __arg4)
 {
-    long retcode;
-    register long r10 __asm__("r10") = __arg4;
+    iptr retcode;
+    register iptr r10 __asm__("r10") = __arg4;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number), "D"(__arg1), "S"(__arg2),
@@ -988,12 +989,12 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
     return retcode;
 }
 
-ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
-    long __arg2, long __arg3, long __arg4, long __arg5)
+ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
+    iptr __arg2, iptr __arg3, iptr __arg4, iptr __arg5)
 {
-    long retcode;
-    register long r10 __asm__("r10") = __arg4;
-    register long r8 __asm__("r8") = __arg5;
+    iptr retcode;
+    register iptr r10 __asm__("r10") = __arg4;
+    register iptr r8 __asm__("r8") = __arg5;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number), "D"(__arg1), "S"(__arg2),
@@ -1002,13 +1003,13 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
     return retcode;
 }
 
-ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
-    long __arg2, long __arg3, long __arg4, long __arg5, long __arg6)
+ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
+    iptr __arg2, iptr __arg3, iptr __arg4, iptr __arg5, iptr __arg6)
 {
-    long retcode;
-    register long r10 __asm__("r10") = __arg4;
-    register long r8 __asm__("r8") = __arg5;
-    register long r9 __asm__("r9") = __arg6;
+    iptr retcode;
+    register iptr r10 __asm__("r10") = __arg4;
+    register iptr r8 __asm__("r8") = __arg5;
+    register iptr r9 __asm__("r9") = __arg6;
     asm volatile("syscall"
                  : "=a"(retcode)
                  : "a"(__number), "D"(__arg1), "S"(__arg2),
@@ -1020,9 +1021,9 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
 #undef SYSCALL_CLOBBER_LIST
 
 template <typename... Args>
-long syscall(Syscall call, Args... args)
+iptr syscall(Syscall call, Args... args)
 {
-    auto number = (long)call;
+    auto number = (iptr)call;
 #if __APPLE__
     number += 0x02000000; // Still incorrect. Currently assumes all
                           // syscalls are from BSD. CLASS_NONE = 0
@@ -1034,7 +1035,7 @@ long syscall(Syscall call, Args... args)
                           // number = ((CLASS_<X> << CLASS_SHIFT) |
                           // SYSCALL_NUMBER_MASK & number)
 #endif
-    return syscall_impl(number, (long)args...);
+    return syscall_impl(number, (iptr)args...);
 }
 
 }

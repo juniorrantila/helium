@@ -29,60 +29,34 @@ using usize = u64;
 using isize = i64;
 
 template <u8 bytes>
-struct SignedTypeFromSize;
-
-template <>
-struct SignedTypeFromSize<1> {
-    using Type = i8;
-};
-
-template <>
-struct SignedTypeFromSize<2> {
-    using Type = u16;
-};
-
-template <>
-struct SignedTypeFromSize<4> {
-    using Type = i32;
-};
-
-template <>
-struct SignedTypeFromSize<8> {
-    using Type = i64;
-};
-
-template <u8 bytes>
 struct TypeFromSize;
 
 template <>
 struct TypeFromSize<1> {
-    using Type = u8;
+    using Signed = i8;
+    using Unsigned = u8;
 };
 
 template <>
 struct TypeFromSize<2> {
-    using Type = u16;
+    using Signed = i16;
+    using Unsigned = u16;
 };
 
 template <>
 struct TypeFromSize<4> {
-    using Type = u32;
+    using Signed = i32;
+    using Unsigned = u32;
 };
 
 template <>
 struct TypeFromSize<8> {
-    using Type = u64;
+    using Signed = i64;
+    using Unsigned = u64;
 };
 
-template <u8 bytes>
-using type_from_size = typename TypeFromSize<bytes>::Type;
-
-template <u8 bytes>
-using signed_type_from_size =
-    typename SignedTypeFromSize<bytes>::Type;
-
-using iptr = signed_type_from_size<sizeof(void*)>;
-using uptr = type_from_size<sizeof(void*)>;
+using iptr = typename TypeFromSize<sizeof(void*)>::Signed;
+using uptr = typename TypeFromSize<sizeof(void*)>::Unsigned;
 
 using f32 = float;
 using f64 = double;
