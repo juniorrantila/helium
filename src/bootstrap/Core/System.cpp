@@ -15,22 +15,82 @@ ErrorOr<void> fsync(int fd)
     return {};
 }
 
+#if __APPLE__
+
+struct [[gnu::packed]] St {
+    i32 dev;
+    u32 inode;
+    u16 mode;
+    u16 links;
+    u32 uid;
+    u32 gid;
+    i32 rdev;
+    struct timespec access_time;
+    struct timespec modify_time;
+    struct timespec change_time;
+    i64 size;
+    i64 blocks;
+    i32 block_size;
+    u32 flags;
+    u32 gen;
+    i32 lspare;
+    i64 qspare[2];
+};
+
+#else
+#    warning "unimplemented"
+#endif
+
 ErrorOr<Stat> fstat(int fd)
 {
-    struct stat st { };
+    St st {};
     auto rv = syscall(Syscall::fstat, fd, &st);
     if (rv < 0)
         return Error::from_syscall(rv);
-    return Stat(st);
+    return Stat({
+        .st_dev = st.dev,
+        .st_ino = st.inode,
+        .st_mode = st.mode,
+        .st_nlink = st.links,
+        .st_uid = st.uid,
+        .st_gid = st.gid,
+        .st_rdev = st.rdev,
+        .st_atimespec = st.access_time,
+        .st_mtimespec = st.modify_time,
+        .st_ctimespec = st.change_time,
+        .st_birthtime = {},
+        .st_size = st.size,
+        .st_blocks = st.blocks,
+        .st_blksize = st.block_size,
+        .st_flags = st.flags,
+        .st_gen = st.gen,
+    });
 }
 
 ErrorOr<Stat> stat(c_string path)
 {
-    struct stat st { };
+    St st {};
     auto rv = syscall(Syscall::stat, path, &st);
     if (rv < 0)
         return Error::from_syscall(rv);
-    return Stat(st);
+    return Stat({
+        .st_dev = st.dev,
+        .st_ino = st.inode,
+        .st_mode = st.mode,
+        .st_nlink = st.links,
+        .st_uid = st.uid,
+        .st_gid = st.gid,
+        .st_rdev = st.rdev,
+        .st_atimespec = st.access_time,
+        .st_mtimespec = st.modify_time,
+        .st_ctimespec = st.change_time,
+        .st_birthtime = {},
+        .st_size = st.size,
+        .st_blocks = st.blocks,
+        .st_blksize = st.block_size,
+        .st_flags = st.flags,
+        .st_gen = st.gen,
+    });
 }
 
 ErrorOr<usize> write(int fd, void const* data, usize size)
