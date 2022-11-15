@@ -96,9 +96,6 @@ ErrorOr<void> mprotect(void* addr, usize len, int prot)
     return {};
 }
 
-#define AT_FDCWD -100
-#define AT_REMOVEDIR 0x200
-
 ErrorOr<void> remove(c_string path)
 {
     // Assume not directory.

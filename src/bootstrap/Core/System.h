@@ -11,6 +11,14 @@ extern "C" {
 extern char** environ;
 }
 
+#ifdef __APPLE__
+using off_t = long long;
+#elif __linux__
+using off_t = long;
+#else
+#    warning "unimplemented"
+#endif
+
 #ifndef STDOUT_FILENO
 #    define STDOUT_FILENO 1
 #endif
@@ -20,19 +28,20 @@ extern char** environ;
 
 namespace Core::System {
 
-#define MAP_GROWSDOWN 0x00100
-#define MAP_DENYWRITE 0x00800
-#define MAP_EXECUTABLE 0x01000
-#define MAP_LOCKED 0x02000
-#define MAP_NORESERVE 0x04000
-#define MAP_POPULATE 0x08000
-#define MAP_NONBLOCK 0x10000
-#define MAP_STACK 0x20000
-#define MAP_HUGETLB 0x40000
-#define MAP_SYNC 0x80000
-#define MAP_FIXED_NOREPLACE 0x100000
-
 #ifdef __linux__
+
+#    define MAP_GROWSDOWN 0x00100
+#    define MAP_DENYWRITE 0x00800
+#    define MAP_EXECUTABLE 0x01000
+#    define MAP_LOCKED 0x02000
+#    define MAP_NORESERVE 0x04000
+#    define MAP_POPULATE 0x08000
+#    define MAP_NONBLOCK 0x10000
+#    define MAP_STACK 0x20000
+#    define MAP_HUGETLB 0x40000
+#    define MAP_SYNC 0x80000
+#    define MAP_FIXED_NOREPLACE 0x100000
+
 #    define PROT_READ 0x1
 #    define PROT_WRITE 0x2
 #    define PROT_EXEC 0x4
@@ -96,8 +105,102 @@ namespace Core::System {
 #    define O_NONBLOCK 04000
 #    define O_SYNC 04010000
 #    define O_ASYNC 020000
+
+#    define AT_FDCWD -100
+#    define AT_REMOVEDIR 0x200
+#elif __APPLE__
+#    define PROT_NONE 0x00
+#    define PROT_READ 0x01
+#    define PROT_WRITE 0x02
+#    define PROT_EXEC 0x04
+
+#    define MAP_SHARED 0x0001
+#    define MAP_PRIVATE 0x0002
+
+#    define MAP_FIXED 0x0010
+#    define MAP_RENAME 0x0020
+#    define MAP_NORESERVE 0x0040
+#    define MAP_RESERVED0080 0x0080
+#    define MAP_NOEXTEND 0x0100
+#    define MAP_HASSEMAPHORE 0x0200
+#    define MAP_NOCACHE 0x0400
+#    define MAP_JIT 0x0800
+
+#    define MAP_FILE 0x0000
+#    define MAP_ANON 0x1000
+#    define MAP_ANONYMOUS MAP_ANON
+
+#    define MAP_RESILIENT_CODESIGN 0x2000
+#    define MAP_RESILIENT_MEDIA 0x4000
+
+#    define MAP_32BIT 0x8000
+
+#    define MAP_TRANSLATED_ALLOW_EXECUTE 0x20000
+
+#    define MAP_UNIX03 0x40000
+
+#    define MCL_CURRENT 0x0001
+#    define MCL_FUTURE 0x0002
+
+#    define MS_ASYNC 0x0001
+#    define MS_INVALIDATE 0x0002
+#    define MS_SYNC 0x0010
+
+#    define MS_KILLPAGES 0x0004
+#    define MS_DEACTIVATE 0x0008
+
+#    define POSIX_MADV_NORMAL 0
+#    define POSIX_MADV_RANDOM 1
+#    define POSIX_MADV_SEQUENTIAL 2
+#    define POSIX_MADV_WILLNEED 3
+#    define POSIX_MADV_DONTNEED 4
+
+#    define MADV_NORMAL POSIX_MADV_NORMAL
+#    define MADV_RANDOM POSIX_MADV_RANDOM
+#    define MADV_SEQUENTIAL POSIX_MADV_SEQUENTIAL
+#    define MADV_WILLNEED POSIX_MADV_WILLNEED
+#    define MADV_DONTNEED POSIX_MADV_DONTNEED
+#    define MADV_FREE 5
+#    define MADV_ZERO_WIRED_PAGES 6
+#    define MADV_FREE_REUSABLE 7
+#    define MADV_FREE_REUSE 8
+#    define MADV_CAN_REUSE 9
+#    define MADV_PAGEOUT 10
+
+#    define O_RDONLY 0x0000
+#    define O_WRONLY 0x0001
+#    define O_RDWR 0x0002
+#    define O_ACCMODE 0x0003
+
+#    define O_NONBLOCK 0x00000004
+#    define O_APPEND 0x00000008
+
+#    define O_SHLOCK 0x00000010
+#    define O_EXLOCK 0x00000020
+#    define O_ASYNC 0x00000040
+#    define O_FSYNC O_SYNC
+#    define O_NOFOLLOW 0x00000100
+#    define O_CREAT 0x00000200
+#    define O_TRUNC 0x00000400
+#    define O_EXCL 0x00000800
+
+#    define O_EVTONLY 0x00008000
+#    define O_NOCTTY 0x00020000
+#    define O_DIRECTORY 0x00100000
+#    define O_SYMLINK 0x00200000
+#    define O_CLOEXEC 0x01000000
+#    define O_NOFOLLOW_ANY 0x20000000
+
+#    define AT_FDCWD -2
+#    define AT_EACCESS 0x0010
+#    define AT_SYMLINK_NOFOLLOW 0x0020
+#    define AT_SYMLINK_FOLLOW 0x0040
+#    define AT_REMOVEDIR 0x0080
+#    define AT_REALDEV 0x0200
+#    define AT_FDONLY 0x0400
+#    define AT_SYMLINK_NOFOLLOW_ANY 0x0800
 #else
-#    warning "flags unimplemented"
+#    warning "unimplemented"
 #endif
 
 ErrorOr<usize> write(int fd, MappedFile const& file);
@@ -108,9 +211,9 @@ ErrorOr<usize> writev(int fd, IOVec const* iovec, int count);
 ErrorOr<void> fsync(int fd);
 ErrorOr<void> munmap(void const* addr, usize size);
 ErrorOr<u8*> mmap(usize size, int prot, int flags, int fd = -1,
-    off_t offset = 0);
+    long offset = 0);
 ErrorOr<u8*> mmap(void* addr, usize size, int prot, int flags,
-    int fd = -1, off_t offset = 0);
+    int fd = -1, long offset = 0);
 ErrorOr<void> mprotect(void* addr, usize len, int prot);
 
 struct Stat {
