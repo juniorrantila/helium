@@ -1020,9 +1020,21 @@ ALWAYS_INLINE long syscall_impl(long __number, long __arg1,
 #undef SYSCALL_CLOBBER_LIST
 
 template <typename... Args>
-long syscall(Syscall number, Args... args)
+long syscall(Syscall call, Args... args)
 {
-    return syscall_impl((long)number, (long)args...);
+    auto number = (long)call;
+#if __APPLE__
+    number += 0x02000000; // Still incorrect. Currently assumes all
+                          // syscalls are from BSD. CLASS_NONE = 0
+                          // CLASS_MACH = 1
+                          // CLASS_BSD  = 2
+                          // CLASS_MDEP = 3
+                          // CLASS_DIAG = 4
+                          //
+                          // number = ((CLASS_<X> << CLASS_SHIFT) |
+                          // SYSCALL_NUMBER_MASK & number)
+#endif
+    return syscall_impl(number, (long)args...);
 }
 
 }
