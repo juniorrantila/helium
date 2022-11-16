@@ -107,7 +107,6 @@ function! HeliumSubexpressionSyntax(filetype,start,end,subexpressionSyntaxHighli
   endif
   execute 'syntax region subexpressionSyntax'.ft.'
   \ matchgroup='.a:subexpressionSyntaxHighlight.'
-  \ keepend
   \ start="'.a:start.'" end="'.a:end.'"
   \ contains=@'.group
 endfunction
