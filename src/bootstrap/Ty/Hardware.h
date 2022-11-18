@@ -1,7 +1,7 @@
 #pragma once
-#include <Ty/Base.h>
+#include "Base.h"
 
-namespace Core {
+namespace Ty {
 
 struct Hardware {
     static Hardware the()
@@ -60,3 +60,5 @@ private:
 };
 
 }
+
+using Ty::Hardware;

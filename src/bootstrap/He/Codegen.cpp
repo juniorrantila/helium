@@ -6,7 +6,6 @@
 #include "Token.h"
 #include "TypecheckedExpression.h"
 #include <Core/File.h>
-#include <Core/Threads.h>
 #include <Mem/Locality.h>
 #include <Ty/Defer.h>
 #include <Ty/StringBuffer.h>
