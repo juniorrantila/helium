@@ -4,6 +4,7 @@
 #include "Id.h"
 #include "StringView.h"
 #include "Traits.h"
+#include "Try.h"
 #include <errno.h>
 
 namespace Ty {
@@ -110,8 +111,7 @@ private:
             .function = function_view,
             .line = line_in_file,
         };
-        // Assume no fail.
-        code = *s_error_codes.find_or_append(data);
+        code = MUST(s_error_codes.find_or_append(data));
     }
 
     // FIXME: Technically racy.

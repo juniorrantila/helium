@@ -307,7 +307,6 @@ struct [[nodiscard]] Optional<T*> {
     }
 
     constexpr bool has_value() const { return m_value != nullptr; }
-
     constexpr T* operator->() { return value(); }
 
     constexpr T const* operator->() const { return value(); }

@@ -66,6 +66,10 @@ struct [[nodiscard]] ErrorOr {
         }
     }
 
+    constexpr bool has_value() const
+    {
+        return m_state == State::Value;
+    }
     constexpr bool is_error() const
     {
         return m_state == State::Error;
@@ -148,6 +152,7 @@ struct [[nodiscard]] ErrorOr<void, E> {
     {
     }
 
+    constexpr bool has_value() const { return !is_error(); }
     constexpr bool is_error() const { return m_error.has_value(); }
 
     constexpr void release_value() const { }
