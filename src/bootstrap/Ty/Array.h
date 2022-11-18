@@ -57,6 +57,13 @@ struct Array {
     {
         return m_data[id.raw()];
     }
+
+    constexpr T& operator[](u16 index) { return m_data[index]; }
+
+    constexpr T const& operator[](u16 index) const
+    {
+        return m_data[index];
+    }
 };
 
 }

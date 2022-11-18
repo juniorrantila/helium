@@ -1,6 +1,7 @@
 #pragma once
 #include "Array.h"
 #include "Base.h"
+#include "Hardware.h"
 #include "Id.h"
 #include "StringView.h"
 #include "Traits.h"
@@ -22,7 +23,9 @@ struct ErrorCodeData {
     }
 };
 using ErrorCode = SmallId<ErrorCodeData>;
-using ErrorCodes = Array<ErrorCodeData, 0xFFFF>;
+
+// More than 0x1000 errors on 0xFF cores seems a bit much.
+using ErrorCodes = Array<Array<ErrorCodeData, 0x1000>, 0xFF>;
 
 struct [[gnu::packed]] Error {
     struct InvalidToken { };
@@ -34,6 +37,7 @@ struct [[gnu::packed]] Error {
     }
 
     ErrorCode code {};
+    u8 thread_slot { 0 };
 
     constexpr Error() = default;
 
@@ -75,22 +79,22 @@ struct [[gnu::packed]] Error {
 
     constexpr StringView message() const
     {
-        return s_error_codes[code].message;
+        return s_error_codes[thread_slot][code].message;
     }
 
     constexpr StringView function() const
     {
-        return s_error_codes[code].function;
+        return s_error_codes[thread_slot][code].function;
     }
 
     constexpr StringView file() const
     {
-        return s_error_codes[code].file;
+        return s_error_codes[thread_slot][code].file;
     }
 
     constexpr u32 line_in_file() const
     {
-        return s_error_codes[code].line;
+        return s_error_codes[thread_slot][code].line;
     }
 
     constexpr bool is_empty() const
@@ -111,10 +115,11 @@ private:
             .function = function_view,
             .line = line_in_file,
         };
-        code = MUST(s_error_codes.find_or_append(data));
+        thread_slot = Hardware::current_thread();
+        code
+            = MUST(s_error_codes[thread_slot].find_or_append(data));
     }
 
-    // FIXME: Technically racy.
     static ErrorCodes s_error_codes;
 };
 
