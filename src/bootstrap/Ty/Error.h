@@ -1,30 +1,45 @@
 #pragma once
+#include "Array.h"
 #include "Base.h"
+#include "Id.h"
 #include "StringView.h"
+#include "Traits.h"
 #include <errno.h>
 
 namespace Ty {
 
-struct Error {
-    c_string m_message { nullptr };
-    c_string m_function { nullptr };
-    c_string m_file { nullptr };
-    u32 m_line_in_file { 0 };
+struct ErrorCodeData {
+    StringView message;
+    StringView file;
+    StringView function;
+    u32 line;
+
+    constexpr bool operator==(ErrorCodeData const& other) const
+    {
+        return message == other.message && file == other.file
+            && function == other.function && line == other.line;
+    }
+};
+using ErrorCode = SmallId<ErrorCodeData>;
+using ErrorCodes = Array<ErrorCodeData, 0xFFFF>;
+
+struct [[gnu::packed]] Error {
+    ErrorCode code {};
 
     constexpr Error() = default;
 
     static Error from_string_literal(c_string message,
         c_string function = __builtin_FUNCTION(),
         c_string file = __builtin_FILE(),
-        u32 line_in_file = __builtin_LINE())
+        u16 line_in_file = __builtin_LINE())
     {
         return { message, function, file, line_in_file };
     }
 
-    static Error from_errno(int code = errno,
+    static constexpr Error from_errno(int code = errno,
         c_string function = __builtin_FUNCTION(),
         c_string file = __builtin_FILE(),
-        u32 line_in_file = __builtin_LINE())
+        u16 line_in_file = __builtin_LINE())
     {
         return {
             errno_to_string(code),
@@ -34,13 +49,13 @@ struct Error {
         };
     }
 
-    static Error from_syscall(iptr rv,
+    static constexpr Error from_syscall(iptr rv,
         c_string function = __builtin_FUNCTION(),
         c_string file = __builtin_FILE(),
-        u32 line_in_file = __builtin_LINE())
+        u16 line_in_file = __builtin_LINE())
     {
         return {
-            errno_to_string((int)-rv),
+            errno_to_string((i32)-rv),
             function,
             file,
             line_in_file,
@@ -49,38 +64,49 @@ struct Error {
 
     static c_string errno_to_string(int);
 
-    StringView message() const
+    constexpr StringView message() const
     {
-        return StringView::from_c_string(m_message);
+        return s_error_codes[code].message;
     }
 
-    StringView function() const
+    constexpr StringView function() const
     {
-        return StringView::from_c_string(m_function);
+        return s_error_codes[code].function;
     }
 
-    StringView file() const
+    constexpr StringView file() const
     {
-        return StringView::from_c_string(m_file);
+        return s_error_codes[code].file;
     }
 
-    u32 line_in_file() const { return m_line_in_file; }
-
-    bool is_empty() const
+    constexpr u32 line_in_file() const
     {
-        return m_message == nullptr && m_function == nullptr
-            && m_file == nullptr;
+        return s_error_codes[code].line;
+    }
+
+    constexpr bool is_empty() const
+    {
+        return code == ErrorCode::invalid();
     }
 
 private:
     constexpr Error(c_string message, c_string function,
-        c_string file, u32 line_in_file)
-        : m_message(message)
-        , m_function(function)
-        , m_file(file)
-        , m_line_in_file(line_in_file)
+        c_string file, u16 line_in_file)
     {
+        auto message_view = StringView::from_c_string(message);
+        auto function_view = StringView::from_c_string(function);
+        auto file_view = StringView::from_c_string(file);
+        auto data = ErrorCodeData {
+            .message = message_view,
+            .file = file_view,
+            .function = function_view,
+            .line = line_in_file,
+        };
+        code = s_error_codes.find_or_append(data);
     }
+
+    // FIXME: Technically racy.
+    static ErrorCodes s_error_codes;
 };
 
 }

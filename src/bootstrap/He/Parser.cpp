@@ -2998,8 +2998,8 @@ parse_moved_value(ParseErrors& errors, ParsedExpressions&,
 
 ErrorOr<void> ParseError::show(SourceFile source) const
 {
-    auto start_index = offending_token.start_index;
-    auto end_index = offending_token.end_index(source.text);
+    auto start_index = m_offending_token.start_index;
+    auto end_index = m_offending_token.end_index(source.text);
 
     auto start = TRY(
         Util::line_and_column_for(source.text, start_index)
@@ -3025,30 +3025,45 @@ ErrorOr<void> ParseError::show(SourceFile source) const
         }));
     auto line = Util::fetch_line(source.text, start.line);
 
-    auto normal = "\x1b[0;0m"sv;
-    auto red = "\x1b[1;31m"sv;
-    auto yellow = "\x1b[1;33m"sv;
-    auto cyan = "\x1b[1;36m"sv;
-    auto blue = "\x1b[0;34m"sv;
+    auto normal = "\033[0;0m"sv;
+    auto red = "\033[1;31m"sv;
+    auto yellow = "\033[1;33m"sv;
+    auto cyan = "\033[1;36m"sv;
+    auto blue = "\033[1;34m"sv;
+    auto green = "\033[1;32m"sv;
 
-    auto type = token_type_string(offending_token.type);
+    auto type = token_type_string(m_offending_token.type);
 
     auto& out = Core::File::stderr();
-    TRY(out.writeln(parser_function(), " @ ["sv, parser_file(),
-        normal, ":"sv, line_in_parser_file, "]:"sv));
-    TRY(out.writeln(red, "Error: "sv, normal, message(), " ("sv,
-        type, ") ["sv, blue, source.file_name, normal, ":"sv,
-        start.line + 1, ":"sv, start.column + 1, "]"sv));
+    TRY(out.writeln(green, "From:  "sv, normal, parser_function(),
+        " ["sv, parser_file(), normal, ":"sv, line_in_parser_file(),
+        "]"sv));
+    TRY(out.writeln(red, "Error: "sv, normal, message(), normal,
+        " ("sv, type, ") ["sv, blue, source.file_name, normal,
+        ":"sv, start.line + 1, ":"sv, start.column + 1, "]"sv));
+    if (m_hint)
+        TRY(out.writeln(cyan, "Hint:  "sv, normal, hint()));
+
+    TRY(out.writeln(blue, "Location: "sv, normal, source.file_name,
+        normal, ":"sv, start.line + 1, ":"sv, start.column + 1));
     TRY(out.writeln(line));
 
     for (u32 i = 0; i < start.column; i++)
         TRY(out.write(" "sv));
+    TRY(out.write(yellow));
     for (u32 i = start.column; i < end.column; i++)
-        TRY(out.write(yellow, "^"sv, normal));
+        TRY(out.write("^"sv));
+    TRY(out.write(" "sv, message(), normal, " ("sv, type, ")"sv));
     TRY(out.writeln());
 
-    if (m_hint)
-        TRY(out.writeln(cyan, "Hint: "sv, normal, hint()));
+    if (m_hint) {
+        for (u32 i = 0; i < start.column; i++)
+            TRY(out.write(" "sv));
+        TRY(out.write(cyan));
+        for (u32 i = start.column; i < end.column; i++)
+            TRY(out.write("^"sv));
+        TRY(out.writeln(cyan, " "sv, hint(), normal));
+    }
 
     return {};
 }

@@ -14,50 +14,46 @@ struct ParseError {
         c_string parser_function = __builtin_FUNCTION(),
         c_string parser_file = __builtin_FILE(),
         u32 line_in_parser_file = __builtin_LINE())
-        : m_message(message)
-        , m_hint(hint)
-        , m_parser_function(parser_function)
-        , m_parser_file(parser_file)
-        , offending_token(offending_token)
-        , line_in_parser_file(line_in_parser_file)
+        : m_hint(hint)
+        , m_offending_token(offending_token)
+        , m_error(Error::from_string_literal(message,
+              parser_function, parser_file, line_in_parser_file))
     {
     }
 
     constexpr ParseError(Error error)
-        : m_message(error.m_message)
-        , m_parser_function(error.m_function)
-        , m_parser_file(error.m_file)
-        , offending_token(TokenType::Invalid, 0)
-        , line_in_parser_file(error.m_line_in_file)
+        : m_error(error)
     {
     }
 
-    StringView message() const
+    constexpr StringView message() const
     {
-        return StringView::from_c_string(m_message);
+        return m_error.message();
     }
 
-    StringView hint() const
+    constexpr StringView hint() const
     {
         return StringView::from_c_string(m_hint);
     }
 
-    StringView parser_function() const
+    constexpr StringView parser_function() const
     {
-        return StringView::from_c_string(m_parser_function);
+        return m_error.function();
     }
 
-    StringView parser_file() const
+    constexpr StringView parser_file() const
     {
-        return StringView::from_c_string(m_parser_file);
+        return m_error.file();
     }
 
-    c_string m_message { nullptr };
+    constexpr u32 line_in_parser_file() const
+    {
+        return m_error.line_in_file();
+    }
+
     c_string m_hint { nullptr };
-    c_string m_parser_function { nullptr };
-    c_string m_parser_file { nullptr };
-    Token offending_token;
-    u32 line_in_parser_file { 0 };
+    Token m_offending_token { TokenType::Invalid, 0 };
+    Error m_error {};
 
     ErrorOr<void> show(SourceFile source) const;
 };
