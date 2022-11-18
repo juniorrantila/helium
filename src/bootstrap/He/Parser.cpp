@@ -3059,7 +3059,8 @@ ErrorOr<void> ParseErrors::show(SourceFile source) const
         TRY(Core::File::stderr().writeln(basic_error));
         return {};
     }
-    for (auto const& error : parse_errors) {
+
+    for (auto const& error : parse_errors.in_reverse()) {
         TRY(error.show(source));
         TRY(Core::File::stderr().write("\n"sv));
     }
