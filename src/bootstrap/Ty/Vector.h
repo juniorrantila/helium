@@ -3,6 +3,7 @@
 #include "ErrorOr.h"
 #include "Id.h"
 #include "Move.h"
+#include "ReverseIterator.h"
 #include "Try.h"
 #include "View.h"
 
@@ -149,6 +150,13 @@ struct Vector {
     {
         return &data()[m_size];
     }
+
+    ReverseIterator<T const> in_reverse() const
+    {
+        return { begin(), end() };
+    }
+
+    ReverseIterator<T> in_reverse() { return { begin(), end() }; }
 
     FLATTEN constexpr T* data()
     {

@@ -3,6 +3,7 @@
 #include "ErrorOr.h"
 #include "Id.h"
 #include "Move.h"
+#include "ReverseIterator.h"
 #include "View.h"
 
 namespace Ty {
@@ -77,6 +78,13 @@ struct SmallVector {
 
     constexpr T const* begin() const { return slot(0); }
     constexpr T const* end() const { return slot(m_size); }
+
+    ReverseIterator<T const> in_reverse() const
+    {
+        return { begin(), end() };
+    }
+
+    ReverseIterator<T> in_reverse() { return { begin(), end() }; }
 
     constexpr T* data() { return slot(0); }
     constexpr T const* data() const { return slot(0); }
