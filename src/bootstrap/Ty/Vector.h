@@ -106,6 +106,19 @@ struct Vector {
         return {};
     }
 
+    ALWAYS_INLINE constexpr Id<T> find(
+        T const& value) const requires requires(T value, T other)
+    {
+        value == other;
+    }
+    {
+        for (u32 i = 0; i < size(); i++) {
+            if (data()[i] == value)
+                return Id<T>(i);
+        }
+        return Id<T>::invalid();
+    }
+
     FLATTEN constexpr View<T> view() { return { m_data, m_size }; }
     FLATTEN constexpr View<T const> view() const
     {
