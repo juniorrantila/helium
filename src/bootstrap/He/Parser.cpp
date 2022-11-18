@@ -40,21 +40,26 @@ ParseResult parse(Tokens const& tokens)
     auto errors = ParseErrors();
 
     auto expressions = TRY(ParsedExpressions::create());
+    u32 last_error_index = 0;
     for (u32 start = 0; start < tokens.size();) {
         if (tokens[start].is(TokenType::NewLine))
             continue; // Ignore leading and trailing new lines.
         auto token = tokens[start];
 
         if (token.is(TokenType::Import)) {
-            auto import_c = TRY(parse_import_he(errors, expressions,
-                tokens, start));
-            start = import_c.end_token_index();
+            auto import_he = TRY(parse_import_he(errors,
+                expressions, tokens, start));
+            if (import_he.type() == ExpressionType::Invalid)
+                last_error_index = import_he.end_token_index() - 1;
+            start = import_he.end_token_index();
             continue;
         }
 
         if (token.is(TokenType::ImportC)) {
             auto import_c = TRY(
                 parse_import_c(errors, expressions, tokens, start));
+            if (import_c.type() == ExpressionType::Invalid)
+                last_error_index = import_c.end_token_index() - 1;
             start = import_c.end_token_index();
             continue;
         }
@@ -66,6 +71,8 @@ ParseResult parse(Tokens const& tokens)
         if (token.is_any_of(inline_cs)) {
             auto inline_c = TRY(
                 parse_inline_c(errors, expressions, tokens, start));
+            if (inline_c.type() == ExpressionType::Invalid)
+                last_error_index = inline_c.end_token_index() - 1;
             start = inline_c.end_token_index();
             TRY(expressions.top_level_inline_cs.append(
                 expressions[inline_c.as_inline_c()]));
@@ -75,6 +82,8 @@ ParseResult parse(Tokens const& tokens)
         if (token.is(TokenType::Fn)) {
             auto expression = TRY(parse_private_function(errors,
                 expressions, tokens, start));
+            if (expression.type() == ExpressionType::Invalid)
+                last_error_index = expression.end_token_index() - 1;
             start = expression.end_token_index();
             continue;
         }
@@ -82,6 +91,8 @@ ParseResult parse(Tokens const& tokens)
         if (token.is(TokenType::CFn)) {
             auto expression = TRY(parse_private_c_function(errors,
                 expressions, tokens, start));
+            if (expression.type() == ExpressionType::Invalid)
+                last_error_index = expression.end_token_index() - 1;
             start = expression.end_token_index();
             continue;
         }
@@ -89,6 +100,8 @@ ParseResult parse(Tokens const& tokens)
         if (token.is(TokenType::Pub)) {
             auto pub = TRY(parse_pub_specifier(errors, expressions,
                 tokens, start));
+            if (pub.type() == ExpressionType::Invalid)
+                last_error_index = pub.end_token_index() - 1;
             start = pub.end_token_index();
             if (pub.type()
                 == ExpressionType::PublicConstantDeclaration) {
@@ -111,6 +124,8 @@ ParseResult parse(Tokens const& tokens)
             auto expression
                 = TRY(parse_top_level_constant_or_struct(errors,
                     expressions, tokens, start));
+            if (expression.type() == ExpressionType::Invalid)
+                last_error_index = expression.end_token_index() - 1;
             start = expression.end_token_index();
             if (expression.type()
                 == ExpressionType::PrivateConstantDeclaration) {
@@ -126,6 +141,8 @@ ParseResult parse(Tokens const& tokens)
             auto expression
                 = TRY(parse_private_variable_declaration(errors,
                     expressions, tokens, start));
+            if (expression.type() == ExpressionType::Invalid)
+                last_error_index = expression.end_token_index() - 1;
             start = expression.end_token_index();
             auto variable = expressions
                 [expression.as_private_variable_declaration()];
@@ -134,12 +151,16 @@ ParseResult parse(Tokens const& tokens)
             continue;
         }
 
-        TRY(errors.append_or_short({
-            "unexpected token",
-            "expected one of [import_c, inline_c, fn, "
-            "c_fn, pub, let, var]",
-            token,
-        }));
+        if (last_error_index + 1 != start) {
+            // Likely false positive.
+            TRY(errors.append_or_short({
+                "unexpected token",
+                "expected one of [import_c, inline_c, fn, "
+                "c_fn, pub, let, var]",
+                token,
+            }));
+        }
+        last_error_index = start;
         start++;
     }
 
@@ -523,6 +544,11 @@ struct Function {
     u32 start_token_index { 0 };
     u32 end_token_index { 0 };
 
+    constexpr bool is_garbage() const
+    {
+        return name.is(TokenType::Invalid);
+    }
+
     static constexpr Function garbage(u32 start, u32 end)
     {
         return {
@@ -679,6 +705,11 @@ ParseSingleItemResult parse_public_function(ParseErrors& errors,
 {
     auto function
         = TRY(parse_function(errors, expressions, tokens, start));
+    if (function.is_garbage()) {
+        return Expression::garbage(function.start_token_index,
+            function.end_token_index - 1);
+    }
+
     auto function_id = TRY(expressions.append(PublicFunction {
         .name = function.name,
         .return_type = function.return_type,
@@ -697,6 +728,10 @@ ParseSingleItemResult parse_public_c_function(ParseErrors& errors,
 {
     auto function
         = TRY(parse_function(errors, expressions, tokens, start));
+    if (function.is_garbage()) {
+        return Expression::garbage(function.start_token_index,
+            function.end_token_index - 1);
+    }
     auto function_id = TRY(expressions.append(PublicCFunction {
         .name = function.name,
         .return_type = function.return_type,
@@ -715,6 +750,10 @@ ParseSingleItemResult parse_private_function(ParseErrors& errors,
 {
     auto function
         = TRY(parse_function(errors, expressions, tokens, start));
+    if (function.is_garbage()) {
+        return Expression::garbage(function.start_token_index,
+            function.end_token_index - 1);
+    }
     auto function_id = TRY(expressions.append(PrivateFunction {
         .name = function.name,
         .return_type = function.return_type,
@@ -733,6 +772,10 @@ ParseSingleItemResult parse_private_c_function(ParseErrors& errors,
 {
     auto function
         = TRY(parse_function(errors, expressions, tokens, start));
+    if (function.is_garbage()) {
+        return Expression::garbage(function.start_token_index,
+            function.end_token_index - 1);
+    }
     auto function_id = TRY(expressions.append(PrivateCFunction {
         .name = function.name,
         .return_type = function.return_type,
