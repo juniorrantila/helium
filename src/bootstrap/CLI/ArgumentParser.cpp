@@ -31,19 +31,17 @@ ArgumentParserResult ArgumentParser::run(int argc,
     usize used_positionals = 0;
     for (int i = 1; i < argc; i++) {
         auto argument = StringView::from_c_string(argv[i]);
-        if (auto id = short_flag_ids.find(argument);
-            id.is_valid()) {
-            flag_callbacks[id.raw()]();
+        if (auto id = short_flag_ids.find(argument); id) {
+            flag_callbacks[id->raw()]();
             continue;
         }
 
-        if (auto id = long_flag_ids.find(argument); id.is_valid()) {
-            flag_callbacks[id.raw()]();
+        if (auto id = long_flag_ids.find(argument); id) {
+            flag_callbacks[id->raw()]();
             continue;
         }
 
-        if (auto id = short_option_ids.find(argument);
-            id.is_valid()) {
+        if (auto id = short_option_ids.find(argument); id) {
             if (i + 1 >= argc) {
                 TRY(err_out.writeln(
                     "No argument provided for argument \""sv,
@@ -53,12 +51,11 @@ ArgumentParserResult ArgumentParser::run(int argc,
                 return ArgumentParserError { move(err_out) };
             }
             c_string value = argv[++i];
-            option_callbacks[id.raw()](value);
+            option_callbacks[id->raw()](value);
             continue;
         }
 
-        if (auto id = long_option_ids.find(argument);
-            id.is_valid()) {
+        if (auto id = long_option_ids.find(argument); id) {
             if (i + 1 >= argc) {
                 TRY(err_out.writeln("No argument provided for \""sv,
                     argument, "\"\n"sv));
@@ -67,7 +64,7 @@ ArgumentParserResult ArgumentParser::run(int argc,
                 return ArgumentParserError { move(err_out) };
             }
             c_string value = argv[++i];
-            option_callbacks[id.raw()](value);
+            option_callbacks[id->raw()](value);
             continue;
         }
 
@@ -88,11 +85,10 @@ ArgumentParserResult ArgumentParser::run(int argc,
     if (used_positionals != positional_placeholders.size()) {
         if (positional_placeholders.size() - used_positionals
             == 1) {
-            auto out = TRY(StringBuffer::create(1 * Mem::KiB));
             auto placeholder
                 = positional_placeholders[used_positionals];
 
-            TRY(out.writeln("Missing positional argument: "sv,
+            TRY(err_out.writeln("Missing positional argument: "sv,
                 placeholder));
         }
         TRY(err_out.writeln("Missing positional arguments: "sv));
@@ -126,9 +122,8 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
     out.writeln("FLAGS:"sv).ignore();
     for (auto flag : flags) {
         auto pad = flag.short_name.size == 2 ? " "sv : ""sv;
-        auto bytes = out.write("        "sv, flag.short_name,
-                            ", "sv, pad, flag.long_name)
-                         .release_value();
+        auto bytes = MUST(out.write("        "sv, flag.short_name,
+            ", "sv, pad, flag.long_name));
         for (; bytes < 40; bytes++)
             out.write(" "sv).ignore();
         out.writeln(flag.explanation).ignore();
@@ -136,10 +131,9 @@ void ArgumentParser::print_usage_and_exit(c_string program_name,
     out.writeln("\nOPTIONS:"sv).ignore();
     for (auto option : options) {
         auto pad = option.short_name.size == 2 ? " "sv : ""sv;
-        auto bytes = out.write("        "sv, option.short_name,
-                            ", "sv, pad, option.long_name, "  <"sv,
-                            option.placeholder, "> "sv)
-                         .release_value();
+        auto bytes = MUST(out.write("        "sv, option.short_name,
+            ", "sv, pad, option.long_name, "  <"sv,
+            option.placeholder, "> "sv));
         for (; bytes < 40; bytes++)
             out.write(" "sv).ignore();
         out.writeln(option.explanation).ignore();

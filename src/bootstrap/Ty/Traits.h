@@ -81,6 +81,12 @@ template <typename T>
 inline constexpr bool IsFunctionPointer
     = IsPointer<T>&& IsFunction<RemovePointer<T>>;
 
+template <typename T>
+concept HasInvalid = requires
+{
+    T::Invalid;
+};
+
 }
 
 using namespace Ty;

@@ -153,6 +153,132 @@ private:
 };
 
 template <typename T>
+requires(HasInvalid<T>) struct [[nodiscard]] Optional<T> {
+    constexpr Optional() { new (storage()) T(T::Invalid); }
+
+    constexpr Optional(T value) requires is_trivially_copyable<T>
+    {
+        new (storage()) T(value);
+    }
+
+    constexpr Optional(T&& value) requires(
+        !is_trivially_copyable<T>)
+    {
+        new (storage()) T(move(value));
+    }
+
+    constexpr Optional(Optional&& other)
+    {
+        new (storage()) T(other.release_value());
+    }
+
+    constexpr ~Optional() { clear(); }
+
+    constexpr Optional& operator=(
+        T value) requires is_trivially_copyable<T>
+    {
+        clear();
+        new (storage()) T(value);
+        return *this;
+    }
+
+    constexpr Optional& operator=(T&& value) requires(
+        !is_trivially_copyable<T>)
+    {
+        clear();
+        new (storage()) T(move(value));
+        return *this;
+    }
+
+    constexpr Optional& operator=(
+        Optional value) requires is_trivially_copyable<T>
+    {
+        clear();
+        new (this) Optional(value);
+        return *this;
+    }
+
+    constexpr Optional& operator=(Optional&& value) requires(
+        !is_trivially_copyable<T>)
+    {
+        clear();
+        new (this) Optional(move(value));
+        return *this;
+    }
+
+    template <typename E>
+    constexpr ErrorOr<T, E> or_throw(
+        E error) requires is_trivially_copyable<E>
+    {
+        if (has_value())
+            return release_value();
+        return error;
+    }
+
+    template <typename E>
+    constexpr ErrorOr<T, E> or_throw(E&& error) requires(
+        !is_trivially_copyable<E>)
+    {
+        if (has_value())
+            return release_value();
+        return error;
+    }
+
+    template <typename F>
+    constexpr decltype(auto) or_else(F callback) requires
+        requires(F callback)
+    {
+        callback();
+    }
+    {
+        if (!has_value())
+            return callback();
+        using Return = decltype(callback());
+        return Return(release_value());
+    }
+
+    template <typename U>
+    constexpr decltype(auto) or_else(U value) requires(
+        !requires(U value) { value(); })
+    {
+        if (!has_value())
+            return value;
+        return U(release_value());
+    }
+
+    constexpr T& value() { return *storage(); }
+    constexpr T const& value() const { return *storage(); }
+
+    constexpr T release_value() { return move(value()); }
+
+    constexpr bool has_value() const
+    {
+        return value() != T::Invalid;
+    }
+
+    constexpr T* operator->() { return storage(); }
+    constexpr T const* operator->() const { return storage(); }
+
+    constexpr T operator*() { return release_value(); }
+
+    explicit constexpr operator bool() { return has_value(); }
+
+private:
+    constexpr void clear() { value().~T(); }
+
+    constexpr T* storage()
+    {
+        return reinterpret_cast<T*>(m_storage);
+    }
+    constexpr T const* storage() const
+    {
+        return reinterpret_cast<T const*>(m_storage);
+    }
+
+    alignas(T) u8 m_storage[sizeof(T)];
+};
+
+template <typename T>
 struct [[nodiscard]] Optional<T*> {
 
     constexpr Optional() = default;

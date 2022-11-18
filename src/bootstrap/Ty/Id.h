@@ -5,6 +5,14 @@ namespace Ty {
 
 template <typename T>
 struct Id {
+    struct InvalidToken { };
+    static constexpr InvalidToken Invalid;
+    constexpr Id(InvalidToken) { }
+    constexpr bool operator==(InvalidToken) const
+    {
+        return !is_valid();
+    }
+
     constexpr Id() = default;
 
     constexpr explicit Id(u32 raw_id)
@@ -34,6 +42,14 @@ private:
 
 template <typename T>
 struct SmallId {
+    struct InvalidToken { };
+    static constexpr auto Invalid = InvalidToken();
+    constexpr SmallId(InvalidToken) { }
+    constexpr bool operator==(InvalidToken) const
+    {
+        return !is_valid();
+    }
+
     constexpr SmallId() = default;
 
     constexpr explicit SmallId(u16 raw_id)

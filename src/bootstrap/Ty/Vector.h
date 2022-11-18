@@ -106,7 +106,7 @@ struct Vector {
         return {};
     }
 
-    ALWAYS_INLINE constexpr Id<T> find(
+    ALWAYS_INLINE constexpr Optional<Id<T>> find(
         T const& value) const requires requires(T value, T other)
     {
         value == other;
@@ -116,7 +116,7 @@ struct Vector {
             if (data()[i] == value)
                 return Id<T>(i);
         }
-        return Id<T>::invalid();
+        return {};
     }
 
     FLATTEN constexpr View<T> view() { return { m_data, m_size }; }

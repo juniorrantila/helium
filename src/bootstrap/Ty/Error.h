@@ -24,6 +24,14 @@ using ErrorCode = SmallId<ErrorCodeData>;
 using ErrorCodes = Array<ErrorCodeData, 0xFFFF>;
 
 struct [[gnu::packed]] Error {
+    struct InvalidToken { };
+    static constexpr auto Invalid = InvalidToken();
+    constexpr Error(InvalidToken) { }
+    constexpr bool operator==(InvalidToken) const
+    {
+        return !code.is_valid();
+    }
+
     ErrorCode code {};
 
     constexpr Error() = default;
@@ -102,7 +110,8 @@ private:
             .function = function_view,
             .line = line_in_file,
         };
-        code = s_error_codes.find_or_append(data);
+        // Assume no fail.
+        code = *s_error_codes.find_or_append(data);
     }
 
     // FIXME: Technically racy.

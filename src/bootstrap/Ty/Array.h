@@ -1,6 +1,7 @@
 #pragma once
 #include "Base.h"
 #include "Id.h"
+#include "Optional.h"
 
 namespace Ty {
 
@@ -20,31 +21,31 @@ struct Array {
     constexpr T* end() { return m_data[m_size]; }
     constexpr T const* end() const { return m_data[m_size]; }
 
-    constexpr SmallId<T> append(T value)
+    constexpr Optional<SmallId<T>> append(T value)
     {
         if (m_size >= capacity())
-            __builtin_abort();
+            return {};
         m_data[m_size] = value;
         auto id = SmallId<T>(m_size);
         m_size++;
         return id;
     }
 
-    constexpr SmallId<T> find_or_append(T value)
+    constexpr Optional<SmallId<T>> find_or_append(T value)
     {
         auto id = find(value);
-        if (id.is_valid())
-            return id;
+        if (id.has_value())
+            return id.release_value();
         return append(value);
     }
 
-    constexpr SmallId<T> find(T value)
+    constexpr Optional<SmallId<T>> find(T value)
     {
         for (u16 i = 0; i < m_size; i++) {
             if (m_data[i] == value)
                 return SmallId<T>(i);
         }
-        return SmallId<T>::invalid();
+        return {};
     }
 
     constexpr T& operator[](SmallId<T> id)

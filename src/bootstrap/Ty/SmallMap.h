@@ -49,13 +49,13 @@ struct SmallMap {
         return {};
     }
 
-    constexpr Id<Value> find(Key const& key) const
+    constexpr Optional<Id<Value>> find(Key const& key) const
     {
         for (u32 i = 0; i < m_keys.size(); i++) {
             if (m_keys[i] == key)
                 return Id<Value>(i);
         }
-        return Id<Value>::invalid();
+        return {};
     }
 
     constexpr Value const& operator[](Id<Value> id) const
