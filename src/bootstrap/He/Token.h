@@ -4,73 +4,75 @@
 
 namespace He {
 
-#define TOKEN_TYPES                              \
-    X(OpenBracket, open_bracket)                 \
-    X(CloseBracket, close_bracket)               \
-                                                 \
-    X(OpenParen, open_paren)                     \
-    X(CloseParen, close_paren)                   \
-                                                 \
-    X(OpenCurly, open_curly)                     \
-    X(CloseCurly, close_curly)                   \
-                                                 \
-    X(Ampersand, ampersand)                      \
-    X(Comma, comma)                              \
-    X(Assign, assign)                            \
-    X(NewLine, new_line)                         \
-    X(Number, number)                            \
-    X(Colon, colon)                              \
-    X(Semicolon, semicolon)                      \
-    X(Space, space)                              \
-    X(Hash, hash)                                \
-    X(Underscore, underscore)                    \
-    X(QuestionMark, question_mark)               \
-                                                 \
-    X(Minus, minus)                              \
-    X(Plus, plus)                                \
-    X(Slash, slash)                              \
-    X(Star, star)                                \
-                                                 \
-    X(Equals, equals)                            \
-    X(GreaterThan, greater_than)                 \
-    X(GreaterThanOrEqual, greater_than_or_equal) \
-    X(LessThan, less_than)                       \
-    X(LessThanOrEqual, less_than_or_equal)       \
-                                                 \
-    X(Dot, dot)                                  \
-    X(Arrow, arrow)                              \
-                                                 \
-    X(Quoted, quoted)                            \
-    X(Identifier, identifier)                    \
-                                                 \
-    /* Keywords */                               \
-                                                 \
-    X(CFn, c_fn)                                 \
-    X(Fn, fn)                                    \
-    X(If, if_token)                              \
-    X(InlineC, inline_c)                         \
-    X(InlineCBlock, inline_c_block)              \
-    X(Let, let_token)                            \
-    X(Pub, pub)                                  \
-    X(RefMut, ref_mut)                           \
-    X(Return, return_token)                      \
-    X(Var, var_token)                            \
-    X(While, while_token)                        \
-                                                 \
-    X(Enum, enum_token)                          \
-    X(Struct, struct_token)                      \
-    X(Union, union_token)                        \
-    X(Variant, variant)                          \
-                                                 \
-    /* Builtin functions */                      \
-                                                 \
-    X(Embed, embed)                              \
-    X(Import, import_token)                      \
-    X(ImportC, import_c)                         \
-    X(SizeOf, size_of)                           \
-    X(Uninitialized, uninitialized)              \
-                                                 \
-    /* Garbage */                                \
+#define TOKEN_TYPES                                \
+    X(OpenBracket, open_bracket)                   \
+    X(CloseBracket, close_bracket)                 \
+                                                   \
+    X(OpenParen, open_paren)                       \
+    X(CloseParen, close_paren)                     \
+                                                   \
+    X(OpenCurly, open_curly)                       \
+    X(CloseCurly, close_curly)                     \
+                                                   \
+    X(Ampersand, ampersand)                        \
+    X(Comma, comma)                                \
+    X(Assign, assign)                              \
+    X(NewLine, new_line)                           \
+    X(Number, number)                              \
+    X(Colon, colon)                                \
+    X(Semicolon, semicolon)                        \
+    X(Space, space)                                \
+    X(Hash, hash)                                  \
+    X(Underscore, underscore)                      \
+    X(QuestionMark, question_mark)                 \
+                                                   \
+    X(Minus, minus)                                \
+    X(Plus, plus)                                  \
+    X(Slash, slash)                                \
+    X(Star, star)                                  \
+                                                   \
+    X(Equals, equals)                              \
+    X(GreaterThan, greater_than)                   \
+    X(GreaterThanOrEqual, greater_than_or_equal)   \
+    X(LessThan, less_than)                         \
+    X(LessThanOrEqual, less_than_or_equal)         \
+                                                   \
+    X(Dot, dot)                                    \
+    X(Arrow, arrow)                                \
+                                                   \
+    X(Quoted, quoted)                              \
+    X(Identifier, identifier)                      \
+                                                   \
+    /* Keywords */                                 \
+                                                   \
+    X(CFn, c_fn)                                   \
+    X(Fn, fn)                                      \
+    X(If, if_token)                                \
+    X(InlineC, inline_c)                           \
+    X(InvalidInlineC, invalid_inline_c)            \
+    X(InlineCBlock, inline_c_block)                \
+    X(InvalidInlineCBlock, invalid_inline_c_block) \
+    X(Let, let_token)                              \
+    X(Pub, pub)                                    \
+    X(RefMut, ref_mut)                             \
+    X(Return, return_token)                        \
+    X(Var, var_token)                              \
+    X(While, while_token)                          \
+                                                   \
+    X(Enum, enum_token)                            \
+    X(Struct, struct_token)                        \
+    X(Union, union_token)                          \
+    X(Variant, variant)                            \
+                                                   \
+    /* Builtin functions */                        \
+                                                   \
+    X(Embed, embed)                                \
+    X(Import, import_token)                        \
+    X(ImportC, import_c)                           \
+    X(SizeOf, size_of)                             \
+    X(Uninitialized, uninitialized)                \
+                                                   \
+    /* Garbage */                                  \
     X(Invalid, invalid)
 
 enum class TokenType : u8 {

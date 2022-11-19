@@ -135,8 +135,10 @@ u32 relex_size(StringView source, Token token)
     case TokenType::Fn: return "fn"sv.size;
     case TokenType::If: return "if"sv.size;
     case TokenType::InlineC:
+    case TokenType::InvalidInlineC:
         return relex_inline_c(source, token.start_index).size();
     case TokenType::InlineCBlock:
+    case TokenType::InvalidInlineCBlock:
         return relex_inline_c_block(source, token.start_index)
             .size();
     case TokenType::Let: return "let"sv.size;
@@ -373,14 +375,24 @@ constexpr FatToken relex_inline_c_block(StringView source,
     u32 start)
 {
     u32 end = start;
+    u32 last_brace_index = end;
     for (i32 brace_level = 1; end < source.size; end++) {
         auto character = source[end];
         if (character == '{')
             brace_level++;
-        if (character == '}')
+        if (character == '}') {
+            last_brace_index = end;
             brace_level--;
+        }
         if (brace_level == 0 && character == ';')
             break;
+        if (brace_level < 0) {
+            return {
+                TokenType::InvalidInlineCBlock,
+                start,
+                last_brace_index,
+            };
+        }
     }
     return { TokenType::InlineCBlock, start, end - 1 };
 }
@@ -388,14 +400,24 @@ constexpr FatToken relex_inline_c_block(StringView source,
 constexpr FatToken relex_inline_c(StringView source, u32 start)
 {
     auto end = start;
+    auto last_brace_index = end;
     for (i32 brace_level = 0; end < source.size; end++) {
         auto character = source[end];
         if (character == '{')
             brace_level++;
-        if (character == '}')
+        if (character == '}') {
+            last_brace_index = end;
             brace_level--;
+        }
         if (brace_level == 0 && character == ';')
             break;
+        if (brace_level < 0) {
+            return {
+                TokenType::InvalidInlineC,
+                start,
+                last_brace_index,
+            };
+        }
     }
 
     return FatToken { TokenType::InlineC, start, end };
@@ -403,7 +425,7 @@ constexpr FatToken relex_inline_c(StringView source, u32 start)
 
 constexpr FatToken lex_inline_c_block(StringView source, u32 start)
 {
-    u32 brace_level = 1;
+    i32 brace_level = 1;
     u32 end = start;
     u32 ending_brace_index = end;
     for (; end < source.size; end++) {
@@ -425,15 +447,23 @@ constexpr FatToken lex_inline_c_block(StringView source, u32 start)
             //     "did you forget a semicolon after inline_c?",
             //     token,
             // }));
-            return { TokenType::Invalid, start, end };
+            return {
+                TokenType::InvalidInlineCBlock,
+                start,
+                end,
+            };
         }
     }
 
     if (source[end] != ';') {
-        return { TokenType::Invalid, start, end };
+        return { TokenType::InvalidInlineCBlock, start, end };
     }
 
-    return { TokenType::InlineCBlock, start, ending_brace_index - 1 };
+    return {
+        TokenType::InlineCBlock,
+        start,
+        ending_brace_index - 1,
+    };
 }
 
 constexpr FatToken lex_inline_c(StringView source, u32 start)
@@ -459,12 +489,12 @@ constexpr FatToken lex_inline_c(StringView source, u32 start)
             //     "did you forget a semicolon after inline_c?",
             //     token,
             // }));
-            return { TokenType::Invalid, start, end + 1 };
+            return { TokenType::InvalidInlineC, start, end + 1 };
         }
     }
 
     if (source[end] != ';') {
-        return { TokenType::Invalid, start, end };
+        return { TokenType::InvalidInlineC, start, end };
     }
 
     return FatToken { TokenType::InlineC, start, end };
