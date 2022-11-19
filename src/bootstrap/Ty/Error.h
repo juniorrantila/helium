@@ -1,8 +1,8 @@
 #pragma once
-#include "Array.h"
 #include "Base.h"
 #include "Hardware.h"
 #include "Id.h"
+#include "StaticVector.h"
 #include "StringView.h"
 #include "Traits.h"
 #include "Try.h"
@@ -25,7 +25,8 @@ struct ErrorCodeData {
 using ErrorCode = SmallId<ErrorCodeData>;
 
 // More than 0x1000 errors on 0xFF cores seems a bit much.
-using ErrorCodes = Array<Array<ErrorCodeData, 0x1000>, 0xFF>;
+using ErrorCodes
+    = StaticVector<StaticVector<ErrorCodeData, 0x1000>, 0xFF>;
 
 struct [[gnu::packed]] Error {
     struct InvalidToken { };

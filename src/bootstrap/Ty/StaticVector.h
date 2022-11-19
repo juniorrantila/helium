@@ -6,11 +6,11 @@
 namespace Ty {
 
 template <typename T, u16 Capacity>
-struct Array {
-    u16 m_size { 0 };
+struct StaticVector {
     T m_data[Capacity] {};
+    u16 m_size { 0 };
 
-    Array() = default;
+    StaticVector() = default;
 
     constexpr u16 capacity() { return Capacity; }
     constexpr u16 size() { return m_size; }
@@ -68,4 +68,4 @@ struct Array {
 
 }
 
-using Ty::Array;
+using Ty::StaticVector;
