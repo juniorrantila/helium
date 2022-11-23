@@ -19,17 +19,7 @@ struct Bench {
     {
     }
 
-    static u64 current_tick()
-    {
-        u64 tick = 0;
-        u32 cycles_low = 0;
-        u32 cycles_high = 0;
-        asm volatile("rdtsc\n"
-                     : "=d"(cycles_high), "=a"(cycles_low)::"%rbx",
-                     "%rcx");
-        tick = ((u64)cycles_high << 32) | cycles_low;
-        return tick;
-    }
+    static u64 current_tick() { return __rdtsc(); }
 
     void start()
     {
