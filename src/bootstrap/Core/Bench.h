@@ -1,6 +1,7 @@
 #pragma once
 #include <Core/File.h>
 #include <Ty/Base.h>
+#include <Ty/Defer.h>
 
 namespace Core {
 
@@ -29,14 +30,19 @@ struct Bench {
 
     void stop() { m_stop_cycle = current_tick(); }
 
-    void stop_and_show(c_string display_message)
+    template <typename Callback>
+    decltype(auto) operator()(StringView message, Callback callback)
     {
-        m_stop_cycle = current_tick();
-        if (m_should_show_on_stop)
-            show(display_message);
+        start();
+        Defer on_scope_end = [message, this] {
+            stop();
+            if (m_should_show_on_stop)
+                show(message);
+        };
+        return callback();
     }
 
-    void show(c_string message) const
+    void show(StringView message) const
     {
         auto cycles = m_stop_cycle - m_start_cycle;
         auto total = m_total_cycles + cycles;
@@ -63,8 +69,9 @@ struct Bench {
 
         auto buffer = StringBuffer();
         auto bytes = __builtin_snprintf(buffer.mutable_data(),
-            buffer.capacity(), "%12s: %4d%s cycles | total: %d%s\n",
-            message, (u32)cycles, cycles_postfix, (u32)total,
+            buffer.capacity(),
+            "%12.*s: %4d%s cycles | total: %d%s\n", message.size,
+            message.data, (u32)cycles, cycles_postfix, (u32)total,
             total_postfix);
         auto view = StringView { buffer.data(), (u32)bytes };
         m_out.write(view).ignore();

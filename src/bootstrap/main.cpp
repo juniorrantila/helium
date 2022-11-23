@@ -120,8 +120,9 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     };
 
     bench.start();
-    auto lex_result = He::lex(source_file.text);
-    bench.stop_and_show("lex");
+    auto lex_result = bench("lex"sv, [&] {
+        return He::lex(source_file.text);
+    });
     if (lex_result.is_error()) {
         TRY(lex_result.error().show(source_file));
         return 1;
@@ -132,9 +133,9 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     if (stop_after_lex)
         return 0;
 
-    bench.start();
-    auto parse_result = He::parse(tokens);
-    bench.stop_and_show("parse");
+    auto parse_result = bench("parse"sv, [&] {
+        return He::parse(tokens);
+    });
     if (parse_result.is_error()) {
         TRY(parse_result.error().show(source_file));
         return 1;
@@ -154,9 +155,9 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         namespace_.view(),
         expressions,
     };
-    bench.start();
-    auto typecheck_result = He::typecheck(context);
-    bench.stop_and_show("typecheck");
+    auto typecheck_result = bench("typecheck"sv, [&] {
+        return He::typecheck(context);
+    });
     if (typecheck_result.is_error()) {
         TRY(typecheck_result.error().show(context));
         return 1;
@@ -172,15 +173,15 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
             = TRY(Core::System::mkstemps(temporary_file, 2));
     }
 
-    bench.start();
-    auto code = TRY(He::codegen(context, typechecked_expressions));
-    bench.stop_and_show("codegen");
+    auto code = TRY(bench("codegen"sv, [&] {
+        return He::codegen(context, typechecked_expressions);
+    }));
     if (stop_after_codegen)
         return 0;
 
-    bench.start();
-    TRY(Core::System::write(output_file, code));
-    bench.stop_and_show("write");
+    TRY(bench("write"sv, [&] {
+        return Core::System::write(output_file, code);
+    }));
 
     if (output_file == STDOUT_FILENO)
         return 0;
@@ -188,9 +189,9 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     TRY(Core::System::close(output_file));
 
     if (!export_source) {
-        bench.start();
-        TRY(compile_source(output_path, temporary_file));
-        bench.stop_and_show("compile c");
+        TRY(bench("compile_source"sv, [&] {
+            return compile_source(output_path, temporary_file);
+        }));
         auto remove_result = Core::System::remove(temporary_file);
         if (remove_result.is_error()) {
             auto error_message = remove_result.error().message();
@@ -202,10 +203,9 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         return 0;
     }
 
-    bench.start();
-    auto header
-        = TRY(He::codegen_header(context, typechecked_expressions));
-    bench.stop_and_show("codegen header");
+    auto header = TRY(bench("codegen_header"sv, [&] {
+        return He::codegen_header(context, typechecked_expressions);
+    }));
 
     auto output_path_view = StringView::from_c_string(output_path);
     auto header_name_fallback = TRY(
@@ -216,13 +216,14 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
 
     auto header_file
         = TRY(Core::File::open_for_writing(header_output_path));
-    bench.start();
-    TRY(header_file.write(header));
-    bench.stop_and_show("write header");
 
-    bench.start();
-    TRY(move_file(output_path, temporary_file));
-    bench.stop_and_show("move source");
+    TRY(bench("write header"sv, [&] {
+        return header_file.write(header);
+    }));
+
+    TRY(bench("move_file"sv, [&] {
+        return move_file(output_path, temporary_file);
+    }));
 
     return 0;
 }
