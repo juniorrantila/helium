@@ -66,11 +66,11 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         }));
 
     auto should_display_benchmark
-        = Core::BenchEnableShowOnStopAndShow::No;
+        = Core::BenchEnableAutoDisplay::No;
     TRY(argument_parser.add_flag("--benchmark"sv, "-b"sv,
         "benchmark each compiler stage"sv, [&] {
             should_display_benchmark
-                = Core::BenchEnableShowOnStopAndShow::Yes;
+                = Core::BenchEnableAutoDisplay::Yes;
         }));
 
     auto stop_after_lex = false;

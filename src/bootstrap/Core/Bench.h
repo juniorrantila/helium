@@ -5,18 +5,18 @@
 
 namespace Core {
 
-enum class BenchEnableShowOnStopAndShow : bool {
+enum class BenchEnableAutoDisplay : bool {
     No = false,
     Yes = true,
 };
 
 struct Bench {
 
-    constexpr Bench(BenchEnableShowOnStopAndShow display,
+    constexpr Bench(BenchEnableAutoDisplay display,
         Core::File& output_file = Core::File::stderr())
         : m_out(output_file)
         , m_should_show_on_stop(
-              display == BenchEnableShowOnStopAndShow::Yes)
+              display == BenchEnableAutoDisplay::Yes)
     {
     }
 
