@@ -15,12 +15,11 @@ ErrorOr<void> fsync(int fd)
     return {};
 }
 
-#if __APPLE__
-
+#if __APPLE__ && __x86_64__
 struct [[gnu::packed]] St {
     i32 dev;
-    u32 inode;
-    u16 mode;
+    i32 inode;
+    i16 mode;
     u16 links;
     u32 uid;
     u32 gid;
@@ -36,7 +35,25 @@ struct [[gnu::packed]] St {
     i32 lspare;
     i64 qspare[2];
 };
-
+#elif __linux__ && __x86_64__
+struct St {
+    u64 dev;
+    u64 inode;
+    u64 links;
+    u32 mode;
+    u32 uid;
+    u32 gid;
+    u64 rdev;
+    i64 size;
+    i64 block_size;
+    i64 blocks;
+    struct timespec access_time;
+    struct timespec modify_time;
+    struct timespec change_time;
+    i64 __glibc_reserved[3];
+    u64 __glibc_reserved4;
+    u64 __glibc_reserved5;
+};
 #else
 #    warning "unimplemented"
 #endif
@@ -47,24 +64,22 @@ ErrorOr<Stat> fstat(int fd)
     auto rv = syscall(Syscall::fstat, fd, &st);
     if (rv < 0)
         return Error::from_syscall(rv);
-    return Stat({
-        .st_dev = st.dev,
-        .st_ino = st.inode,
-        .st_mode = st.mode,
-        .st_nlink = st.links,
-        .st_uid = st.uid,
-        .st_gid = st.gid,
-        .st_rdev = st.rdev,
-        .st_atimespec = st.access_time,
-        .st_mtimespec = st.modify_time,
-        .st_ctimespec = st.change_time,
-        .st_birthtime = {},
-        .st_size = st.size,
-        .st_blocks = st.blocks,
-        .st_blksize = st.block_size,
-        .st_flags = st.flags,
-        .st_gen = st.gen,
-    });
+    struct stat stat;
+    __builtin_memset(&stat, 0, sizeof(stat));
+    stat.st_dev = st.dev;
+    stat.st_ino = st.inode;
+    stat.st_mode = st.mode;
+    stat.st_nlink = st.links;
+    stat.st_uid = st.uid;
+    stat.st_gid = st.gid;
+    stat.st_rdev = st.rdev;
+    stat.st_size = st.size;
+    stat.st_blksize = st.block_size;
+    stat.st_blocks = st.blocks;
+    stat.st_atim = st.access_time;
+    stat.st_mtim = st.modify_time;
+    stat.st_ctim = st.change_time;
+    return Stat(stat);
 }
 
 ErrorOr<Stat> stat(c_string path)
@@ -73,24 +88,22 @@ ErrorOr<Stat> stat(c_string path)
     auto rv = syscall(Syscall::stat, path, &st);
     if (rv < 0)
         return Error::from_syscall(rv);
-    return Stat({
-        .st_dev = st.dev,
-        .st_ino = st.inode,
-        .st_mode = st.mode,
-        .st_nlink = st.links,
-        .st_uid = st.uid,
-        .st_gid = st.gid,
-        .st_rdev = st.rdev,
-        .st_atimespec = st.access_time,
-        .st_mtimespec = st.modify_time,
-        .st_ctimespec = st.change_time,
-        .st_birthtime = {},
-        .st_size = st.size,
-        .st_blocks = st.blocks,
-        .st_blksize = st.block_size,
-        .st_flags = st.flags,
-        .st_gen = st.gen,
-    });
+    struct stat stat;
+    __builtin_memset(&stat, 0, sizeof(stat));
+    stat.st_dev = st.dev;
+    stat.st_ino = st.inode;
+    stat.st_mode = st.mode;
+    stat.st_nlink = st.links;
+    stat.st_uid = st.uid;
+    stat.st_gid = st.gid;
+    stat.st_rdev = st.rdev;
+    stat.st_size = st.size;
+    stat.st_blksize = st.block_size;
+    stat.st_blocks = st.blocks;
+    stat.st_atim = st.access_time;
+    stat.st_mtim = st.modify_time;
+    stat.st_ctim = st.change_time;
+    return Stat(stat);
 }
 
 ErrorOr<usize> write(int fd, void const* data, usize size)
