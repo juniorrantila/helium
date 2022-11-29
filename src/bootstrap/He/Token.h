@@ -130,4 +130,7 @@ struct [[gnu::packed]] Token {
 };
 using Tokens = Vector<Token>;
 
+ErrorOr<void> dump_tokens(StringView source,
+    View<Token const> tokens);
+
 }

@@ -27,6 +27,22 @@ void Token::dump(StringView source) const
     out.writeln("]"sv).ignore();
 }
 
+ErrorOr<void> dump_tokens(StringView source,
+    View<Token const> tokens)
+{
+    for (u32 i = 0; i < tokens.size(); i++) {
+        auto chars = TRY(Core::File::stderr().write(i, " "sv));
+        for (; chars < 5; chars++)
+            TRY(Core::File::stderr().write(" "sv));
+        TRY(Core::File::stderr().flush());
+        auto token = tokens[i];
+        token.dump(source);
+    }
+    TRY(Core::File::stderr().flush());
+
+    return {};
+}
+
 StringView token_type_string(TokenType type)
 {
     switch (type) {

@@ -46,16 +46,16 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
             header_output_path = path;
         }));
 
-    auto dump_tokens = false;
+    auto should_dump_tokens = false;
     TRY(argument_parser.add_flag("--dump-tokens"sv, "-dt"sv,
         "dump tokens"sv, [&] {
-            dump_tokens = true;
+            should_dump_tokens = true;
         }));
 
-    auto dump_expressions = false;
+    auto should_dump_expressions = false;
     TRY(argument_parser.add_flag("--dump-expressions"sv, "-de"sv,
         "dump expressions"sv, [&] {
-            dump_expressions = true;
+            should_dump_expressions = true;
         }));
 
     auto export_source = false;
@@ -127,17 +127,8 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         return 1;
     }
     auto tokens = lex_result.release_value();
-    if (dump_tokens) {
-        for (u32 i = 0; i < tokens.size(); i++) {
-            auto chars = TRY(Core::File::stderr().write(i, " "sv));
-            for (; chars < 5; chars++)
-                TRY(Core::File::stderr().write(" "sv));
-            TRY(Core::File::stderr().flush());
-            auto token = tokens[i];
-            token.dump(source_file.text);
-        }
-        TRY(Core::File::stderr().flush());
-    }
+    if (should_dump_tokens)
+        TRY(dump_tokens(source_file.text, tokens.view()));
     if (stop_after_lex)
         return 0;
 
@@ -149,7 +140,7 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         return 1;
     }
     auto expressions = parse_result.release_value();
-    if (dump_expressions) {
+    if (should_dump_expressions) {
         expressions.dump(source_file.text);
         TRY(Core::File::stderr().flush());
     }
