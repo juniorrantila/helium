@@ -2,31 +2,52 @@
 #include "Base.h"
 #include "Concepts.h"
 #include "ErrorOr.h"
+#include "FormatCounter.h"
 #include "Forward.h"
+#include "Memory.h"
 #include "Traits.h"
 #include "Try.h"
 #include "Vector.h"
 
-void* he_malloc(usize);
-void he_free(void*);
-
 namespace Ty {
 
 struct StringBuffer {
-    static ErrorOr<StringBuffer> create(
+
+    static constexpr ErrorOr<StringBuffer> create_saturated(
+        u32 capacity)
+    {
+        return StringBuffer {
+            (char*)TRY(allocate_memory(capacity)),
+            capacity,
+        };
+    }
+
+    static constexpr ErrorOr<StringBuffer> create(
         u32 capacity = inline_capacity)
     {
-        if (capacity > inline_capacity) {
-            auto* data = (char*)he_malloc(capacity);
-            if (!data)
-                return Error::from_errno();
-            return StringBuffer {
-                data,
-                capacity,
-            };
-        }
-
+        if (capacity > inline_capacity)
+            return create_saturated(capacity);
         return StringBuffer();
+    }
+
+    template <typename... Args>
+    static constexpr ErrorOr<StringBuffer> create_saturated_fill(
+        Args... args) requires(sizeof...(args) > 1)
+    {
+        auto capacity = TRY(FormatCounter::count(args...)) + 1;
+        auto buffer = TRY(create_saturated(capacity));
+        TRY(buffer.write(args...));
+        return buffer;
+    }
+
+    template <typename... Args>
+    static constexpr ErrorOr<StringBuffer> create_fill(
+        Args... args) requires(sizeof...(args) > 1)
+    {
+        auto capacity = TRY(FormatCounter::count(args...)) + 1;
+        auto buffer = TRY(create(capacity));
+        TRY(buffer.write(args...));
+        return buffer;
     }
 
     constexpr StringBuffer()
@@ -48,11 +69,11 @@ struct StringBuffer {
         other.invalidate();
     }
 
-    ~StringBuffer()
+    constexpr ~StringBuffer()
     {
         if (is_valid()) {
             if (is_saturated())
-                he_free(m_data);
+                free_memory(m_data);
             invalidate();
         }
     }
