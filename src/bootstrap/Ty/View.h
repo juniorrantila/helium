@@ -34,7 +34,13 @@ private:
 template <typename T>
 requires is_const<T>
 struct View<T> {
-    constexpr View(T const* data, usize size)
+    constexpr View(View<RemoveConst<T>> other)
+        : m_data(other.data())
+        , m_size(other.size())
+    {
+    }
+
+    constexpr View(T* data, usize size)
         : m_data(data)
         , m_size(size)
     {
