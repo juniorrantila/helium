@@ -217,9 +217,8 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     bench.stop_and_show("codegen header");
 
     auto output_path_view = StringView::from_c_string(output_path);
-    auto header_name_fallback = TRY(StringBuffer::create(
-        output_path_view.size + ".h\0"sv.size));
-    TRY(header_name_fallback.write(output_path_view, ".h\0"sv));
+    auto header_name_fallback = TRY(
+        StringBuffer::create_fill(output_path_view, ".h\0"sv));
 
     header_output_path
         = header_output_path ?: header_name_fallback.view().data;
