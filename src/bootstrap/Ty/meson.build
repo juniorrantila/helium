@@ -1,5 +1,6 @@
 ty_lib = library('ty', [
     'Error.cpp',
+    'Memory.cpp',
     'StringView.cpp',
   ])
 
