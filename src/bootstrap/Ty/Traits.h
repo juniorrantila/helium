@@ -47,6 +47,19 @@ template <typename T>
 using RemoveReference = typename remove_reference<T>::Type;
 
 template <typename T>
+struct remove_const {
+    using Type = T;
+};
+
+template <typename T>
+struct remove_const<T const> {
+    using Type = T;
+};
+
+template <typename T>
+using RemoveConst = typename remove_const<T>::Type;
+
+template <typename T>
 inline constexpr bool IsLvalueReference = false;
 
 template <typename T>
