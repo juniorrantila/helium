@@ -2,14 +2,11 @@
 #include "Base.h"
 #include "ErrorOr.h"
 #include "Id.h"
+#include "Memory.h"
 #include "Move.h"
 #include "ReverseIterator.h"
 #include "Try.h"
 #include "View.h"
-
-void* he_malloc(usize);
-void* he_realloc(void*, usize);
-void he_free(void*);
 
 #ifndef ALWAYS_INLINE
 #    define ALWAYS_INLINE [[gnu::always_inline]]
@@ -27,10 +24,10 @@ struct Vector {
     {
         if (starting_capacity <= inline_capacity)
             return Vector();
-        auto* data = (T*)he_malloc(sizeof(T) * starting_capacity);
-        if (!data)
-            return Error::from_errno();
-        return Vector { data, starting_capacity };
+        return Vector {
+            (T*)TRY(allocate_memory(sizeof(T) * starting_capacity)),
+            starting_capacity,
+        };
     }
 
     constexpr Vector()
@@ -58,7 +55,7 @@ struct Vector {
         if (is_valid()) {
             destroy_elements();
             if (is_hydrated())
-                he_free(m_data);
+                free_memory(m_data);
             invalidate();
         }
     }
@@ -202,9 +199,7 @@ private:
 
     ErrorOr<void> expand_hydrate(u32 capacity)
     {
-        auto* data = (T*)he_malloc(capacity * sizeof(T));
-        if (!data)
-            return Error::from_errno();
+        auto* data = (T*)TRY(allocate_memory(capacity * sizeof(T)));
         __builtin_memcpy(data, inline_buffer(), storage_size());
         m_capacity = capacity;
         m_data = data;
@@ -223,11 +218,9 @@ private:
             TRY(expand_hydrate(capacity));
             return {};
         }
-        auto* data = (T*)he_realloc(m_data, capacity * sizeof(T));
-        if (!data)
-            return Error::from_errno();
+        m_data = (T*)TRY(
+            reallocate_memory(m_data, capacity * sizeof(T)));
         m_capacity = capacity;
-        m_data = data;
 
         return {};
     }
