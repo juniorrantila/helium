@@ -34,11 +34,11 @@ struct [[gnu::packed]] Error {
     constexpr Error(InvalidToken) { }
     constexpr bool operator==(InvalidToken) const
     {
-        return !code.is_valid();
+        return !m_code.is_valid();
     }
 
-    ErrorCode code {};
-    u8 thread_slot { 0 };
+    ErrorCode m_code {};
+    u8 m_thread_slot { 0 };
 
     constexpr Error() = default;
 
@@ -80,27 +80,27 @@ struct [[gnu::packed]] Error {
 
     constexpr StringView message() const
     {
-        return s_error_codes[thread_slot][code].message;
+        return s_error_codes[m_thread_slot][m_code].message;
     }
 
     constexpr StringView function() const
     {
-        return s_error_codes[thread_slot][code].function;
+        return s_error_codes[m_thread_slot][m_code].function;
     }
 
     constexpr StringView file() const
     {
-        return s_error_codes[thread_slot][code].file;
+        return s_error_codes[m_thread_slot][m_code].file;
     }
 
     constexpr u32 line_in_file() const
     {
-        return s_error_codes[thread_slot][code].line;
+        return s_error_codes[m_thread_slot][m_code].line;
     }
 
     constexpr bool is_empty() const
     {
-        return code == ErrorCode::invalid();
+        return m_code == ErrorCode::invalid();
     }
 
 private:
@@ -116,9 +116,9 @@ private:
             .function = function_view,
             .line = line_in_file,
         };
-        thread_slot = Hardware::current_thread();
-        code
-            = MUST(s_error_codes[thread_slot].find_or_append(data));
+        m_thread_slot = Hardware::current_thread();
+        m_code = MUST(
+            s_error_codes[m_thread_slot].find_or_append(data));
     }
 
     static ErrorCodes s_error_codes;
