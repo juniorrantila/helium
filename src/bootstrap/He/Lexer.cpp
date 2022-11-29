@@ -145,6 +145,7 @@ u32 relex_size(StringView source, Token token)
     case TokenType::Pub: return "pub"sv.size;
     case TokenType::RefMut: return "&mut"sv.size;
     case TokenType::Return: return "return"sv.size;
+    case TokenType::Throw: return "throw"sv.size;
     case TokenType::Var: return "var"sv.size;
     case TokenType::While: return "while"sv.size;
 
@@ -326,6 +327,10 @@ LexItemResult lex_single_item(StringView source, u32 start)
         }
         if (value == "return"sv) {
             token.type = TokenType::Return;
+            return token;
+        }
+        if (value == "throw"sv) {
+            token.type = TokenType::Throw;
             return token;
         }
         if (value == "let"sv) {

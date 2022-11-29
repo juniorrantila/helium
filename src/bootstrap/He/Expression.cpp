@@ -361,6 +361,15 @@ void Return::dump(ParsedExpressions const& expressions,
     out.write(")"sv).ignore();
 }
 
+void Throw::dump(ParsedExpressions const& expressions,
+    StringView source, u32 indent) const
+{
+    auto& out = Core::File::stderr();
+    out.write("Throw("sv).ignore();
+    expressions[value].dump(expressions, source, indent);
+    out.write(")"sv).ignore();
+}
+
 void Import::dump(ParsedExpressions const&, StringView source,
     u32) const
 {

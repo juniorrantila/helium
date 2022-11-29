@@ -35,6 +35,7 @@ struct ParsedExpressions;
                                                                 \
     X(If, if_statement)                                         \
     X(Return, return_statement)                                 \
+    X(Throw, throw_statement)                                   \
     X(While, while_statement)                                   \
                                                                 \
     X(Block, block)                                             \
@@ -298,6 +299,13 @@ struct While {
 };
 
 struct Return {
+    Id<Expression> value;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct Throw {
     Id<Expression> value;
 
     void dump(ParsedExpressions const&, StringView source,

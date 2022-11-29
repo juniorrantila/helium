@@ -906,6 +906,12 @@ ErrorOr<void> codegen_return_statement(StringBuffer& out,
     return {};
 }
 
+ErrorOr<void> codegen_throw_statement(StringBuffer&, Context const&,
+    Throw const&)
+{
+    return Error::from_string_literal("unimplemented");
+}
+
 ErrorOr<void> codegen_import_he(StringBuffer& out,
     Context const& context, Import const& import_he)
 {

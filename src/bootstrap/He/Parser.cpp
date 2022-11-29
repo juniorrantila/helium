@@ -881,6 +881,44 @@ ParseSingleItemResult parse_return_statement(ParseErrors& errors,
     };
 }
 
+ParseSingleItemResult parse_throw_statement(ParseErrors& errors,
+    ParsedExpressions& expressions, Tokens const& tokens, u32 start)
+{
+    auto name_index = start + 1;
+    auto name = tokens[name_index];
+    if (name.is(TokenType::Identifier)) {
+        auto open_curly_index = name_index + 1;
+        auto open_curly = tokens[open_curly_index];
+        if (open_curly.is(TokenType::OpenCurly)) {
+            auto value = TRY(parse_struct_initializer(errors,
+                expressions, tokens, name_index));
+            auto value_id = TRY(expressions.append(value));
+            auto return_id = TRY(expressions.append(Return {
+                value_id,
+            }));
+            return Expression {
+                return_id,
+                name_index,
+                value.end_token_index(),
+            };
+        }
+    }
+
+    auto value
+        = TRY(parse_rvalue(errors, expressions, tokens, start + 1));
+    auto value_id = TRY(expressions.append(value));
+    auto end = value.end_token_index();
+
+    auto return_id = TRY(expressions.append(Throw {
+        value_id,
+    }));
+    return Expression {
+        return_id,
+        start,
+        end,
+    };
+}
+
 ParseSingleItemResult parse_inline_c(ParseErrors& errors,
     ParsedExpressions& expressions, Tokens const& tokens, u32 start)
 {
@@ -946,6 +984,26 @@ ParseSingleItemResult parse_block(ParseErrors& errors,
 
         if (tokens[end].is(TokenType::Return)) {
             auto return_expression = TRY(parse_return_statement(
+                errors, expressions, tokens, end));
+            end = return_expression.end_token_index();
+
+            if (tokens[end].is_not(TokenType::Semicolon)) {
+                TRY(errors.append_or_short({
+                    "expected ';'",
+                    "did you forget a semicolon?",
+                    tokens[end],
+                }));
+                return Expression::garbage(start, end);
+            }
+            end++; // NOTE: Swallow semicolon.
+
+            TRY(expressions[block.expressions].append(
+                return_expression));
+            continue;
+        }
+
+        if (tokens[end].is(TokenType::Throw)) {
+            auto return_expression = TRY(parse_throw_statement(
                 errors, expressions, tokens, end));
             end = return_expression.end_token_index();
 

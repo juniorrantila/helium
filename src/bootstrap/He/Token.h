@@ -49,13 +49,14 @@ namespace He {
     X(Fn, fn)                                      \
     X(If, if_token)                                \
     X(InlineC, inline_c)                           \
-    X(InvalidInlineC, invalid_inline_c)            \
     X(InlineCBlock, inline_c_block)                \
+    X(InvalidInlineC, invalid_inline_c)            \
     X(InvalidInlineCBlock, invalid_inline_c_block) \
     X(Let, let_token)                              \
     X(Pub, pub)                                    \
     X(RefMut, ref_mut)                             \
     X(Return, return_token)                        \
+    X(Throw, throw_token)                          \
     X(Var, var_token)                              \
     X(While, while_token)                          \
                                                    \
