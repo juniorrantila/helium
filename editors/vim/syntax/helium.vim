@@ -13,6 +13,11 @@ let s:helium_syntax_keywords = {
     \ , 'heliumRepeat' :["while"
     \ ,               ]
     \ , 'heliumExecution' :["return"
+    \ ,                     "catch"
+    \ ,                     "defer"
+    \ ,                     "errdefer"
+    \ ,                     "throw"
+    \ ,                     "try"
     \ ,                  ]
     \ , 'heliumBoolean' :["true"
     \ ,                 "false"
