@@ -145,6 +145,13 @@ struct StringBuffer {
         }
     }
 
+    constexpr c_string leak()
+    {
+        c_string ptr = data();
+        invalidate();
+        return ptr;
+    }
+
 private:
     static constexpr auto max_chars_in_u64 = 20;
     static constexpr auto inline_capacity = 1024;
