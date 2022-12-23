@@ -148,7 +148,35 @@ ErrorOr<void> codegen_top_level_variables(StringBuffer& out,
 ErrorOr<void> codegen_prelude(StringBuffer& out)
 {
     auto prelude = R"php(<?php
-main();    // Spaces for weird codegen bug.
+declare(strict_types=1);
+main();
+function ensure_var($value) {
+    return $value;
+}
+
+function ensure_let($value) {
+    return $value;
+}
+
+function ensure_function(callable $value): callable {
+    return $value;
+}
+
+function ensure_string(string $value): string {
+    return $value;
+}
+
+function ensure_int(int $value): int {
+    return $value;
+}
+
+function ensure_float(float $value): float {
+    return $value;
+}
+
+function ensure_array(array $value): array {
+    return $value;
+}
 )php"sv;
     TRY(out.write(prelude));
 
@@ -335,14 +363,12 @@ ErrorOr<void> codegen_public_variable_declaration(StringBuffer& out,
 {
     auto source = context.source;
     auto type = variable.type.text(source);
-    if (type == "var"sv || type == "let"sv)
-        type = ""sv;
-    TRY(out.write(type, " $"sv, variable.name.text(source),
-        " = "sv));
+    TRY(out.write("$"sv, variable.name.text(source), " = ensure_"sv,
+        type, "("sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
     TRY(codegen_expression(out, context, value));
-    TRY(out.writeln(";"sv));
+    TRY(out.writeln(");"sv));
 
     return {};
 }
@@ -352,12 +378,13 @@ ErrorOr<void> codegen_private_variable_declaration(
     PrivateVariableDeclaration const& variable)
 {
     auto source = context.source;
-    TRY(out.write(variable.type.text(source), " $"sv,
-        variable.name.text(source), " = "sv));
+    auto type = variable.type.text(source);
+    TRY(out.write("$"sv, variable.name.text(source), " = ensure_"sv,
+        type, "("sv));
     auto const& expressions = context.expressions;
     auto const& value = expressions[variable.value];
     TRY(codegen_expression(out, context, value));
-    TRY(out.writeln(";"sv));
+    TRY(out.writeln(");"sv));
 
     return {};
 }
@@ -416,6 +443,9 @@ ErrorOr<void> codegen_struct_declaration(StringBuffer& out,
             "= $value; return $this; }"sv));
     }
     TRY(out.writeln("};"sv));
+    TRY(out.writeln("function ensure_"sv, struct_name, "("sv,
+        struct_name, " $value):"sv, struct_name,
+        "{ return $value; }"sv));
 
     return {};
 }
@@ -462,10 +492,8 @@ ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
 {
     auto source = context.source;
     auto const& expressions = context.expressions;
-    TRY(out.writeln("(fn() => ("sv));
-    TRY(out.writeln("fn() => new "sv, initializer.type.text(source),
-        "()"sv));
-    TRY(out.writeln(")()"sv));
+    TRY(out.writeln("(new "sv, initializer.type.text(source),
+        "())"sv));
     for (auto member : expressions[initializer.initializers]) {
         auto name = member.name.text(source);
         TRY(out.writeln("->set_"sv, name, "("sv));
@@ -473,7 +501,6 @@ ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
         TRY(codegen_rvalue(out, context, irvalue));
         TRY(out.writeln(")"sv));
     }
-    TRY(out.writeln(")();"sv));
 
     return {};
 }

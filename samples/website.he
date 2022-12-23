@@ -7,10 +7,10 @@ pub fn main() -> void {
 
 pub fn main_content() -> string {
     var html = HTML {
-        .tag = "main",
-        .css_class = "container",
+        .tag = 'main',
+        .css_class = 'container',
         .body = array(
-            h1("helium-php"),
+            h1('helium-php'),
             explaination()
         ),
     };
@@ -19,13 +19,13 @@ pub fn main_content() -> string {
 
 pub fn explaination() -> string {
     var html = HTML {
-        .tag = "section",
+        .tag = 'section',
         .body = array(hgroup(array(
-            h2("Sometimes you just have to write php"),
-            h3("
+            h2('Sometimes you just have to write php'),
+            h3('
                 but with enough time you may realize
-                you can skip the <i>'write php'</i> part.
-            ")
+                you can skip the <i>"write php"</i> part.
+            ')
         ))),
     };
     return render(html);
@@ -33,7 +33,7 @@ pub fn explaination() -> string {
 
 pub fn body(content: string) -> string {
     var html = HTML {
-        .tag = "body",
+        .tag = 'body',
         .body = array(content),
     };
     return render(html);
@@ -41,7 +41,7 @@ pub fn body(content: string) -> string {
 
 pub fn span(body: string) -> string {
     var html = HTML {
-        .tag = "span",
+        .tag = 'span',
         .body = array(body),
     };
     return render(html);
@@ -49,7 +49,7 @@ pub fn span(body: string) -> string {
 
 pub fn hgroup(body: array) -> string {
     var html = HTML {
-        .tag = "hgroup",
+        .tag = 'hgroup',
         .body = body,
     };
     return render(html);
@@ -57,7 +57,7 @@ pub fn hgroup(body: array) -> string {
 
 pub fn p(body: string) -> string {
     var html = HTML {
-        .tag = "p",
+        .tag = 'p',
         .body = array(body),
     };
     return render(html);
@@ -65,7 +65,7 @@ pub fn p(body: string) -> string {
 
 pub fn h1(body: string) -> string {
     var html = HTML {
-        .tag = "h1",
+        .tag = 'h1',
         .body = array(body),
     };
     return render(html);
@@ -73,7 +73,7 @@ pub fn h1(body: string) -> string {
 
 pub fn h2(body: string) -> string {
     var html = HTML {
-        .tag = "h2",
+        .tag = 'h2',
         .body = array(body),
     };
     return render(html);
@@ -81,7 +81,7 @@ pub fn h2(body: string) -> string {
 
 pub fn h3(body: string) -> string {
     var html = HTML {
-        .tag = "h3",
+        .tag = 'h3',
         .body = array(body),
     };
     return render(html);
@@ -93,14 +93,13 @@ let HTML = struct {
     css_class: string,
 };
 pub fn render(html: HTML) -> string {
-    var body = implode("", html.body);
+    var body = implode('', html.body);
     var tag = html.tag;
-    var classes = "";
+    var classes = '';
     if isset(html.css_class) {
         var css_class = html.css_class;
         classes = "class='{$css_class}'";
     }
-    var class_attribute = "";
     return "<{$tag} {$classes}>{$body}</{$tag}>";
 }
 
@@ -114,12 +113,12 @@ pub fn title(value: string) -> string {
 
 pub fn head() -> HTML {
     return HTML {
-        .tag = "head",
+        .tag = 'head',
         .body = array(
-            title("helium-php"),
-            "<meta charset='UTF-8' />",
-            "<meta name='viewport' content='width=device-width,initial-scale=1' />",
-            stylesheet("https://unpkg.com/@picocss/pico@latest/css/pico.min.css"),
+            title('helium-php'),
+            '<meta charset="UTF-8" />',
+            '<meta name="viewport" content="width=device-width,initial-scale=1" />',
+            stylesheet('https://unpkg.com/@picocss/pico@latest/css/pico.min.css'),
         ),
     };
 }
