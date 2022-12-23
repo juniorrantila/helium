@@ -109,7 +109,7 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         return 1;
     }
     if (export_source && !output_path_set)
-        output_path = "a.c";
+        output_path = "a.php";
 
     auto bench = Core::Bench(should_display_benchmark);
 
@@ -165,11 +165,11 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
     if (stop_after_typecheck)
         return 0;
 
-    char temporary_file[] = "/tmp/XXXXXX.c";
+    char temporary_file[] = "/tmp/XXXXXX.php";
     int output_file = STDOUT_FILENO;
     if (export_source || Core::System::isatty(STDOUT_FILENO)) {
-        output_file
-            = TRY(Core::System::mkstemps(temporary_file, 2));
+        output_file = TRY(
+            Core::System::mkstemps(temporary_file, ".php"sv.size));
     }
 
     bench.start();
@@ -202,23 +202,9 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         return 0;
     }
 
-    bench.start();
-    auto header
-        = TRY(He::codegen_header(context, typechecked_expressions));
-    bench.stop_and_show("codegen header");
-
     auto output_path_view = StringView::from_c_string(output_path);
     auto header_name_fallback = TRY(
         StringBuffer::create_fill(output_path_view, ".h\0"sv));
-
-    header_output_path
-        = header_output_path ?: header_name_fallback.view().data;
-
-    auto header_file
-        = TRY(Core::File::open_for_writing(header_output_path));
-    bench.start();
-    TRY(header_file.write(header));
-    bench.stop_and_show("write header");
 
     bench.start();
     TRY(move_file(output_path, temporary_file));
@@ -230,30 +216,23 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
 static ErrorOr<void> move_file(c_string to, c_string from)
 {
     auto from_file = TRY(Core::MappedFile::open(from));
-    auto to_fd = TRY(Core::System::open(to, O_WRONLY, 0666));
+    auto to_fd
+        = TRY(Core::System::open(to, O_WRONLY | O_TRUNC, 0666));
     TRY(Core::System::write(to_fd, from_file));
     TRY(Core::System::close(to_fd));
     TRY(Core::System::unlink(from));
     return {};
 }
 
-[[nodiscard]] static ErrorOr<void> compile_source(
-    c_string destination_path, c_string source_path)
+[[nodiscard]] static ErrorOr<void> compile_source(c_string,
+    c_string source_path)
 {
-    auto compiler = Core::System::getenv("CC"sv);
-    if (!compiler) {
-        if (!TRY(Core::System::has_program("cc"sv))) {
-            return Error::from_string_literal(
-                "Could not find a C compiler. Try setting the 'CC' "
-                "environment variable");
-        }
-        compiler = "cc";
+    if (!TRY(Core::System::has_program("php"sv))) {
+        return Error::from_string_literal("Could not find a php.");
     }
     c_string argv[] = {
-        compiler.release_value(),
-        "-Wno-duplicate-decl-specifier",
-        "-o",
-        destination_path,
+        "php",
+        "-l",
         source_path,
         nullptr,
     };
@@ -261,8 +240,7 @@ static ErrorOr<void> move_file(c_string to, c_string from)
     auto pid = TRY(Core::System::posix_spawnp(argv[0], argv));
     auto status = TRY(Core::System::waitpid(pid));
     if (!status.did_exit() || status.exit_status() != 0)
-        return Error::from_string_literal(
-            "could not compile source");
+        return Error::from_string_literal("could not check source");
 
     return {};
 }

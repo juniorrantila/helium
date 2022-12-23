@@ -24,4 +24,4 @@ if not meson.is_subproject()
 endif
 
 subdir('src')
-subdir('samples')
+# subdir('samples')
