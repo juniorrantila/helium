@@ -1,4 +1,4 @@
-" Vim syntax file
+" Vim syntax file for helium
 
 if exists("b:current_syntax")
   finish
