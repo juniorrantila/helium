@@ -1,0 +1,134 @@
+
+pub fn main() -> void {
+    var start = boilerplate();
+    var content = body(main_content());
+    echo("{$start}{$content}");
+}
+
+pub fn main_content() -> string {
+    var html = HTML {
+        .tag = "main",
+        .css_class = "container",
+        .body = array(
+            h1("helium-php"),
+            explaination()
+        ),
+    };
+    return render(html);
+}
+
+pub fn explaination() -> string {
+    var html = HTML {
+        .tag = "section",
+        .body = array(hgroup(array(
+            h2("Sometimes you just have to write php"),
+            h3("
+                but with enough time you may realize
+                you can skip the <i>'write php'</i> part.
+            ")
+        ))),
+    };
+    return render(html);
+}
+
+pub fn body(content: string) -> string {
+    var html = HTML {
+        .tag = "body",
+        .body = array(content),
+    };
+    return render(html);
+}
+
+pub fn span(body: string) -> string {
+    var html = HTML {
+        .tag = "span",
+        .body = array(body),
+    };
+    return render(html);
+}
+
+pub fn hgroup(body: array) -> string {
+    var html = HTML {
+        .tag = "hgroup",
+        .body = body,
+    };
+    return render(html);
+}
+
+pub fn p(body: string) -> string {
+    var html = HTML {
+        .tag = "p",
+        .body = array(body),
+    };
+    return render(html);
+}
+
+pub fn h1(body: string) -> string {
+    var html = HTML {
+        .tag = "h1",
+        .body = array(body),
+    };
+    return render(html);
+}
+
+pub fn h2(body: string) -> string {
+    var html = HTML {
+        .tag = "h2",
+        .body = array(body),
+    };
+    return render(html);
+}
+
+pub fn h3(body: string) -> string {
+    var html = HTML {
+        .tag = "h3",
+        .body = array(body),
+    };
+    return render(html);
+}
+
+let HTML = struct {
+    tag: string,
+    body: array,
+    css_class: string,
+};
+pub fn render(html: HTML) -> string {
+    var body = implode("", html.body);
+    var tag = html.tag;
+    var classes = "";
+    if isset(html.css_class) {
+        var css_class = html.css_class;
+        classes = "class='{$css_class}'";
+    }
+    var class_attribute = "";
+    return "<{$tag} {$classes}>{$body}</{$tag}>";
+}
+
+pub fn stylesheet(link: string) -> string {
+    return "<link rel='stylesheet' href='{$link}'>";
+}
+
+pub fn title(value: string) -> string {
+    return "<title>{$value}</title>";
+}
+
+pub fn head() -> HTML {
+    return HTML {
+        .tag = "head",
+        .body = array(
+            title("helium-php"),
+            "<meta charset='UTF-8' />",
+            "<meta name='viewport' content='width=device-width,initial-scale=1' />",
+            stylesheet("https://unpkg.com/@picocss/pico@latest/css/pico.min.css"),
+        ),
+    };
+}
+
+pub fn boilerplate() -> string {
+    var head_stuff = render(head());
+    return "
+        <!DOCTYPE html>
+        <html lang='en'>
+        {$head_stuff}
+    ";
+}
