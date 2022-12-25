@@ -6,19 +6,18 @@ pub fn main() -> void {
 }
 
 pub fn main_content() -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "main",
         .css_class = "container",
         .body = array(
             h1("helium-php"),
             explaination()
         ),
-    };
-    return render(html);
+    });
 }
 
 pub fn explaination() -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "section",
         .body = array(hgroup(array(
             h2("Sometimes you just have to write php"),
@@ -27,64 +26,56 @@ pub fn explaination() -> string {
                 you can skip the <i>'write php'</i> part.
             ")
         ))),
-    };
-    return render(html);
+    });
 }
 
 pub fn body(content: string) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "body",
         .body = array(content),
-    };
-    return render(html);
+    });
 }
 
 pub fn span(body: string) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "span",
         .body = array(body),
-    };
-    return render(html);
+    });
 }
 
 pub fn hgroup(body: array) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "hgroup",
         .body = body,
-    };
-    return render(html);
+    });
 }
 
 pub fn p(body: string) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "p",
         .body = array(body),
-    };
-    return render(html);
+    });
 }
 
 pub fn h1(body: string) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "h1",
         .body = array(body),
-    };
-    return render(html);
+    });
 }
 
 pub fn h2(body: string) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "h2",
         .body = array(body),
-    };
-    return render(html);
+    });
 }
 
 pub fn h3(body: string) -> string {
-    var html = HTML {
+    return render(HTML {
         .tag = "h3",
         .body = array(body),
-    };
-    return render(html);
+    });
 }
 
 let HTML = struct {

@@ -1667,6 +1667,14 @@ ParseSingleItemResult parse_prvalue(ParseErrors& errors,
                     array_access));
                 continue;
             }
+            if (tokens[end + 1].is(TokenType::OpenCurly)) {
+                auto initializer = TRY(parse_struct_initializer(
+                    errors, expressions, tokens, start));
+                end = initializer.end_token_index();
+                TRY(expressions[rvalue.expressions].append(
+                    initializer));
+                continue;
+            }
 
             auto lvalue = TRY(
                 parse_lvalue(errors, expressions, tokens, end));
