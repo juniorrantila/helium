@@ -462,10 +462,8 @@ ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
 {
     auto source = context.source;
     auto const& expressions = context.expressions;
-    TRY(out.writeln("(fn() => ("sv));
-    TRY(out.writeln("fn() => new "sv, initializer.type.text(source),
-        "()"sv));
-    TRY(out.writeln(")()"sv));
+    TRY(out.writeln("(new "sv, initializer.type.text(source),
+        "())"sv));
     for (auto member : expressions[initializer.initializers]) {
         auto name = member.name.text(source);
         TRY(out.writeln("->set_"sv, name, "("sv));
@@ -473,7 +471,27 @@ ErrorOr<void> codegen_struct_initializer(StringBuffer& out,
         TRY(codegen_rvalue(out, context, irvalue));
         TRY(out.writeln(")"sv));
     }
-    TRY(out.writeln(")();"sv));
+
+    return {};
+}
+
+ErrorOr<void> codegen_array_initializer(StringBuffer& out,
+    Context const& context, ArrayInitializer const& initializer)
+{
+    auto const& expressions = context.expressions;
+    auto const& inits = expressions[initializer.initializers];
+
+    TRY(out.write("["sv));
+
+    for (u32 i = 0; i < inits.size() - 1; i++) {
+        auto expression = expressions[inits[i].value];
+        TRY(codegen_rvalue(out, context, expression));
+        TRY(out.writeln(","sv));
+    }
+    TRY(codegen_rvalue(out, context,
+        expressions[inits.last().value]));
+
+    TRY(out.write("]"sv));
 
     return {};
 }

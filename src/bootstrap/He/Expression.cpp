@@ -146,11 +146,23 @@ void VariantDeclaration::dump(ParsedExpressions const& expressions,
     out.write("\b\b ])"sv).ignore();
 }
 
+void ArrayInitializer::dump(ParsedExpressions const& expressions,
+    StringView source, u32 indent) const
+{
+    auto& out = Core::File::stderr();
+    out.write("ArrayInitializer('FIXME: type' ["sv).ignore();
+    for (auto member : expressions[initializers]) {
+        expressions[member.value].dump(expressions, source, indent);
+        out.write(", "sv).ignore();
+    }
+    out.write("\b\b ])"sv).ignore();
+}
+
 void StructInitializer::dump(ParsedExpressions const& expressions,
     StringView source, u32 indent) const
 {
     auto& out = Core::File::stderr();
-    out.write("StructInitializer('"sv, type.text(source), "' ["sv)
+    out.write("StructInitializer('"sv, type.text(source), "' {"sv)
         .ignore();
     for (auto member : expressions[initializers]) {
         auto name = member.name;

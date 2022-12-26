@@ -22,6 +22,7 @@ struct ParsedExpressions;
                                                                 \
     X(StructDeclaration, struct_declaration)                    \
     X(StructInitializer, struct_initializer)                    \
+    X(ArrayInitializer, array_initializer)                      \
                                                                 \
     X(MemberAccess, member_access)                              \
     X(ArrayAccess, array_access)                                \
@@ -160,7 +161,16 @@ struct Initializer {
 };
 using Initializers = Vector<Initializer>;
 
+using RValues = Vector<RValue>;
 struct StructInitializer {
+    Token type {};
+    Id<Initializers> initializers;
+
+    void dump(ParsedExpressions const&, StringView source,
+        u32 indent) const;
+};
+
+struct ArrayInitializer {
     Token type {};
     Id<Initializers> initializers;
 
@@ -491,6 +501,12 @@ public:
         return MemberAccess { TRY(append(TRY(Tokens::create(8)))) };
     }
 
+    using RValues = Vector<RValue>;
+    ErrorOr<Id<RValues>> create_rvalues()
+    {
+        return TRY(rvaluess.append(TRY(RValues::create(8))));
+    }
+
     static constexpr Id<Uninitialized> uninitialized_expression()
     {
         return Id<Uninitialized> { 0 };
@@ -502,6 +518,7 @@ public:
     void dump(StringView source) const;
 
     Vector<InlineC> top_level_inline_cs;
+    Vector<RValues> rvaluess;
 
     Vector<PrivateVariableDeclaration> top_level_private_variables;
     Vector<PublicVariableDeclaration> top_level_public_variables;

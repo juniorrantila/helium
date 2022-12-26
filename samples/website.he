@@ -1,4 +1,3 @@
-
 pub fn main() -> void {
     var start = boilerplate();
     var content = body(main_content());
@@ -9,37 +8,37 @@ pub fn main_content() -> string {
     return render(HTML {
         .tag = "main",
         .css_class = "container",
-        .body = array(
+        .body = [
             h1("helium-php"),
-            explaination()
-        ),
+            explaination(),
+        ],
     });
 }
 
 pub fn explaination() -> string {
     return render(HTML {
         .tag = "section",
-        .body = array(hgroup(array(
+        .body = [hgroup([
             h2("Sometimes you just have to write php"),
             h3("
                 but with enough time you may realize
                 you can skip the <i>'write php'</i> part.
-            ")
-        ))),
+            "),
+        ])],
     });
 }
 
 pub fn body(content: string) -> string {
     return render(HTML {
         .tag = "body",
-        .body = array(content),
+        .body = [content],
     });
 }
 
 pub fn span(body: string) -> string {
     return render(HTML {
         .tag = "span",
-        .body = array(body),
+        .body = [body],
     });
 }
 
@@ -53,28 +52,28 @@ pub fn hgroup(body: array) -> string {
 pub fn p(body: string) -> string {
     return render(HTML {
         .tag = "p",
-        .body = array(body),
+        .body = [body],
     });
 }
 
 pub fn h1(body: string) -> string {
     return render(HTML {
         .tag = "h1",
-        .body = array(body),
+        .body = [body],
     });
 }
 
 pub fn h2(body: string) -> string {
     return render(HTML {
         .tag = "h2",
-        .body = array(body),
+        .body = [body],
     });
 }
 
 pub fn h3(body: string) -> string {
     return render(HTML {
         .tag = "h3",
-        .body = array(body),
+        .body = [body],
     });
 }
 
@@ -91,7 +90,6 @@ pub fn render(html: HTML) -> string {
         var css_class = html.css_class;
         classes = "class='{$css_class}'";
     }
-    var class_attribute = "";
     return "<{$tag} {$classes}>{$body}</{$tag}>";
 }
 
@@ -106,12 +104,12 @@ pub fn title(value: string) -> string {
 pub fn head() -> HTML {
     return HTML {
         .tag = "head",
-        .body = array(
+        .body = [
             title("helium-php"),
             "<meta charset='UTF-8' />",
             "<meta name='viewport' content='width=device-width,initial-scale=1' />",
             stylesheet("https://unpkg.com/@picocss/pico@latest/css/pico.min.css"),
-        ),
+        ],
     };
 }
 
