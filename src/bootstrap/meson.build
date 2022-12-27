@@ -1,4 +1,5 @@
 subdir('Ty')
+subdir('Arch')
 subdir('Core')
 subdir('Mem')
 subdir('CLI')

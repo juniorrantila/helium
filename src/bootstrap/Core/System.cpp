@@ -1,7 +1,7 @@
 #include "System.h"
-#include "Syscall.h"
 #include "Ty/Defer.h"
 #include "Ty/StringBuffer.h"
+#include <Arch/Syscall.h>
 #include <stdlib.h> // mkstemps()
 #include <unistd.h> // sysconf()
 
@@ -9,13 +9,13 @@ namespace Core::System {
 
 ErrorOr<void> fsync(int fd)
 {
-    auto rv = syscall(Syscall::fsync, fd);
+    auto rv = Arch::syscall(Arch::Syscall::fsync, fd);
     if (rv < 0)
         return Error::from_syscall(rv);
     return {};
 }
 
-#if __APPLE__ && __x86_64__
+#if __APPLE__ // && __x86_64__ // Assume same on other archs
 struct [[gnu::packed]] St {
     i32 dev;
     i32 inode;
@@ -61,7 +61,7 @@ struct St {
 ErrorOr<Stat> fstat(int fd)
 {
     St st {};
-    auto rv = syscall(Syscall::fstat, fd, &st);
+    auto rv = syscall(Arch::Syscall::fstat, fd, &st);
     if (rv < 0)
         return Error::from_syscall(rv);
     struct stat stat;
@@ -93,7 +93,7 @@ ErrorOr<Stat> fstat(int fd)
 ErrorOr<Stat> stat(c_string path)
 {
     St st {};
-    auto rv = syscall(Syscall::stat, path, &st);
+    auto rv = syscall(Arch::Syscall::stat, path, &st);
     if (rv < 0)
         return Error::from_syscall(rv);
     struct stat stat;
@@ -124,7 +124,7 @@ ErrorOr<Stat> stat(c_string path)
 
 ErrorOr<usize> write(int fd, void const* data, usize size)
 {
-    auto rv = syscall(Syscall::write, fd, data, size);
+    auto rv = syscall(Arch::Syscall::write, fd, data, size);
     if (rv < 0)
         return Error::from_syscall(rv);
     return rv;
@@ -147,7 +147,7 @@ ErrorOr<usize> write(int fd, StringBuffer const& string)
 
 ErrorOr<usize> writev(int fd, IOVec const* iovec, int count)
 {
-    auto rv = syscall(Syscall::writev, fd, iovec, count);
+    auto rv = syscall(Arch::Syscall::writev, fd, iovec, count);
     if (rv < 0)
         return Error::from_syscall(rv);
     return rv;
@@ -156,8 +156,8 @@ ErrorOr<usize> writev(int fd, IOVec const* iovec, int count)
 ErrorOr<u8*> mmap(void* addr, usize size, int prot, int flags,
     int fd, long offset)
 {
-    auto rv = syscall(Syscall::mmap, addr, size, prot, flags, fd,
-        offset);
+    auto rv = syscall(Arch::Syscall::mmap, addr, size, prot, flags,
+        fd, offset);
     if (rv < 0)
         return Error::from_syscall(rv);
     return (u8*)rv;
@@ -171,7 +171,7 @@ ErrorOr<u8*> mmap(usize size, int prot, int flags, int fd,
 
 ErrorOr<void> munmap(void const* addr, usize size)
 {
-    auto rv = syscall(Syscall::munmap, addr, size);
+    auto rv = syscall(Arch::Syscall::munmap, addr, size);
     if (rv < 0)
         return Error::from_syscall(rv);
     return {};
@@ -179,7 +179,7 @@ ErrorOr<void> munmap(void const* addr, usize size)
 
 ErrorOr<void> mprotect(void* addr, usize len, int prot)
 {
-    auto rv = syscall(Syscall::mprotect, addr, len, prot);
+    auto rv = syscall(Arch::Syscall::mprotect, addr, len, prot);
     if (rv < 0)
         return Error::from_syscall(rv);
     return {};
@@ -188,10 +188,10 @@ ErrorOr<void> mprotect(void* addr, usize len, int prot)
 ErrorOr<void> remove(c_string path)
 {
     // Assume not directory.
-    auto rv = syscall(Syscall::unlinkat, AT_FDCWD, path, 0);
+    auto rv = syscall(Arch::Syscall::unlinkat, AT_FDCWD, path, 0);
     if (rv == -EISDIR) {
         // Oops, was directory.
-        rv = syscall(Syscall::unlinkat, AT_FDCWD, path,
+        rv = syscall(Arch::Syscall::unlinkat, AT_FDCWD, path,
             AT_REMOVEDIR);
     }
     if (rv < 0)
@@ -206,7 +206,7 @@ ErrorOr<int> open(c_string path, int flags)
             "O_CREAT should not be used with this function "
             "variant");
     }
-    auto fd = syscall(Syscall::open, path, flags, 0);
+    auto fd = syscall(Arch::Syscall::open, path, flags, 0);
     if (fd < 0)
         return Error::from_syscall(fd);
     return (int)fd;
@@ -214,7 +214,8 @@ ErrorOr<int> open(c_string path, int flags)
 
 ErrorOr<int> open(c_string path, int flags, mode_t mode)
 {
-    auto fd = syscall(Syscall::open, path, flags | O_CREAT, mode);
+    auto fd
+        = syscall(Arch::Syscall::open, path, flags | O_CREAT, mode);
     if (fd < 0)
         return Error::from_syscall(fd);
     return (int)fd;
@@ -223,7 +224,7 @@ ErrorOr<int> open(c_string path, int flags, mode_t mode)
 ErrorOr<void> close(int fd)
 {
     TRY(fsync(fd));
-    auto rv = syscall(Syscall::close, fd);
+    auto rv = syscall(Arch::Syscall::close, fd);
     if (rv < 0)
         return Error::from_syscall(rv);
     return {};
@@ -231,7 +232,7 @@ ErrorOr<void> close(int fd)
 
 ErrorOr<void> unlink(c_string path)
 {
-    auto rv = syscall(Syscall::unlink, path);
+    auto rv = syscall(Arch::Syscall::unlink, path);
     if (rv < 0)
         return Error::from_syscall(rv);
     return {};
@@ -287,8 +288,8 @@ bool isatty(int fd)
     // This gets the line discipline of the terminal. When called on
     // something that isn't a terminal it doesn't change
     // `line_discipline` and returns -1.
-    auto rv
-        = syscall(Syscall::ioctl, fd, TIOCGETD, &line_discipline);
+    auto rv = syscall(Arch::Syscall::ioctl, fd, TIOCGETD,
+        &line_discipline);
     if (rv == ENOTTY)
         return false;
     return rv == 0;
@@ -354,7 +355,7 @@ ErrorOr<bool> has_program(StringView name)
 
 [[noreturn]] void exit(int code)
 {
-    syscall(Syscall::exit, code);
+    syscall(Arch::Syscall::exit, code);
     __builtin_unreachable();
 }
 

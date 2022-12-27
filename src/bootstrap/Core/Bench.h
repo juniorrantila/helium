@@ -1,4 +1,5 @@
 #pragma once
+#include <Arch/Time.h>
 #include <Core/File.h>
 #include <Ty/Base.h>
 #include <Ty/Defer.h>
@@ -20,7 +21,10 @@ struct Bench {
     {
     }
 
-    static u64 current_tick() { return __rdtsc(); }
+    static u64 current_tick()
+    {
+        return Arch::Time::current_cycle();
+    }
 
     void start()
     {

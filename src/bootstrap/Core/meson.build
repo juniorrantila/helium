@@ -3,7 +3,7 @@ core_lib = library('core', [
     'MappedFile.cpp',
     'System.cpp',
     ],
-    dependencies: ty_dep)
+    dependencies: [ty_dep, arch_dep])
 
 core_dep = declare_dependency(
   link_with: core_lib,

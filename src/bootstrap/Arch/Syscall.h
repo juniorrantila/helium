@@ -1,10 +1,18 @@
 #pragma once
 #include <Ty/Base.h>
 
-namespace Core {
+#if __x86_64__
+#    include "x86_64/Syscall.h"
+#elif __aarch64__
+#    include "aarch64/Syscall.h"
+#else
+#    error "unimplemented"
+#endif
+
+namespace Arch {
 
 enum class Syscall : iptr {
-#ifdef __linux__ // FIXME: Assumes x86_64
+#if defined(__linux__) && defined(__x86_64__)
     read = 0,
     write = 1,
     open = 2,
@@ -367,7 +375,7 @@ enum class Syscall : iptr {
     process_mrelease = 448,
     futex_waitv = 449,
     set_mempolicy_home_node = 450,
-#elif __APPLE__
+#elif __APPLE__ // Maybe same on other arches
     syscall = 0,
     exit = 1,
     fork = 2,
@@ -927,115 +935,27 @@ enum class Syscall : iptr {
 #endif
 };
 
-#ifndef ALWAYS_INLINE
-#    define ALWAYS_INLINE __attribute__((always_inline)) inline
-#endif
-
-#define SYSCALL_CLOBBER_LIST "rcx", "r11", "memory"
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number)
-{
-    iptr retcode;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1)
-{
-    iptr retcode;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number), "D"(__arg1)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
-    iptr __arg2)
-{
-    iptr retcode;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number), "D"(__arg1), "S"(__arg2)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
-    iptr __arg2, iptr __arg3)
-{
-    iptr retcode;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number), "D"(__arg1), "S"(__arg2),
-                 "d"(__arg3)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
-    iptr __arg2, iptr __arg3, iptr __arg4)
-{
-    iptr retcode;
-    register iptr r10 __asm__("r10") = __arg4;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number), "D"(__arg1), "S"(__arg2),
-                 "d"(__arg3), "r"(r10)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
-    iptr __arg2, iptr __arg3, iptr __arg4, iptr __arg5)
-{
-    iptr retcode;
-    register iptr r10 __asm__("r10") = __arg4;
-    register iptr r8 __asm__("r8") = __arg5;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number), "D"(__arg1), "S"(__arg2),
-                 "d"(__arg3), "r"(r10), "r"(r8)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-ALWAYS_INLINE iptr syscall_impl(iptr __number, iptr __arg1,
-    iptr __arg2, iptr __arg3, iptr __arg4, iptr __arg5, iptr __arg6)
-{
-    iptr retcode;
-    register iptr r10 __asm__("r10") = __arg4;
-    register iptr r8 __asm__("r8") = __arg5;
-    register iptr r9 __asm__("r9") = __arg6;
-    asm volatile("syscall"
-                 : "=a"(retcode)
-                 : "a"(__number), "D"(__arg1), "S"(__arg2),
-                 "d"(__arg3), "r"(r10), "r"(r8), "r"(r9)
-                 : SYSCALL_CLOBBER_LIST);
-    return retcode;
-}
-
-#undef SYSCALL_CLOBBER_LIST
-
 template <typename... Args>
 iptr syscall(Syscall call, Args... args)
 {
     auto number = (iptr)call;
 #if __APPLE__
-    number += 0x02000000; // Still incorrect. Currently assumes all
-                          // syscalls are from BSD. CLASS_NONE = 0
-                          // CLASS_MACH = 1
-                          // CLASS_BSD  = 2
-                          // CLASS_MDEP = 3
-                          // CLASS_DIAG = 4
-                          //
-                          // number = ((CLASS_<X> << CLASS_SHIFT) |
-                          // SYSCALL_NUMBER_MASK & number)
+    number
+        += 0x02000000; // Still incorrect. Currently assumes all
+                       // syscalls are from BSD.
+                       //
+                       // Should be:
+                       //     CLASS_NONE = 0
+                       //     CLASS_MACH = 1
+                       //     CLASS_BSD  = 2
+                       //     CLASS_MDEP = 3
+                       //     CLASS_DIAG = 4
+                       //
+                       //     number = ((CLASS_<X> << CLASS_SHIFT) |
+                       //               SYSCALL_NUMBER_MASK &
+                       //               number)
 #endif
-    return syscall_impl(number, (iptr)args...);
+    return Arch::syscall_impl(number, (iptr)args...);
 }
 
 }

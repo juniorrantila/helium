@@ -36,12 +36,19 @@ private:
         {
             Info info;
 
+#if __x86_64__
             asm volatile("cpuid"
                          : "=a"(info.threads), "=b"(info.cores),
                          "=c"(info.unknown),
                          "=d"(info.current_thread)
                          : "0"(11), "2"(0)
                          :);
+#else // FIXME
+            info.cores = 1;
+            info.threads = 1;
+            info.unknown = 0;
+            info.current_thread = 0;
+#endif
 
             return info;
         }
