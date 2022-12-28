@@ -396,9 +396,6 @@ enum class Errno : u32 {
     NOTRECOVERABLE = 104,
     OWNERDEAD = 105,
     QFULL = 106,
-#else
-#    warning "unimplemented"
-#endif
 };
 
 consteval u32 operator&(Errno&& code) { return (u32)code; }
@@ -516,6 +513,10 @@ constexpr const c_string error_codes[] {
 
 constexpr const i32 error_codes_size
     = sizeof(error_codes) / sizeof(error_codes[0]);
+
+#else
+#    warning "unimplemented"
+#endif
 
 }
 
