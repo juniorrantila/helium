@@ -320,7 +320,7 @@ Optional<c_string> getenv(StringView name)
             if (!maybe_value_index.has_value())
                 return "";
             auto value_index = maybe_value_index.value();
-            return &env[value_index];
+            return &env[value_index + 1];
         }
     }
     return {};
