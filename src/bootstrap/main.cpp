@@ -119,7 +119,6 @@ ErrorOr<int> Main::main(int argc, c_string argv[])
         file.view(),
     };
 
-    bench.start();
     auto lex_result = bench("lex"sv, [&] {
         return He::lex(source_file.text);
     });
